@@ -1,0 +1,25 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+# API routes (stable paths your apps will call)
+[[redirects]]
+  from = "/v1/health"
+  to = "/.netlify/functions/kaixu-health"
+  status = 200
+
+[[redirects]]
+  from = "/v1/models"
+  to = "/.netlify/functions/kaixu-models"
+  status = 200
+
+[[redirects]]
+  from = "/v1/generate"
+  to = "/.netlify/functions/kaixu-generate"
+  status = 200
+
+# Optional streaming endpoint (SSE)
+[[redirects]]
+  from = "/v1/stream"
+  to = "/.netlify/functions/kaixu-stream"
+  status = 200
