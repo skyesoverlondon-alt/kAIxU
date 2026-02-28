@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'worker/**'
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -21,3 +22,9 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: worker
+          secrets: |
+            KAIXU_GEMINI_API_KEY
+            KAIXU_APP_TOKENS
+        env:
+          KAIXU_GEMINI_API_KEY: ${{ secrets.KAIXU_GEMINI_API_KEY }}
+          KAIXU_APP_TOKENS: ${{ secrets.KAIXU_APP_TOKENS }}
