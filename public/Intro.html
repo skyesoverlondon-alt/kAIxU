@@ -546,6 +546,7 @@
         bootSequence.classList.add('hidden');
         if (returnTarget && returnTarget !== window.location.pathname) {
           const target = returnTarget;
+          sessionStorage.setItem('kaixuIntroPass','1');
           sessionStorage.removeItem(introReturnKey);
           setTimeout(() => {
             window.location.href = target;
