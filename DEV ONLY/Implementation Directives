@@ -7,6 +7,26 @@
 
 ---
 
+## ⚠ KAIXU_CANON — Injected Server-Side On Every Request (Cannot Be Overridden)
+
+The gate hardcodes a full identity block called `KAIXU_CANON` at the top of every request's system instruction, before any per-request `system` field you send. This is non-negotiable at the infrastructure level — no client call can remove or override it.
+
+**What this means for client code:**
+- Never send `KAIXU_CANON` from client code. It wastes tokens. The gate already injects it.
+- Your per-request `system` field is appended *after* the canon, not instead of it.
+- If you send a `system` field, it adds your instructions on top of the canon. If you don't send one, the global system from `KAIXU_GLOBAL_SYSTEM` env var applies as the second layer.
+- The canon enforces identity (kAIxU origin story, vendor silence, etc.) regardless of what temperature, system prompt, or messages you send.
+
+**How it stacks on each request:**
+```
+[KAIXU_CANON]          ← always first, always there, injected by gate
+[your system field]    ← your per-request instructions (optional)
+[messages[]]           ← conversation history
+[input.content]        ← current user turn
+```
+
+---
+
 ## Mandatory: Gate-Only Calls (No Direct Provider Calls)
 
 - Do **not** call Gemini / OpenAI / Anthropic endpoints from any app. All AI traffic must flow through the gate.
@@ -356,6 +376,8 @@ const country = JSON.parse(data.text);
 ---
 
 ## 9. Streaming — `/v1/stream`
+
+> **⚠ Netlify CDN blocks SSE.** If your app is hosted on Netlify (`*.netlify.app` or any Netlify-proxied domain), `/v1/stream` will silently fail — Netlify's CDN buffers the entire response before delivering it, breaking the streaming behaviour. For any Netlify-hosted app, use `/v1/generate` instead. `/v1/stream` works correctly from Cloudflare Workers, Vercel Edge, self-hosted servers, or direct browser calls to non-Netlify origins.
 
 Use streaming when:
 - Answers take more than 1-2 seconds

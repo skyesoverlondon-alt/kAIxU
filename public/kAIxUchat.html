@@ -554,23 +554,43 @@ async function send() {
   const typing = appendTyping();
 
   try {
-    const r = await fetch(`${API_BASE}/v1/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': token.startsWith('Bearer ') ? token : 'Bearer ' + token
-      },
-      body: JSON.stringify({
-        model: modelSelect.value || 'gemini-2.5-flash',
-        system: KAIXU_SYSTEM,
-        messages: convo.messages.map(m => ({ role: m.role, content: m.content })),
-        generationConfig: { temperature: 0.7 }
-      })
-    });
+    const endpoint = `${API_BASE}/v1/generate`;
+    let r;
+    try {
+      r = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token.startsWith('Bearer ') ? token : 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          model: modelSelect.value || 'gemini-2.5-flash',
+          system: KAIXU_SYSTEM,
+          messages: convo.messages.map(m => ({ role: m.role, content: m.content })),
+          generationConfig: { temperature: 0.7 }
+        })
+      });
+    } catch (netErr) {
+      typing.remove();
+      appendBubble('assistant',
+        `⚠ Network error — could not reach gate.\nURL: ${endpoint}\nError: ${netErr.message}\nCheck: token entered, CORS, worker is live.`, true);
+      busy = false; sendBtn.disabled = !chatInput.value.trim(); chatInput.focus();
+      return;
+    }
     typing.remove();
-    const j = await r.json().catch(() => ({ ok: false, error: 'Non-JSON response from gateway' }));
+    let rawText = '';
+    try { rawText = await r.text(); } catch(_) {}
+    let j;
+    try { j = JSON.parse(rawText); } catch(_) {
+      j = { ok: false, error: `Non-JSON response (HTTP ${r.status})`, raw: rawText.slice(0, 300) };
+    }
     if (!r.ok || !j.ok) {
-      appendBubble('assistant', '⚠ ' + (j.error || JSON.stringify(j)), true);
+      const detail = [
+        `HTTP ${r.status}`,
+        j.error || '',
+        j.raw ? `Raw: ${j.raw}` : ''
+      ].filter(Boolean).join(' · ');
+      appendBubble('assistant', `⚠ Gate error — ${detail}`, true);
     } else {
       const reply = j.text || '';
       convo.messages.push({ role: 'assistant', content: reply });
@@ -578,8 +598,8 @@ async function send() {
       save();
     }
   } catch (e) {
-    typing.remove();
-    appendBubble('assistant', '⚠ ' + (e.message || String(e)), true);
+    try { typing.remove(); } catch(_) {}
+    appendBubble('assistant', `⚠ Unexpected error: ${e.message || String(e)}`, true);
   }
 
   busy = false;
