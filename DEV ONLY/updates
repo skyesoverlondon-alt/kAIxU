@@ -1,0 +1,120 @@
+# kAIxU — Dev Update Log
+Skyes Over London LC · skyesoverlondon-alt/kAIxU
+─────────────────────────────────────────────────────
+
+## [2026-02-28] — Major Session: All 17 Apps Live + Infrastructure Hardened
+
+### Apps Built (all committed in one push — commit dea898e)
+17 AI-powered micro-apps built and deployed under /public/:
+
+  Batch 1 (pre-session): flashKai
+  Batch 2: mailKai, coverKai, resumeKai, sqlKai
+  Batch 3: meetKai, journalKai, briefKai, storyKai
+  Batch 4: nameKai, paletteKai, recipeKai, diagramKai
+  Batch 5: readKai, mathKai, codeKai, quizKai
+
+All 17 apps fully nav-linked across all 21 HTML files (index.html,
+kAIxUchat.html, skaixuIDE.html, photoKai.html + 17 new apps).
+Total: 21 files, 3700+ insertions.
+
+───
+
+### Worker Deployment — commit 3f61b3b
+- Cloudflare Worker (kaixu67) was offline, returning Cloudflare-level 404
+- Root cause: worker not deployed — Pages site was serving at root URL
+- Fix: redeployed via `npx wrangler deploy` with CLOUDFLARE_API_TOKEN
+- Worker now live at: https://kaixu67.skyesoverlondon.workers.dev
+- Health confirmed: {"ok":true,"keyConfigured":true,"authConfigured":true}
+- Secrets pushed: KAIXU_GEMINI_API_KEY, KAIXU_APP_TOKENS
+
+### CI/CD Auto-Deploy — commit 3f61b3b
+- Updated .github/workflows/deploy-worker.yml
+- Switched from manual wrangler install to cloudflare/wrangler-action@v3
+- Triggers on any push to worker/** on main branch
+- Manual "Run workflow" button available in GitHub Actions UI
+- Required GitHub repo secrets (set manually): CF_API_TOKEN, CF_ACCOUNT_ID,
+  KAIXU_GEMINI_API_KEY, KAIXU_APP_TOKENS
+
+───
+
+### Aurora Background — commit 3b422c1
+Applied kAIxUchat's signature aurora background to 10 apps:
+flashKai, journalKai, mailKai, coverKai, resumeKai, sqlKai,
+meetKai, briefKai, storyKai, nameKai
+
+Changes per file:
+- body background: replaced flat --bg color with 3-layer radial gradient
+  (violet/cyan/gold) + linear dark base
+- Added .aurora div + CSS: fixed conic-gradient that animates with drift
+  keyframe (12s ease-in-out infinite, blur 70px, 0.5 opacity)
+
+───
+
+### photoKai — BG Removal Fix — commit 76bef62
+- Problem: dynamic import of @imgly/background-removal from jsDelivr failed
+  with "Failed to fetch dynamically imported module" error
+- Root cause: jsDelivr does not serve ESM + WASM with correct CORS headers
+- Fix: switched CDN from jsdelivr → unpkg
+- Added `publicPath` option pointing to unpkg so WASM model files resolve
+
+───
+
+### SSE Streaming — commit b2fde5b
+All 17 apps converted from /v1/generate (blocking JSON) to /v1/stream (SSE).
+Users now see AI typing in real time instead of waiting for a response blob.
+
+Shared streamSSE() helper injected into every app:
+  - Opens fetch to /v1/stream
+  - Reads response body as a ReadableStream
+  - Parses SSE lines (`data: {...}`)
+  - Extracts text chunks from Gemini candidate parts
+  - Calls onChunk(chunk, fullSoFar) on every chunk
+
+Behavior by app type:
+  Text-output apps (mailKai, coverKai): text streams directly into output box
+  JSON-output apps (all others): status shows "✦ N chars…" ticking up in
+  real time; full JSON parsed + rendered when stream completes
+
+Apps with 2 generate calls converted (mathKai): both fetchHint and
+fetchFullSolution now stream independently.
+
+Multimodal apps (recipeKai, diagramKai, readKai): contents[] format preserved
+inside streamSSE body; streaming works with image+text payloads.
+
+─────────────────────────────────────────────────────
+## App Inventory (as of 2026-02-28)
+
+| File            | Purpose                              | Output type  |
+|-----------------|--------------------------------------|--------------|
+| kAIxUchat.html  | Main chat interface                  | streaming    |
+| skaixuIDE.html  | IDE / code workspace                 | streaming    |
+| photoKai.html   | Photo editor + BG removal (WASM)     | canvas       |
+| flashKai.html   | AI flashcard generator               | JSON→cards   |
+| mailKai.html    | Email writer                         | text stream  |
+| coverKai.html   | Cover letter generator               | text stream  |
+| resumeKai.html  | Resume builder                       | JSON→HTML    |
+| sqlKai.html     | SQL query generator                  | JSON→code    |
+| meetKai.html    | Meeting notes summarizer             | JSON→panels  |
+| journalKai.html | Journal reflection AI                | JSON→text    |
+| briefKai.html   | Content summarizer                   | JSON→panels  |
+| storyKai.html   | Interactive story generator          | JSON→beats   |
+| nameKai.html    | Brand name generator                 | JSON→cards   |
+| paletteKai.html | Color palette from text              | JSON→swatches|
+| recipeKai.html  | Fridge photo → recipes (multimodal)  | JSON→cards   |
+| diagramKai.html | Whiteboard → Mermaid (multimodal)    | JSON→diagram |
+| readKai.html    | OCR + translate (multimodal)         | JSON→text    |
+| mathKai.html    | Math tutor with step-by-step         | JSON→steps   |
+| codeKai.html    | Code review (4 modes)                | JSON→panels  |
+| quizKai.html    | MCQ quiz generator                   | JSON→quiz UI |
+
+─────────────────────────────────────────────────────
+## Infrastructure
+
+  Worker:   https://kaixu67.skyesoverlondon.workers.dev
+  Hosting:  Netlify (auto-deploy from main branch)
+  Repo:     github.com/skyesoverlondon-alt/kAIxU
+  Model:    gemini-2.5-flash (default, set in wrangler.toml)
+  Auth:     Bearer token required on all /v1/* requests
+  Secrets:  KAIXU_GEMINI_API_KEY, KAIXU_APP_TOKENS (in Cloudflare)
+
+─────────────────────────────────────────────────────
