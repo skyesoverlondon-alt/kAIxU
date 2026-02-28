@@ -130,6 +130,7 @@
 
 <script>
 const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+async function streamSSE(url,tok,body,onChunk){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error('HTTP '+r.status+' · '+(e.error||r.statusText));}const reader=r.body.getReader();const dec=new TextDecoder();let buf='',full='';while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const ln of lines){if(!ln.startsWith('data: '))continue;const data=ln.slice(6).trim();if(!data||data==='[DONE]')continue;try{const j=JSON.parse(data);const chunk=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('');if(chunk){full+=chunk;onChunk(chunk,full);}}catch{}}}return full;}
 let tone = 'Professional';
 
 document.getElementById('toneGrid').addEventListener('click', e => {
@@ -161,17 +162,13 @@ ${points ? `Key points to include:\n${points}` : ''}
 Return ONLY the email body (no subject line header, no meta-commentary). Start directly with the greeting.`;
 
   try {
-    const r = await fetch(`${API}/v1/generate`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
-      body: JSON.stringify({ messages:[{role:'user', content: prompt}] })
-    });
-    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||r.statusText}`); }
-    const d = await r.json();
-    const text = (d.text||d.content||'').trim();
     const out = document.getElementById('out');
-    out.textContent = text;
+    out.textContent = '';
     out.classList.remove('placeholder');
+    await streamSSE(`${API}/v1/stream`, tok, { messages:[{role:'user', content: prompt}] }, (chunk) => {
+      out.textContent += chunk;
+      out.scrollTop = out.scrollHeight;
+    });
     localStorage.setItem('mailKai_token', tok);
   } catch(e) { st(e.message, true); }
   finally { btn.disabled=false; btn.textContent='Write Email'; }

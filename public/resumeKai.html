@@ -141,6 +141,7 @@
 <script>
 const API = 'https://kaixu67.skyesoverlondon.workers.dev';
 
+async function streamSSE(url,tok,body,onChunk){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error('HTTP '+r.status+' · '+(e.error||r.statusText));}const reader=r.body.getReader();const dec=new TextDecoder();let buf='',full='';while(true){const{done,value}=await reader.read();if(done)break;buf+=dec.decode(value,{stream:true});const lines=buf.split('\n');buf=lines.pop();for(const ln of lines){if(!ln.startsWith('data: '))continue;const data=ln.slice(6).trim();if(!data||data==='[DONE]')continue;try{const j=JSON.parse(data);const chunk=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join('');if(chunk){full+=chunk;onChunk(chunk,full);}}catch{}}}return full;}
 async function generate() {
   const tok = document.getElementById('tok').value.trim();
   const pName = document.getElementById('pName').value.trim();
@@ -183,16 +184,9 @@ ${eduRaw || '(not provided)'}
 SKILLS: ${skills || '(not provided)'}`;
 
   try {
-    const r = await fetch(`${API}/v1/generate`, {
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
-      body: JSON.stringify({ system: sys, messages:[{role:'user', content: user}] })
-    });
-    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||'error'}`); }
-    const d = await r.json();
-    let raw = (d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    const raw = await streamSSE(`${API}/v1/stream`, tok, { system: sys, messages:[{role:'user', content: user}] }, (_,full) => { st('✦ '+full.length+' chars…'); });
     let data;
-    try { data = JSON.parse(raw); } catch { throw new Error('AI returned non-JSON. Try again.'); }
+    try { data = JSON.parse(raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'')); } catch { throw new Error('AI returned non-JSON. Try again.'); }
     renderResume(data);
     localStorage.setItem('resumeKai_token', tok);
   } catch(e) { st(e.message, true); }
