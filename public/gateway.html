@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kaixu Gate Delta — kAIxu Core Gateway</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#07060d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="kAIxUchat" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="description" content="Kaixu Gate Delta: Netlify-hosted gateway that centralizes kAIxu calls and keeps the API key server-side." />
+  <style>
+    :root{
+      --bg:#07060d;
+      --fg:#f2f0ff;
+      --muted:#b7b2d9;
+      --gold:#ffd55a;
+      --violet:#b86bff;
+      --blue:#3bd6ff;
+      --glass: rgba(255,255,255,0.06);
+      --glass2: rgba(255,255,255,0.10);
+      --border: rgba(255,255,255,0.14);
+      --shadow: 0 20px 80px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; color:var(--fg);
+      background:
+        radial-gradient(900px 600px at 15% 20%, rgba(184,107,255,.20), transparent 60%),
+        radial-gradient(900px 600px at 85% 25%, rgba(59,214,255,.16), transparent 60%),
+        radial-gradient(1200px 900px at 50% 95%, rgba(255,213,90,.10), transparent 60%),
+        linear-gradient(180deg, #05040a, #07060d 40%, #060512);
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow-x:hidden;
+    }
+    .aurora{
+      position:fixed; inset:-20% -10%;
+      background:
+        conic-gradient(from 200deg at 50% 50%,
+          rgba(184,107,255,.18),
+          rgba(59,214,255,.18),
+          rgba(255,213,90,.10),
+          rgba(184,107,255,.18));
+      filter: blur(70px) saturate(140%);
+      opacity:.55;
+      animation: drift 12s ease-in-out infinite;
+      pointer-events:none;
+      z-index:0;
+    }
+    @keyframes drift{
+      0%{transform: translate3d(-2%, -1%, 0) rotate(-6deg) scale(1.05)}
+      50%{transform: translate3d(2%, 1%, 0) rotate(6deg) scale(1.08)}
+      100%{transform: translate3d(-2%, -1%, 0) rotate(-6deg) scale(1.05)}
+    }
+    .wrap{position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:28px 18px 60px}
+    .logo{
+      position:fixed; top:18px; left:18px; width:64px; height:auto;
+      filter: drop-shadow(0 0 18px rgba(184,107,255,.45)) drop-shadow(0 0 22px rgba(255,213,90,.25));
+      animation:pulse 2.6s ease-in-out infinite;
+      z-index:3;
+    }
+    @keyframes pulse{
+      0%,100%{transform: scale(1); opacity:1}
+      50%{transform: scale(1.04); opacity:.92}
+    }
+    header{
+      margin-top:42px;
+      padding:22px 22px;
+      background: linear-gradient(180deg, var(--glass2), var(--glass));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    h1{margin:0 0 6px; font-size: 22px; letter-spacing:.2px}
+    .sub{color:var(--muted); margin:0}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      margin-top:16px;
+    }
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      padding:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .card h2{margin:0 0 10px; font-size:16px}
+    .k{color:var(--gold)}
+    code, pre{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+    }
+    pre{
+      margin:0;
+      padding:12px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow:auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #out{
+      min-height: 220px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input, textarea, select{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.32);
+      color: var(--fg);
+      outline:none;
+    }
+    textarea{min-height:110px; resize: vertical}
+    .btn{
+      cursor:pointer;
+      padding:10px 14px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(180deg, rgba(184,107,255,.25), rgba(59,214,255,.16));
+      color: var(--fg);
+      font-weight: 650;
+      letter-spacing:.2px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      transition: transform .08s ease, filter .2s ease;
+    }
+    .btn:active{transform: translateY(1px) scale(.99)}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.28);
+      color: var(--muted);
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 0 18px rgba(255,213,90,0.22);
+    }
+    .ok .dot{ background: rgba(59,214,255,0.75); box-shadow: 0 0 18px rgba(59,214,255,0.55) }
+    .bad .dot{ background: rgba(255,105,105,0.85); box-shadow: 0 0 18px rgba(255,105,105,0.45) }
+    .small{font-size:12px; color:var(--muted)}
+    footer{margin-top:18px; color:var(--muted); font-size:12px; opacity:.95}
+    a{color:var(--blue); text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="aurora"></div>
+
+  <!-- Floating logo: no container, subtle glow, slight pulse -->
+  <img class="logo" src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="Skyes Over London LC Logo" border="0" />
+
+  <div class="wrap">
+    <header>
+      <nav style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;font-weight:700;color:var(--muted);align-self:center;margin-right:6px;">skAIxu</span>
+        <a href="/gateway.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(184,107,255,.22);color:#b86bff;border:1px solid rgba(184,107,255,.4);font-weight:600">⬡ Gateway</a>
+        <a href="/kAIxUchat.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">✦ Chat</a>
+        <a href="/skaixuIDE.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">⌨ IDE</a>
+        <a href="/photoKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📸 photoKai</a>
+        <a href="/flashKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">⚡ flashKai</a>
+        <a href="/mailKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">✉ mailKai</a>
+        <a href="/coverKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📄 coverKai</a>
+        <a href="/resumeKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📋 resumeKai</a>
+        <a href="/sqlKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">🗄 sqlKai</a>
+        <a href="/meetKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">🤝 meetKai</a>
+        <a href="/journalKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📓 journalKai</a>
+        <a href="/briefKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📰 briefKai</a>
+        <a href="/storyKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📖 storyKai</a>
+        <a href="/nameKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">✨ nameKai</a>
+        <a href="/paletteKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">🎨 paletteKai</a>
+        <a href="/recipeKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">🍳 recipeKai</a>
+        <a href="/diagramKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📊 diagramKai</a>
+        <a href="/readKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">📖 readKai</a>
+        <a href="/mathKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">∑ mathKai</a>
+        <a href="/codeKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">&lt;/&gt; codeKai</a>
+        <a href="/quizKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid rgba(255,255,255,.1);font-weight:600" onmouseover="this.style.color='#f2f0ff'" onmouseout="this.style.color=''">🧩 quizKai</a>
+        <a href="/TriviaGo.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,211,106,.1);color:#ffd36a;border:1px solid rgba(255,211,106,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(255,211,106,.4)'" onmouseout="this.style.boxShadow=''">⚡ TriviaGo</a>
+        <a href="/pitchKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,211,106,.1);color:#ffd36a;border:1px solid rgba(255,211,106,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(255,211,106,.4)'" onmouseout="this.style.boxShadow=''">🎯 pitchKai</a>
+        <a href="/contractKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(0,255,170,.08);color:#00ffaa;border:1px solid rgba(0,255,170,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(0,255,170,.4)'" onmouseout="this.style.boxShadow=''">📝 contractKai</a>
+        <a href="/debugKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,60,110,.08);color:#ff3c6e;border:1px solid rgba(255,60,110,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(255,60,110,.4)'" onmouseout="this.style.boxShadow=''">🐛 debugKai</a>
+        <a href="/translateKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(0,243,255,.08);color:#00f3ff;border:1px solid rgba(0,243,255,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(0,243,255,.4)'" onmouseout="this.style.boxShadow=''">🌐 translateKai</a>
+        <a href="/roastKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(162,67,255,.08);color:#a243ff;border:1px solid rgba(162,67,255,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(162,67,255,.4)'" onmouseout="this.style.boxShadow=''">🔥 roastKai</a>
+        <a href="/legalKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,159,67,.08);color:#ff9f43;border:1px solid rgba(255,159,67,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(255,159,67,.4)'" onmouseout="this.style.boxShadow=''">⚖️ legalKai</a>
+        <a href="/threadKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(59,214,255,.08);color:#3bd6ff;border:1px solid rgba(59,214,255,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(59,214,255,.4)'" onmouseout="this.style.boxShadow=''">🧵 threadKai</a>
+        <a href="/voiceKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(255,107,181,.08);color:#ff6bb5;border:1px solid rgba(255,107,181,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(255,107,181,.4)'" onmouseout="this.style.boxShadow=''">🎤 voiceKai</a>
+        <a href="/scriptKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(184,255,60,.08);color:#b8ff3c;border:1px solid rgba(184,255,60,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(184,255,60,.4)'" onmouseout="this.style.boxShadow=''">🎬 scriptKai</a>
+        <a href="/mapKai.html" style="font-size:12px;padding:5px 13px;border-radius:20px;text-decoration:none;background:rgba(0,229,204,.08);color:#00e5cc;border:1px solid rgba(0,229,204,.35);font-weight:600" onmouseover="this.style.boxShadow='0 0 14px rgba(0,229,204,.4)'" onmouseout="this.style.boxShadow=''">🗺️ mapKai</a>
+      </nav>
+
+      <!-- INNER SANCTUM BUTTON -->
+      <a href="/index.html" style="display:block;text-align:center;margin:10px 0 18px;padding:14px 24px;border-radius:14px;text-decoration:none;font-family:'Orbitron','Segoe UI',sans-serif;font-size:15px;font-weight:900;letter-spacing:.1em;color:#a243ff;background:rgba(162,67,255,.08);border:1.5px solid rgba(162,67,255,.5);box-shadow:0 0 30px rgba(162,67,255,.2),inset 0 1px 0 rgba(255,255,255,.08);transition:all .2s;position:relative;overflow:hidden" onmouseover="this.style.boxShadow='0 0 55px rgba(162,67,255,.55),0 0 15px rgba(0,243,255,.2),inset 0 1px 0 rgba(255,255,255,.12)';this.style.color='#c87fff';this.style.borderColor='rgba(162,67,255,.9)'" onmouseout="this.style.boxShadow='0 0 30px rgba(162,67,255,.2),inset 0 1px 0 rgba(255,255,255,.08)';this.style.color='#a243ff';this.style.borderColor='rgba(162,67,255,.5)'">🔮 Explore The Inner Sanctum</a>
+
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>Kaixu Gate Delta <span class="k">—</span> kAIxu Core Gateway</h1>
+          <p class="sub">Your AI home on Netlify. Apps call this gate; the API key stays server-side.</p>
+        </div>
+        <div class="pill" id="healthPill"><span class="dot"></span><span id="healthText">Checking health…</span></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Quick endpoints</h2>
+        <pre><code>GET  /v1/health
+GET  /v1/models
+POST /v1/generate
+POST /v1/stream   (SSE)</code></pre>
+
+        <div style="height:10px"></div>
+
+        <h2>Test console</h2>
+        <p class="small">Paste an app token, pick a model, and fire a request. The gateway will never expose your API key.</p>
+
+        <div class="row">
+          <div style="flex:1">
+            <label class="small">App token</label>
+            <input id="token" placeholder="Bearer token (from KAIXU_APP_TOKENS)" />
+          </div>
+          <div style="width:260px">
+            <label class="small">Model</label>
+            <select id="model"></select>
+          </div>
+        </div>
+
+        <div style="height:10px"></div>
+
+        <label class="small">Prompt</label>
+        <textarea id="prompt" placeholder="Type a prompt…">Write a product overview in 5 bullet points.</textarea>
+
+        <div style="height:10px"></div>
+
+        <div class="row">
+          <button class="btn" id="run">Generate</button>
+          <span class="small" id="status"></span>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <label class="small">Response</label>
+        <pre id="out"><code>// Response will appear here</code></pre>
+      </section>
+
+      <aside class="card">
+        <h2>How your apps should call the gate</h2>
+        <pre><code>fetch("https://YOUR-GATE.netlify.app/v1/generate", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer YOUR_APP_TOKEN"
+  },
+  body: JSON.stringify({
+    model: "gemini-2.5-flash",
+    input: { type: "text", content: "Hello" },
+    generationConfig: { temperature: 0.7 }
+  })
+})</code></pre>
+
+        <div style="height:10px"></div>
+
+        <h2>Notes</h2>
+        <p class="small">
+          This page is only a console + status. Your real “AI home” is the gateway API.
+          Use Git deploy so the functions run reliably.
+        </p>
+
+        <div style="height:10px"></div>
+
+        <h2>Hardening checklist</h2>
+        <ul class="small" style="margin:0; padding-left:18px">
+          <li>Keep <code>KAIXU_OPEN_GATE</code> = 0</li>
+          <li>Use unique app tokens per product</li>
+          <li>Set <code>KAIXU_ALLOWED_ORIGINS</code> to your domains</li>
+          <li>Rotate tokens quarterly</li>
+        </ul>
+
+        <footer style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px">
+          <span><span>Skyes Over London LC</span> · <a href="/v1/health">health</a> · <a href="/v1/models">models</a></span>
+          <a href="/kAIxUchat.html" style="
+            display:inline-flex; align-items:center; gap:6px;
+            padding:8px 16px;
+            border-radius:999px;
+            background: linear-gradient(135deg, rgba(255,213,90,.18), rgba(255,213,90,.08));
+            border:1.5px solid var(--gold);
+            color:var(--gold);
+            font-weight:700;
+            font-size:12px;
+            letter-spacing:.4px;
+            text-decoration:none;
+            box-shadow: 0 0 18px rgba(255,213,90,.35), 0 0 40px rgba(255,213,90,.15);
+            transition: box-shadow .2s ease, transform .1s ease;
+            white-space:nowrap;
+          " onmouseover="this.style.boxShadow='0 0 28px rgba(255,213,90,.65), 0 0 60px rgba(255,213,90,.25)'; this.style.transform='scale(1.03)'" onmouseout="this.style.boxShadow='0 0 18px rgba(255,213,90,.35), 0 0 40px rgba(255,213,90,.15)'; this.style.transform='scale(1)'">✦ try kAIxUchat</a>
+          <a href="/skaixuIDE.html" style="
+            display:inline-block; margin-top:12px;
+            background:transparent;
+            border: 1.5px solid rgba(59,214,255,.6);
+            color:#3bd6ff;
+            text-decoration:none; font-weight:600; font-size:13px;
+            padding:10px 22px; border-radius:50px;
+            box-shadow: 0 0 14px rgba(59,214,255,.25);
+            transition: box-shadow .2s ease, transform .1s ease;
+            white-space:nowrap;
+          " onmouseover="this.style.boxShadow='0 0 28px rgba(59,214,255,.55)'; this.style.transform='scale(1.03)'" onmouseout="this.style.boxShadow='0 0 14px rgba(59,214,255,.25)'; this.style.transform='scale(1)'">⌨ skAIxu IDE</a>
+          <a href="/smokeKai.html" style="
+            display:inline-block; margin-top:12px;
+            background:transparent;
+            border: 1.5px solid rgba(59,255,178,.55);
+            color:#3bffb2;
+            text-decoration:none; font-weight:600; font-size:13px;
+            padding:10px 22px; border-radius:50px;
+            box-shadow: 0 0 14px rgba(59,255,178,.2);
+            transition: box-shadow .2s ease, transform .1s ease;
+            white-space:nowrap;
+          " onmouseover="this.style.boxShadow='0 0 28px rgba(59,255,178,.5)'; this.style.transform='scale(1.03)'" onmouseout="this.style.boxShadow='0 0 14px rgba(59,255,178,.2)'; this.style.transform='scale(1)'">🔬 Smoke Test</a>
+        </footer>
+      </aside>
+    </div>
+  </div>
+
+<script>
+  const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
+  const $ = (id) => document.getElementById(id);
+
+  function setHealth(ok, msg){
+    const pill = $("healthPill");
+    pill.classList.remove("ok","bad");
+    pill.classList.add(ok ? "ok" : "bad");
+    $("healthText").textContent = msg;
+  }
+
+  async function loadModels(){
+    try{
+      const r = await fetch(`${API_BASE}/v1/models`);
+      const j = await r.json();
+      const sel = $("model");
+      sel.innerHTML = "";
+      (j.models || []).forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.label || m.id;
+        sel.appendChild(opt);
+      });
+    }catch(e){
+      // If models fails, fall back to a safe default list
+      const fallback = ["gemini-2.5-flash","gemini-2.5-pro"];
+      const sel = $("model"); sel.innerHTML="";
+      fallback.forEach(id=>{
+        const opt=document.createElement("option");
+        opt.value=id; opt.textContent=id;
+        sel.appendChild(opt);
+      });
+    }
+  }
+
+  async function health(){
+    try{
+      const r = await fetch(`${API_BASE}/v1/health`);
+      const j = await r.json();
+      setHealth(!!j.ok, j.ok ? "Online" : "Offline");
+    }catch(e){
+      setHealth(false, "Offline");
+    }
+  }
+
+  $("run").addEventListener("click", async () => {
+    $("status").textContent = "Sending…";
+    $("out").textContent = "";
+    try{
+      const token = $("token").value.trim();
+      const model = $("model").value;
+      const prompt = $("prompt").value;
+
+      const r = await fetch(`${API_BASE}/v1/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": token.startsWith("Bearer ") ? token : ("Bearer " + token) } : {})
+        },
+        body: JSON.stringify({
+          model,
+          input: { type: "text", content: prompt },
+          output: { format: "markdown", style: "brand-neutral" },
+          generationConfig: { temperature: 0.7 }
+        })
+      });
+
+      const j = await r.json().catch(()=>({ ok:false, error:"Non-JSON response"}));
+      if(!r.ok || !j.ok){
+        $("status").textContent = "Error";
+        $("out").textContent = JSON.stringify(j, null, 2);
+        return;
+      }
+      $("status").textContent = "Done";
+      $("out").textContent = j.text || JSON.stringify(j, null, 2);
+    }catch(e){
+      $("status").textContent = "Error";
+      $("out").textContent = (e && e.message) ? e.message : String(e);
+    }
+  });
+
+  loadModels();
+  health();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
