@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>flashKai — AI Flashcards · kAIxU</title>
+<style>
+  :root{
+    --bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);
+    --muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--accent2:#b86bff;
+    --green:#4caf82;--red:#e05c5c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+
+  /* NAV */
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px;white-space:nowrap}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0;transition:background .4s}
+  .health-dot.ok{background:var(--green)}
+  .health-dot.err{background:var(--red)}
+
+  /* LAYOUT */
+  main{flex:1;max-width:900px;width:100%;margin:0 auto;padding:24px 16px}
+  h1{font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px}
+  .sub{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+  /* TOKEN */
+  .token-bar{display:flex;align-items:center;gap:8px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px}
+  .token-bar label{font-size:11px;color:var(--muted);white-space:nowrap}
+  .token-bar input{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:12px;font-family:monospace}
+  .token-bar button{font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.06);color:var(--muted);cursor:pointer}
+  .token-bar button:hover{color:var(--text)}
+
+  /* TABS */
+  .tabs{display:flex;gap:6px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:10px}
+  .tab{font-size:12px;padding:6px 16px;border-radius:20px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;transition:all .15s}
+  .tab:hover{color:var(--text)}
+  .tab.active{background:rgba(200,168,75,.15);color:var(--accent);border-color:rgba(200,168,75,.35)}
+  .tab-panel{display:none}
+  .tab-panel.active{display:block}
+
+  /* GENERATE PANEL */
+  .gen-row{display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:12px;align-items:start}
+  .field-label{font-size:11px;color:var(--muted);margin-bottom:5px;display:block}
+  input[type=text],textarea,select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical;transition:border-color .15s}
+  input[type=text]:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  .count-field{display:flex;flex-direction:column}
+  .count-field select{width:90px}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;transition:color .15s}
+  .btn-secondary:hover{color:var(--text)}
+  .gen-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .status-msg{font-size:12px;color:var(--muted);margin-left:auto}
+  .status-msg.err{color:var(--red)}
+
+  /* CARD GRID */
+  .card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:20px}
+  .flip-card{height:130px;perspective:800px;cursor:pointer}
+  .flip-card-inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .4s ease}
+  .flip-card.flipped .flip-card-inner{transform:rotateY(180deg)}
+  .flip-card-front,.flip-card-back{position:absolute;inset:0;backface-visibility:hidden;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:12px;text-align:center;font-size:13px;line-height:1.4;border:1px solid var(--border)}
+  .flip-card-front{background:var(--card);color:var(--text)}
+  .flip-card-back{background:rgba(200,168,75,.08);border-color:rgba(200,168,75,.25);color:var(--accent);transform:rotateY(180deg)}
+  .card-num{position:absolute;top:7px;left:10px;font-size:10px;color:var(--muted)}
+
+  /* MY DECKS PANEL */
+  .deck-list{display:flex;flex-direction:column;gap:8px}
+  .deck-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s}
+  .deck-item:hover{border-color:rgba(200,168,75,.4)}
+  .deck-item .deck-name{font-size:14px;font-weight:600;flex:1}
+  .deck-item .deck-meta{font-size:11px;color:var(--muted)}
+  .deck-item .btn-del{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid rgba(224,92,92,.3);background:rgba(224,92,92,.08);color:var(--red);cursor:pointer}
+  .deck-item .btn-del:hover{background:rgba(224,92,92,.18)}
+  .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:48px 0}
+
+  /* QUIZ PANEL */
+  .quiz-setup{display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+  .quiz-setup select{width:auto;flex:1}
+  .quiz-arena{display:none}
+  .quiz-arena.active{display:block}
+  .quiz-progress{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .progress-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+  .progress-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+  .progress-label{font-size:12px;color:var(--muted);white-space:nowrap}
+  .quiz-card{background:var(--card);border:1px solid var(--border);border-radius:14px;min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center;cursor:pointer;perspective:800px;margin-bottom:14px;position:relative}
+  .quiz-card-inner{transform-style:preserve-3d;transition:transform .45s ease;width:100%}
+  .quiz-card.flipped .quiz-card-inner{transform:rotateY(180deg)}
+  .qc-front,.qc-back{backface-visibility:hidden;width:100%}
+  .qc-back{transform:rotateY(180deg);position:absolute;top:0;left:0;padding:28px}
+  .quiz-front-text{font-size:18px;font-weight:600;color:var(--text);line-height:1.4}
+  .quiz-back-text{font-size:15px;color:var(--accent);line-height:1.5}
+  .quiz-hint{font-size:11px;color:var(--muted);margin-top:8px}
+  .quiz-btns{display:flex;gap:10px;justify-content:center;margin-top:10px}
+  .btn-got-it{background:rgba(76,175,130,.15);color:var(--green);border:1px solid rgba(76,175,130,.35);border-radius:8px;padding:10px 28px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:none}
+  .btn-again{background:rgba(224,92,92,.12);color:var(--red);border:1px solid rgba(224,92,92,.3);border-radius:8px;padding:10px 28px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:none}
+  .btn-got-it:hover{background:rgba(76,175,130,.28)}
+  .btn-again:hover{background:rgba(224,92,92,.22)}
+  .quiz-result{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;text-align:center;display:none}
+  .quiz-result h2{font-size:24px;font-weight:700;margin-bottom:8px}
+  .quiz-result .score-big{font-size:48px;font-weight:800;color:var(--accent);line-height:1}
+  .quiz-result .score-sub{font-size:13px;color:var(--muted);margin-top:6px;margin-bottom:20px}
+
+  /* SPINNER */
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:16px;height:16px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<header>
+  <span class="logo">⚡ flashKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link active">⚡ flashKai</a>
+  <div class="health-dot" id="healthDot" title="Gate health"></div>
+</header>
+
+<main>
+  <h1>flashKai</h1>
+  <p class="sub">Paste notes or describe a topic — AI builds a flip-card deck you can study and quiz.</p>
+
+  <!-- TOKEN -->
+  <div class="token-bar">
+    <label>Token</label>
+    <input type="text" id="tokenInput" placeholder="your kAIxU app token" autocomplete="off"/>
+    <button onclick="saveToken()">Save</button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('generate',this)">✦ Generate</button>
+    <button class="tab" onclick="switchTab('decks',this)">📚 My Decks</button>
+    <button class="tab" onclick="switchTab('quiz',this)">🎯 Quiz</button>
+  </div>
+
+  <!-- GENERATE -->
+  <div class="tab-panel active" id="tab-generate">
+    <div class="gen-row">
+      <div>
+        <label class="field-label">Deck name / topic</label>
+        <input type="text" id="topicInput" placeholder="e.g. Spanish verbs, React hooks, Photosynthesis…"/>
+      </div>
+      <div class="count-field">
+        <label class="field-label">Cards</label>
+        <select id="cardCount">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+        </select>
+      </div>
+    </div>
+    <label class="field-label">Notes / content (optional — paste text to base cards on)</label>
+    <textarea id="notesInput" rows="5" placeholder="Paste source material here, or leave blank to generate cards purely from the topic name above."></textarea>
+    <div class="gen-actions">
+      <button class="btn-primary" id="genBtn" onclick="generateDeck()">Generate Deck</button>
+      <button class="btn-secondary" id="saveBtn" onclick="saveDeck()" style="display:none">💾 Save Deck</button>
+      <span class="status-msg" id="statusMsg"></span>
+    </div>
+
+    <div class="card-grid" id="cardGrid"></div>
+  </div>
+
+  <!-- MY DECKS -->
+  <div class="tab-panel" id="tab-decks">
+    <div class="deck-list" id="deckList">
+      <div class="empty-state">No saved decks yet. Generate one and hit Save.</div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="tab-panel" id="tab-quiz">
+    <div class="quiz-setup" id="quizSetup">
+      <select id="quizDeckSel"><option value="">— choose a deck —</option></select>
+      <button class="btn-primary" onclick="startQuiz()">Start Quiz</button>
+      <span class="status-msg" id="quizSetupMsg">Save a deck first, then quiz yourself on it.</span>
+    </div>
+
+    <div class="quiz-arena" id="quizArena">
+      <div class="quiz-progress">
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="quizBar" style="width:0%"></div></div>
+        <span class="progress-label" id="quizLabel">0 / 0</span>
+      </div>
+
+      <div class="quiz-card" id="quizCard" onclick="flipQuizCard()">
+        <div class="quiz-card-inner" id="quizCardInner">
+          <div class="qc-front">
+            <div class="quiz-front-text" id="quizFront"></div>
+            <div class="quiz-hint">tap to reveal</div>
+          </div>
+          <div class="qc-back">
+            <div class="quiz-back-text" id="quizBack"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="quiz-btns">
+        <button class="btn-again" id="btnAgain" onclick="markCard(false)">✗ Again</button>
+        <button class="btn-got-it" id="btnGotIt" onclick="markCard(true)">✓ Got it</button>
+      </div>
+
+      <div class="quiz-result" id="quizResult">
+        <div class="score-big" id="resultScore"></div>
+        <div class="score-sub" id="resultSub"></div>
+        <button class="btn-primary" onclick="restartQuiz()" style="margin-top:8px">Retry</button>
+        <button class="btn-secondary" onclick="exitQuiz()" style="margin-left:10px">Done</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
+const DB_NAME  = 'flashKai';
+const DB_VER   = 1;
+let db, currentCards = [], quizQueue = [], quizIdx = 0, quizGot = 0, quizFlipped = false;
+
+/* ── IndexedDB ── */
+function initDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = e => e.target.result.createObjectStore('decks', {keyPath:'name'});
+    r.onsuccess = e => { db = e.target.result; res(); };
+    r.onerror   = () => rej(r.error);
+  });
+}
+function txDecks(mode) { return db.transaction('decks', mode).objectStore('decks'); }
+function getAllDecks()  { return new Promise(res => { const r = txDecks('readonly').getAll(); r.onsuccess = () => res(r.result); }); }
+function putDeck(d)    { return new Promise(res => { txDecks('readwrite').put(d).onsuccess = res; }); }
+function delDeck(name) { return new Promise(res => { txDecks('readwrite').delete(name).onsuccess = res; }); }
+
+/* ── Token ── */
+function saveToken() {
+  localStorage.setItem('flashKai_token', document.getElementById('tokenInput').value.trim());
+  setStatus('Token saved.');
+}
+function getToken() { return document.getElementById('tokenInput').value.trim(); }
+
+/* ── Health ── */
+async function checkHealth() {
+  const dot = document.getElementById('healthDot');
+  try {
+    const r = await fetch(`${API_BASE}/v1/health`);
+    const j = await r.json();
+    dot.className = 'health-dot ' + (j.ok ? 'ok' : 'err');
+    dot.title = j.ok ? 'Gate OK' : 'Gate error';
+  } catch { dot.className = 'health-dot err'; dot.title = 'Unreachable'; }
+}
+
+/* ── Tabs ── */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'decks') renderDeckList();
+  if (id === 'quiz')  populateQuizSelect();
+}
+
+/* ── Status ── */
+function setStatus(msg, isErr=false) {
+  const el = document.getElementById('statusMsg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isErr ? ' err' : '');
+}
+
+/* ── Generate ── */
+async function generateDeck() {
+  const topic = document.getElementById('topicInput').value.trim();
+  const notes = document.getElementById('notesInput').value.trim();
+  const count = document.getElementById('cardCount').value;
+  const token = getToken();
+
+  if (!topic) { setStatus('Enter a deck name / topic.', true); return; }
+  if (!token) { setStatus('Add your app token first.', true); return; }
+
+  const genBtn = document.getElementById('genBtn');
+  genBtn.disabled = true;
+  genBtn.innerHTML = '<span class="spinner"></span>Generating…';
+  document.getElementById('saveBtn').style.display = 'none';
+  document.getElementById('cardGrid').innerHTML = '';
+  setStatus('');
+
+  const systemPrompt = `You are a flashcard generator. Return ONLY a valid JSON array of exactly ${count} objects, each with "front" (question or term) and "back" (answer or definition). No markdown, no prose, no code fences — raw JSON only.`;
+
+  const userContent = notes
+    ? `Create ${count} flashcards for the topic "${topic}" based on this content:\n\n${notes}`
+    : `Create ${count} flashcards for the topic: "${topic}"`;
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` },
+      body: JSON.stringify({
+        system: systemPrompt,
+        messages: [{ role:'user', content: userContent }]
+      })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(`HTTP ${res.status} · ${e.error || res.statusText}`);
+    }
+    const data = await res.json();
+    const raw = (data.text || data.content || '').trim();
+
+    // strip any accidental code fences
+    const cleaned = raw.replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'').trim();
+    let cards;
+    try { cards = JSON.parse(cleaned); }
+    catch { throw new Error('AI returned invalid JSON. Try again.'); }
+
+    if (!Array.isArray(cards) || !cards[0]?.front) throw new Error('Unexpected card format.');
+
+    currentCards = cards;
+    renderCardGrid(cards);
+    document.getElementById('saveBtn').style.display = '';
+    setStatus(`${cards.length} cards generated.`);
+  } catch(err) {
+    setStatus(err.message, true);
+  } finally {
+    genBtn.disabled = false;
+    genBtn.textContent = 'Generate Deck';
+  }
+}
+
+function renderCardGrid(cards) {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+  cards.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = 'flip-card';
+    div.innerHTML = `
+      <div class="flip-card-inner">
+        <div class="flip-card-front"><span class="card-num">${i+1}</span>${escHtml(c.front)}</div>
+        <div class="flip-card-back"><span class="card-num">${i+1}</span>${escHtml(c.back)}</div>
+      </div>`;
+    div.onclick = () => div.classList.toggle('flipped');
+    grid.appendChild(div);
+  });
+}
+
+/* ── Save / Deck List ── */
+async function saveDeck() {
+  const name = document.getElementById('topicInput').value.trim() || 'Untitled';
+  if (!currentCards.length) return;
+  await putDeck({ name, cards: currentCards, saved: Date.now() });
+  setStatus(`"${name}" saved to My Decks.`);
+  await populateQuizSelect();
+}
+
+async function renderDeckList() {
+  const decks = await getAllDecks();
+  const list = document.getElementById('deckList');
+  if (!decks.length) { list.innerHTML = '<div class="empty-state">No saved decks yet. Generate one and hit Save.</div>'; return; }
+  list.innerHTML = '';
+  decks.sort((a,b) => b.saved - a.saved).forEach(d => {
+    const item = document.createElement('div');
+    item.className = 'deck-item';
+    item.innerHTML = `
+      <div class="deck-name">${escHtml(d.name)}</div>
+      <div class="deck-meta">${d.cards.length} cards · ${new Date(d.saved).toLocaleDateString()}</div>
+      <button class="btn-del" onclick="event.stopPropagation();deleteDeck('${encodeURIComponent(d.name)}',this)">Delete</button>`;
+    item.onclick = () => loadDeckToGenerate(d);
+    list.appendChild(item);
+  });
+}
+
+async function deleteDeck(encName, btn) {
+  const name = decodeURIComponent(encName);
+  await delDeck(name);
+  btn.closest('.deck-item').remove();
+  const list = document.getElementById('deckList');
+  if (!list.children.length) list.innerHTML = '<div class="empty-state">No saved decks yet.</div>';
+  await populateQuizSelect();
+}
+
+function loadDeckToGenerate(d) {
+  currentCards = d.cards;
+  document.getElementById('topicInput').value = d.name;
+  renderCardGrid(d.cards);
+  document.getElementById('saveBtn').style.display = '';
+  switchTab('generate', document.querySelectorAll('.tab')[0]);
+  setStatus(`Loaded "${d.name}" (${d.cards.length} cards).`);
+}
+
+/* ── Quiz ── */
+async function populateQuizSelect() {
+  const sel = document.getElementById('quizDeckSel');
+  const decks = await getAllDecks();
+  sel.innerHTML = '<option value="">— choose a deck —</option>';
+  decks.sort((a,b) => b.saved - a.saved).forEach(d => {
+    const o = document.createElement('option');
+    o.value = d.name; o.textContent = `${d.name} (${d.cards.length})`;
+    sel.appendChild(o);
+  });
+}
+
+async function startQuiz() {
+  const name = document.getElementById('quizDeckSel').value;
+  if (!name) { document.getElementById('quizSetupMsg').textContent = 'Pick a deck first.'; return; }
+  const decks = await getAllDecks();
+  const deck = decks.find(d => d.name === name);
+  if (!deck) return;
+
+  // shuffle
+  quizQueue = [...deck.cards].sort(() => Math.random() - .5);
+  quizIdx = 0; quizGot = 0; quizFlipped = false;
+
+  document.getElementById('quizSetup').style.display  = 'none';
+  document.getElementById('quizArena').classList.add('active');
+  document.getElementById('quizResult').style.display = 'none';
+  advanceQuiz();
+}
+
+function advanceQuiz() {
+  if (quizIdx >= quizQueue.length) { showQuizResult(); return; }
+  const card = quizQueue[quizIdx];
+  document.getElementById('quizFront').textContent = card.front;
+  document.getElementById('quizBack').textContent  = card.back;
+  document.getElementById('quizCard').classList.remove('flipped');
+  document.getElementById('btnGotIt').style.display = 'none';
+  document.getElementById('btnAgain').style.display = 'none';
+  quizFlipped = false;
+
+  const pct = Math.round(quizIdx / quizQueue.length * 100);
+  document.getElementById('quizBar').style.width = pct + '%';
+  document.getElementById('quizLabel').textContent = `${quizIdx + 1} / ${quizQueue.length}`;
+}
+
+function flipQuizCard() {
+  if (quizFlipped) return;
+  document.getElementById('quizCard').classList.add('flipped');
+  quizFlipped = true;
+  setTimeout(() => {
+    document.getElementById('btnGotIt').style.display = '';
+    document.getElementById('btnAgain').style.display = '';
+  }, 300);
+}
+
+function markCard(got) {
+  if (got) quizGot++;
+  quizIdx++;
+  advanceQuiz();
+}
+
+function showQuizResult() {
+  document.getElementById('quizResult').style.display = 'block';
+  document.getElementById('quizCard').style.display   = 'none';
+  document.querySelector('.quiz-btns').style.display  = 'none';
+  document.getElementById('quizBar').style.width = '100%';
+  const pct = Math.round(quizGot / quizQueue.length * 100);
+  document.getElementById('resultScore').textContent = `${pct}%`;
+  document.getElementById('resultSub').textContent   = `${quizGot} of ${quizQueue.length} cards correct`;
+}
+
+function restartQuiz() {
+  document.getElementById('quizResult').style.display = 'none';
+  document.getElementById('quizCard').style.display   = '';
+  document.querySelector('.quiz-btns').style.display  = '';
+  quizQueue = [...quizQueue].sort(() => Math.random() - .5);
+  quizIdx = 0; quizGot = 0;
+  advanceQuiz();
+}
+
+function exitQuiz() {
+  document.getElementById('quizArena').classList.remove('active');
+  document.getElementById('quizSetup').style.display = '';
+  document.getElementById('quizCard').style.display  = '';
+  document.querySelector('.quiz-btns').style.display = '';
+  document.getElementById('quizResult').style.display = 'none';
+}
+
+/* ── Util ── */
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ── Init ── */
+(async () => {
+  const saved = localStorage.getItem('flashKai_token');
+  if (saved) document.getElementById('tokenInput').value = saved;
+  checkHealth();
+  await initDB();
+  await populateQuizSelect();
+})();
+</script>
+</body>
+</html>
