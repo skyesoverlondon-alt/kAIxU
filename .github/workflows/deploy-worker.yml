@@ -30,7 +30,14 @@ jobs:
 
       - name: Deploy worker code
         working-directory: worker
-        run: wrangler deploy
+        run: |
+          # Delete old worker first to clear stale workers.dev trigger state
+          curl -s -X DELETE \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/kaixu67" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" | python3 -c "import sys,json; r=json.load(sys.stdin); print('Delete result:', r.get('success'), r.get('errors'))" || true
+          sleep 3
+          wrangler deploy
 
       - name: Sync secrets
         working-directory: worker
