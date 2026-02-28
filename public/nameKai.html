@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>nameKai — Brand Name Generator · kAIxU</title>
@@ -10,7 +13,7 @@
   body{background:#05040a;color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
   
   
-  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  header{background:rgba(3,3,7,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
   .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
   .nav-link:hover{color:#f2f0ff}
@@ -21,7 +24,7 @@
   @media(max-width:660px){main{grid-template-columns:1fr}}
   h1{font-size:20px;font-weight:700;margin-bottom:4px}
   .sub{font-size:12px;color:var(--muted)}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  .panel{background:rgba(12,10,28,.6);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
   label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
   input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
   input:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
@@ -46,10 +49,51 @@
   .placeholder-wrap{text-align:center;padding:40px 0;color:var(--muted);font-size:13px;font-style:italic}
   @keyframes spin{to{transform:rotate(360deg)}}
   .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+
+  /* ─── holographic boot background ─── */
+  .boot-sequence{position:fixed;inset:0;z-index:-1;background:#030307;display:flex;flex-direction:column;align-items:center;justify-content:center;perspective:1000px;overflow:hidden;pointer-events:none}
+  .scanlines{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,0) 50%,rgba(0,0,0,.2) 50%,rgba(0,0,0,.2));background-size:100% 4px;z-index:10;pointer-events:none;opacity:.45}
+  .vignette{position:absolute;inset:0;background:radial-gradient(circle at center,transparent 40%,rgba(0,0,0,.88) 100%);z-index:11;pointer-events:none}
+  .cyber-grid{position:absolute;bottom:-30%;left:-50%;width:200%;height:100%;background-image:linear-gradient(rgba(0,243,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,243,255,.1) 1px,transparent 1px);background-size:50px 50px;transform:rotateX(75deg);transform-origin:top center;animation:bg-gridScroll 3s linear infinite;z-index:1;mask-image:linear-gradient(to bottom,transparent 0%,black 40%,black 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 40%,black 100%)}
+  @keyframes bg-gridScroll{0%{transform:rotateX(75deg) translateY(0)}100%{transform:rotateX(75deg) translateY(50px)}}
+  .bg-console{position:relative;z-index:20;display:flex;flex-direction:column;align-items:center;width:100%;max-width:600px}
+  .holo-stage{position:relative;width:240px;height:240px;display:flex;align-items:center;justify-content:center;margin-bottom:40px;transform-style:preserve-3d}
+  .holo-logo{width:130px;position:absolute;z-index:5;filter:drop-shadow(0 0 15px rgba(0,243,255,.4)) drop-shadow(0 0 30px rgba(162,67,255,.2));animation:bg-logoFloat 4s ease-in-out infinite,bg-logoGlitch 6s infinite}
+  .holo-ring{position:absolute;border-radius:50%;border:1px solid transparent;box-shadow:inset 0 0 15px rgba(255,255,255,.04),0 0 15px rgba(255,255,255,.04)}
+  .holo-ring-1{width:220px;height:220px;border-top:2px solid #00f3ff;border-bottom:2px solid #00f3ff;animation:bg-spin1 4s linear infinite}
+  .holo-ring-2{width:180px;height:180px;border-left:2px solid #a243ff;border-right:2px solid #a243ff;animation:bg-spin2 5s linear infinite}
+  .holo-ring-3{width:140px;height:140px;border-top:2px solid #ffd36a;border-left:2px solid #ffd36a;animation:bg-spin3 3.5s linear infinite}
+  @keyframes bg-spin1{0%{transform:rotateX(70deg) rotateY(0) rotateZ(0)}100%{transform:rotateX(70deg) rotateY(0) rotateZ(360deg)}}
+  @keyframes bg-spin2{0%{transform:rotateX(0) rotateY(70deg) rotateZ(0)}100%{transform:rotateX(0) rotateY(70deg) rotateZ(360deg)}}
+  @keyframes bg-spin3{0%{transform:rotateX(45deg) rotateY(45deg) rotateZ(0)}100%{transform:rotateX(45deg) rotateY(45deg) rotateZ(360deg)}}
+  @keyframes bg-logoFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.05)}}
+  @keyframes bg-logoGlitch{0%,96%,100%{filter:drop-shadow(0 0 15px rgba(0,243,255,.4)) hue-rotate(0deg);opacity:1}97%{filter:drop-shadow(0 0 25px #a243ff) hue-rotate(90deg);opacity:.8;transform:translateX(2px)}98%{filter:drop-shadow(0 0 25px #00f3ff) hue-rotate(-90deg);opacity:.9;transform:translateX(-2px)}99%{filter:drop-shadow(0 0 15px #ffd36a) hue-rotate(45deg);opacity:1;transform:translateX(0)}}
+  .bg-terminal{width:100%;height:100px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;margin-bottom:30px;position:relative}
+  .bg-log{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:6px;transition:all .3s;text-align:center;width:100%}
+  .bg-log.active{color:#00f3ff;text-shadow:0 0 8px #00f3ff;font-size:13px}
+  .bg-cursor{display:inline-block;width:8px;height:14px;background:#00f3ff;margin-left:6px;vertical-align:middle;animation:bg-blink .8s step-end infinite;box-shadow:0 0 10px #00f3ff}
+  @keyframes bg-blink{50%{opacity:0}}
+  .bg-progress{width:300px;height:3px;background:rgba(255,255,255,.06);border-radius:2px;position:relative;overflow:hidden}
+  .bg-progress-fill{position:absolute;top:0;left:0;bottom:0;width:0%;background:linear-gradient(90deg,transparent,#00f3ff 50%,#ffd36a 80%,#fff 100%);box-shadow:0 0 14px rgba(0,243,255,.6);transition:width .1s linear}
+  .bg-progress-glow{position:absolute;right:0;top:-3px;bottom:-3px;width:4px;background:#fff;box-shadow:0 0 12px 4px #00f3ff;border-radius:50%}
 </style>
 </head>
 <body>
-<canvas id="bg" style="position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none"></canvas>
+<div class="boot-sequence" id="boot-sequence">
+  <div class="scanlines"></div>
+  <div class="vignette"></div>
+  <div class="cyber-grid"></div>
+  <div class="bg-console">
+    <div class="holo-stage">
+      <div class="holo-ring holo-ring-1"></div>
+      <div class="holo-ring holo-ring-2"></div>
+      <div class="holo-ring holo-ring-3"></div>
+      <img src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="kAIxU" class="holo-logo">
+    </div>
+    <div class="bg-terminal" id="bg-terminal"></div>
+    <div class="bg-progress"><div class="bg-progress-fill" id="bg-prog"><div class="bg-progress-glow"></div></div></div>
+  </div>
+</div>
 <header>
   <span class="logo">✨ nameKai</span>
   <a href="/index.html" class="nav-link">⬡ Gateway</a>
@@ -202,68 +246,42 @@ function st(m,err=false){const el=document.getElementById('st');el.textContent=m
   try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
 })();
 </script>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script type="module">
-import*as T from 'three';
-const C=document.getElementById('bg'),R=new T.WebGLRenderer({canvas:C,antialias:false});
-R.setPixelRatio(Math.min(devicePixelRatio,1.5));
-const S=new T.Scene(),cam=new T.OrthographicCamera(-1,1,1,-1,0,1);
-const mat=new T.ShaderMaterial({uniforms:{uT:{value:0}},
-vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
-fragmentShader:`
-uniform float uT;varying vec2 vUv;
-float H(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-float N(vec2 p){vec2 i=floor(p),f=fract(p),u=f*f*(3.-2.*f);return mix(mix(H(i),H(i+vec2(1,0)),u.x),mix(H(i+vec2(0,1)),H(i+vec2(1,1)),u.x),u.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<6;i++){v+=a*N(p);p=p*2.1+vec2(5.2,1.3);a*=.48;}return v;}
-void main(){
-  vec2 uv=vUv;float t=uT*.1;
-  vec2 q=vec2(fbm(uv*1.8+t*.15),fbm(uv*1.8+vec2(5.2,1.3)+t*.12));
-  vec2 r=vec2(fbm(uv*2.2+1.7*q+vec2(1.7,9.2)+t*.08),fbm(uv*2.2+1.7*q+vec2(8.3,2.8)+t*.07));
-  float f=fbm(uv*2.5+2.0*r+t*.05);
-  // Nebula blobs
-  vec2 p1=uv-vec2(.28,.62);float n1=fbm(p1*2.1+vec2(t*.09,-t*.06));float neb1=smoothstep(.32,.72,n1)*smoothstep(1.,.0,length(p1)*1.5);
-  vec2 p2=uv-vec2(.72,.38);float n2=fbm(p2*2.5+vec2(-t*.07,t*.05)+3.7);float neb2=smoothstep(.28,.68,n2)*smoothstep(1.,.0,length(p2)*1.4);
-  vec2 p3=uv-vec2(.5,.18);float n3=fbm(p3*1.8+vec2(t*.06,t*.08)+7.1);float neb3=smoothstep(.36,.74,n3)*smoothstep(1.,.0,length(p3)*1.7);
-  vec2 p4=uv-vec2(.12,.55);float n4=fbm(p4*3.2+vec2(-t*.1,-t*.07)+11.);float neb4=smoothstep(.42,.78,n4)*smoothstep(1.,.0,length(p4)*2.2)*.7;
-  vec2 p5=uv-vec2(.85,.7);float n5=fbm(p5*2.0+vec2(t*.05,-t*.09)+15.3);float neb5=smoothstep(.38,.76,n5)*smoothstep(1.,.0,length(p5)*1.6)*.8;
-  // Neon palette
-  vec3 hotpink=vec3(1.,.08,.48);vec3 elecC=vec3(.0,.92,1.);vec3 neonV=vec3(.58,.0,1.);vec3 lime=vec3(.04,1.,.42);vec3 orange=vec3(1.,.45,.0);
-  // Plasma tendrils using warped fbm
-  float plasm=smoothstep(.55,.85,fbm(uv*4.+r*2.+t*.12))*.4;
-  vec3 plasCol=mix(neonV,elecC,fract(fbm(uv*3.+t*.08)*3.));
-  // Galactic core
-  float core=smoothstep(.55,.0,length(uv-vec2(.45,.52)))*(sin(t*1.8+1.)*.12+.88);
-  float core2=smoothstep(.35,.0,length(uv-vec2(.45,.52)));
-  // Stars — 3 depth layers
-  vec3 stars=vec3(0.);
-  vec2 su1=floor(uv*950.);float s1=step(.9968,H(su1));float tw1=sin(uT*(H(su1+7.)*.9+.7)*3.5+H(su1+13.)*6.28)*.4+.6;stars+=s1*tw1*(H(su1+3.)*.5+.5);
-  vec2 su2=floor(uv*420.);float s2=step(.9875,H(su2+50.));float tw2=sin(uT*(H(su2+17.)*.7+.5)*2.3+H(su2+31.)*6.28)*.35+.65;
-  float hue2=H(su2+99.);vec3 sc2=hue2<.33?elecC:(hue2<.66?hotpink:neonV);stars+=s2*sc2*tw2*2.2*(H(su2+77.)*.4+.6);
-  vec2 su3=floor(uv*160.);float s3=step(.976,H(su3+200.));float tw3=sin(uT*(H(su3+41.)*.5+.5)*1.6+H(su3+61.)*6.28)*.25+.75;stars+=s3*(H(su3+111.)*.3+.7)*tw3*4.;
-  // Compose
-  vec3 bg=vec3(.005,.003,.016);
-  vec3 col=bg;
-  col+=hotpink*(neb1*2.6+core*.18);
-  col+=elecC*(neb2*2.3+core*.14+core2*.08);
-  col+=neonV*(neb3*2.0+core*.22+plasm*plasCol.z*.5);
-  col+=lime*neb4*1.8;
-  col+=orange*neb5*1.5;
-  col+=plasCol*plasm*.6;
-  float lumOcc=clamp(1.2-dot(col,vec3(.3,.59,.11)),0.,1.);
-  col+=stars*lumOcc;
-  // Vignette
-  float vig=smoothstep(1.5,.2,length((uv-.5)*vec2(1.,.9)));col*=vig;
-  // Neon glow tonemap — keep HDR punch but clamp
-  col=mix(col,col/(1.+col*.45),0.7);
-  col=pow(clamp(col,0.,1.),vec3(.78));
-  gl_FragColor=vec4(col,1.);
-}
-`});
-S.add(new T.Mesh(new T.PlaneGeometry(2,2),mat));
-function resize(){R.setSize(innerWidth,innerHeight,false);}resize();
-addEventListener('resize',resize);
-const t0=performance.now();
-(function loop(){requestAnimationFrame(loop);mat.uniforms.uT.value=(performance.now()-t0)*.001;R.render(S,cam);})();
+
+<script>
+(function(){
+  var lines=["INITIALIZING KAIXU GATE","LOADING AI SUBSYSTEMS","VERIFYING GOVERNANCE POSTURE","AUTHENTICATING NEURAL TOKENS","RENDERING SUPERGATE INTERFACE","DECRYPTING CLOUD ARCHIVE","SYSTEM READY"];
+  var terminal=document.getElementById("bg-terminal");
+  var bar=document.getElementById("bg-prog");
+  if(!terminal||!bar)return;
+  var chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+<>?";
+  var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+  var total=lines.join("").length,typed=0;
+  function upd(){typed++;bar.style.width=(typed/total*100)+"%";}
+  async function scramble(el,str){
+    var cur="";
+    for(var i=0;i<str.length;i++){
+      for(var j=0;j<2;j++){el.innerHTML=cur+chars[Math.floor(Math.random()*chars.length)]+'<span class="bg-cursor"></span>';await sleep(14);}
+      cur+=str[i];el.innerHTML=cur+'<span class="bg-cursor"></span>';upd();
+    }
+  }
+  async function run(){
+    typed=0;terminal.innerHTML="";
+    bar.style.transition="none";bar.style.width="0%";
+    void bar.offsetWidth;bar.style.transition="width .1s linear";
+    var els=[];
+    for(var i=0;i<lines.length;i++){
+      if(els.length>0){var p=els[els.length-1];p.classList.remove("active");p.innerHTML=p.innerText;}
+      var el=document.createElement("div");el.className="bg-log active";terminal.appendChild(el);els.push(el);
+      if(els.length>3)els[els.length-4].style.display="none";
+      await scramble(el,lines[i]);
+      if(i<lines.length-1){await sleep(400);}else{bar.style.width="100%";await sleep(2500);}
+    }
+    terminal.style.transition="opacity .6s ease-out";terminal.style.opacity="0";
+    await sleep(700);terminal.style.opacity="1";terminal.style.transition="";
+    run();
+  }
+  document.addEventListener("DOMContentLoaded",function(){setTimeout(run,300);});
+})();
 </script>
 </body>
 </html>
