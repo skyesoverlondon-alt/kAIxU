@@ -1,6 +1,8 @@
 [build]
   publish = "public"
-  functions = "netlify/functions"
+
+[functions]
+directory = "functions"
 
 # API routes (stable paths your apps will call)
 [[redirects]]
