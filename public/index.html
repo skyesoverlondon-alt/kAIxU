@@ -267,6 +267,7 @@ POST /v1/stream   (SSE)</code></pre>
   </div>
 
 <script>
+  const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
   const $ = (id) => document.getElementById(id);
 
   function setHealth(ok, msg){
@@ -278,7 +279,7 @@ POST /v1/stream   (SSE)</code></pre>
 
   async function loadModels(){
     try{
-      const r = await fetch("/v1/models");
+      const r = await fetch(`${API_BASE}/v1/models`);
       const j = await r.json();
       const sel = $("model");
       sel.innerHTML = "";
@@ -302,7 +303,7 @@ POST /v1/stream   (SSE)</code></pre>
 
   async function health(){
     try{
-      const r = await fetch("/v1/health");
+      const r = await fetch(`${API_BASE}/v1/health`);
       const j = await r.json();
       setHealth(!!j.ok, j.ok ? "Online" : "Offline");
     }catch(e){
@@ -318,7 +319,7 @@ POST /v1/stream   (SSE)</code></pre>
       const model = $("model").value;
       const prompt = $("prompt").value;
 
-      const r = await fetch("/v1/generate", {
+      const r = await fetch(`${API_BASE}/v1/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

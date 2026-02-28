@@ -284,6 +284,7 @@
 </main>
 
 <script>
+const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
 const STORAGE_KEY = 'kaixu_conversations';
 let conversations = [];
 let activeId = null;
@@ -313,7 +314,7 @@ function load() {
 async function loadModels() {
   const fallback = ['gemini-2.5-flash','gemini-2.5-pro'];
   try {
-    const r = await fetch('/v1/models');
+    const r = await fetch(`${API_BASE}/v1/models`);
     const j = await r.json();
     const list = (j.models || []).map(m => ({ id: m.id, label: m.label || m.id }));
     if (list.length) { populateModels(list); return; }
@@ -338,7 +339,7 @@ modelSelect.addEventListener('change', () => {
 // ── Health ───────────────────────────────────────────────────────
 async function checkHealth() {
   try {
-    const j = await fetch('/v1/health').then(r => r.json());
+    const j = await fetch(`${API_BASE}/v1/health`).then(r => r.json());
     healthDot.className = 'health-dot ' + (j.ok ? 'ok' : 'bad');
     healthDot.title = j.ok ? 'Gateway online' : 'Gateway offline';
   } catch {
@@ -456,7 +457,7 @@ async function send() {
   const typing = appendTyping();
 
   try {
-    const r = await fetch('/v1/generate', {
+    const r = await fetch(`${API_BASE}/v1/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
