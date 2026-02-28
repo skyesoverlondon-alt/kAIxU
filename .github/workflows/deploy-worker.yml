@@ -23,10 +23,12 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: '4'
-          # NOTE: secrets block intentionally omitted — Cloudflare persists
-          # secrets across deploys. Only push secrets manually via wrangler CLI
-          # or add KAIXU_GEMINI_API_KEY + KAIXU_APP_TOKENS to GitHub Secrets
-          # to re-enable automatic syncing here.
+          secrets: |
+            KAIXU_GEMINI_API_KEY
+            KAIXU_APP_TOKENS
+        env:
+          KAIXU_GEMINI_API_KEY: ${{ secrets.KAIXU_GEMINI_API_KEY }}
+          KAIXU_APP_TOKENS: ${{ secrets.KAIXU_APP_TOKENS }}
 
       - name: Verify health
         run: |
