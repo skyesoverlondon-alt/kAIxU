@@ -160,9 +160,9 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
     <div class="line1">Welcome To The</div>
     <div class="line2">Inner Sanctum</div>
   </h1>
-  <p class="hero-sub">Every tool, every capability, every use case — laid out in full. 29 AI-powered apps, one gated intelligence, zero vendor exposure. Pick what you need and ship.</p>
+  <p class="hero-sub">Every tool, every capability, every use case — laid out in full. 56 AI-powered apps, one gated intelligence, zero vendor exposure. Pick what you need and ship.</p>
   <div class="stats-bar">
-    <div class="stat"><div class="stat-num" id="cnt-apps">31</div><div class="stat-label">AI Apps</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-apps">56</div><div class="stat-label">AI Apps</div></div>
     <div class="stat"><div class="stat-num">1</div><div class="stat-label">Unified Gate</div></div>
     <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Use Cases</div></div>
     <div class="stat"><div class="stat-num">0</div><div class="stat-label">API Keys Exposed</div></div>
@@ -596,6 +596,150 @@ const APPS = [
     features:['Privacy Policy with 8+ sections','Terms of Service with 8+ sections','GDPR / US / UK / PIPEDA compliant structure','Multi-jurisdiction support','Plain English legal language','Copy-ready formatted output'],
     usecases:['SaaS apps','E-commerce stores','Mobile apps','Content sites','Marketplaces','Agency client projects'],
     url:'/policyKai.html'
+  },
+  {
+    slug:'deckKai',icon:'📑',name:'deckKai',cat:'revenue',
+    color:'#ff6b35',colorRgb:'255,107,53',
+    tagline:'Pitch deck slide-by-slide outline with talking points.',
+    description:'Structured deck outline with titles, bullets, talking points, and light design notes for investor or sales presentations.',
+    features:['Slide titles with bullet points','Talking points and design cues','Copy-ready outline for fundraising/sales decks'],
+    usecases:['Seed or series fundraise deck','Sales/partner overview deck','Board/update presentations'],
+    url:'/deckKai.html'
+  },
+  {
+    slug:'caseKai',icon:'📈',name:'caseKai',cat:'revenue',
+    color:'#00d4ff',colorRgb:'0,212,255',
+    tagline:'Case study writer: challenge → solution → results.',
+    description:'Turns your inputs into a full case study narrative with challenge, solution, results, proof, and CTA.',
+    features:['Challenge/solution/results storyline','Metrics and social proof blocks','CTA and format-ready structure'],
+    usecases:['Sales collateral','Website case study pages','Pitch deck inserts'],
+    url:'/caseKai.html'
+  },
+  {
+    slug:'personaKai',icon:'🧠',name:'personaKai',cat:'revenue',
+    color:'#b44fff',colorRgb:'180,79,255',
+    tagline:'Buyer/user persona builder with objections & channels.',
+    description:'Creates a persona snapshot with pains, triggers, goals, objections with rebuttals, and best channels.',
+    features:['Pains, triggers, and goals','Objections with rebuttals','Acquisition channels and content hooks'],
+    usecases:['ICP definition','Ad targeting briefs','Sales enablement one-pagers'],
+    url:'/personaKai.html'
+  },
+  {
+    slug:'newsletterKai',icon:'📰',name:'newsletterKai',cat:'revenue',
+    color:'#ff3c6e',colorRgb:'255,60,110',
+    tagline:'Newsletter writer: subject, preview, body sections, CTA.',
+    description:'Generates subjects, preview line, intro, structured sections, CTA, and PS in your tone for any audience.',
+    features:['Multiple subject lines plus preview','Structured intro + sections + CTA','Tone and audience-aware copy'],
+    usecases:['Product update newsletters','Content drops and campaigns','Launch announcements'],
+    url:'/newsletterKai.html'
+  },
+  {
+    slug:'swotKai',icon:'🧭',name:'swotKai',cat:'revenue',
+    color:'#00ffaa',colorRgb:'0,255,170',
+    tagline:'SWOT + strategy matrix (SO/ST/WO/WT).',
+    description:'Produces SWOT lists and a strategy matrix so you can see SO/ST/WO/WT moves in one view.',
+    features:['Strengths/Weaknesses/Opportunities/Threats lists','SO/ST/WO/WT strategy matrix','Copy-to-clipboard friendly layout'],
+    usecases:['Strategic planning','Pitch prep and positioning','Competitor or market reviews'],
+    url:'/swotKai.html'
+  },
+  {
+    slug:'repKai',icon:'🤙',name:'repKai',cat:'revenue',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Sales call script + objections.',
+    description:'Generates opener, discovery, pitch, objection handling, close, and a follow-up email for your product and persona.',
+    features:['Opener, discovery, and pitch flow','Objection handling snippets','Follow-up email copy included'],
+    usecases:['Sales call prep','BDR/SDR enablement','Demo and discovery scripting'],
+    url:'/repKai.html'
+  },
+  {
+    slug:'bioKai',icon:'👤',name:'bioKai',cat:'revenue',
+    color:'#ff6bb5',colorRgb:'255,107,181',
+    tagline:'Bio writer for Twitter, LinkedIn, speaker, About.',
+    description:'Creates on-brand bios for Twitter/X, LinkedIn, speaker intros, and About page blurbs with per-section copy buttons.',
+    features:['Four bio formats in one run','Tone selector support','Copy buttons per variant'],
+    usecases:['Profile refresh','Conference/speaker bios','Founder or team pages'],
+    url:'/bioKai.html'
+  },
+  {
+    slug:'captionKai',icon:'💬',name:'captionKai',cat:'revenue',
+    color:'#3bd6ff',colorRgb:'59,214,255',
+    tagline:'Social captions w/ hashtags per platform.',
+    description:'Platform-tuned captions with hashtags and an alternate hook, tailored to your tone and audience.',
+    features:['Platform-specific captions','Hashtag set and alt hook','Tone and audience-aware output'],
+    usecases:['Social launch posts','Content calendar planning','Ad creative captions'],
+    url:'/captionKai.html'
+  },
+  {
+    slug:'changelogKai',icon:'🗒',name:'changelogKai',cat:'revenue',
+    color:'#b8ff3c',colorRgb:'184,255,60',
+    tagline:'Release notes / changelog formatter.',
+    description:'Transforms raw bullets into headline, summary, marketing notes, developer changelog, and email announcement.',
+    features:['Headline and summary','Marketing vs developer notes','Email announcement copy'],
+    usecases:['App release notes','Product updates blog','Internal changelog recaps'],
+    url:'/changelogKai.html'
+  },
+  {
+    slug:'reviewKai',icon:'⭐',name:'reviewKai',cat:'revenue',
+    color:'#ff9f43',colorRgb:'255,159,67',
+    tagline:'Reply to customer reviews (all sentiments).',
+    description:'Generates 3 voice-consistent replies to any review sentiment for your chosen platform.',
+    features:['Three response variants per run','Voice control for replies','Quick copy buttons'],
+    usecases:['App Store or Play Store replies','Google/Maps reviews','Support queue response templates'],
+    url:'/reviewKai.html'
+  },
+  {
+    slug:'testKai',icon:'🧪',name:'testKai',cat:'code',
+    color:'#00e5cc',colorRgb:'0,229,204',
+    tagline:'Unit test generator for pasted code.',
+    description:'Creates named test cases with code bodies and notes across popular stacks like Jest, Vitest, Pytest, Go, and RSpec.',
+    features:['Multi-language test templates','Named tests with bodies','Copy tests button'],
+    usecases:['Add coverage quickly','Refactor safety nets','PR review helper'],
+    url:'/testKai.html'
+  },
+  {
+    slug:'promptKai',icon:'🧾',name:'promptKai',cat:'code',
+    color:'#a243ff',colorRgb:'162,67,255',
+    tagline:'Prompt engineer: system + user template + eval.',
+    description:'Designs production-ready prompts with system text, user template, few-shot examples, evals, and safety notes.',
+    features:['System and user templates','Few-shot examples and evals','Safety guidance per prompt'],
+    usecases:['Production prompt design','Agent and workflow prompts','Eval harness creation'],
+    url:'/promptKai.html'
+  },
+  {
+    slug:'readmeKai',icon:'📘',name:'readmeKai',cat:'code',
+    color:'#4dff91',colorRgb:'77,255,145',
+    tagline:'README generator from description + tech stack.',
+    description:'Outputs a complete markdown README with description, stack, and feature highlights ready to paste.',
+    features:['Full markdown README','Feature and stack sections','Copy-ready output'],
+    usecases:['New repo bootstrap','Hackathon projects','Client handoffs'],
+    url:'/readmeKai.html'
+  },
+  {
+    slug:'habitKai',icon:'⏱',name:'habitKai',cat:'learning',
+    color:'#ff5e78',colorRgb:'255,94,120',
+    tagline:'Habit stack + routines with checkpoints.',
+    description:'Builds morning/day/evening routines, habit stacks, checkpoints, and tips based on your goal and constraints.',
+    features:['Routines across the day','Habit stack and checkpoints','Tip list for adherence'],
+    usecases:['Personal routines','Coaching plans','Team habit programs'],
+    url:'/habitKai.html'
+  },
+  {
+    slug:'goalKai',icon:'🎯',name:'goalKai',cat:'business',
+    color:'#ffe566',colorRgb:'255,229,102',
+    tagline:'OKR/SMART builder with milestones.',
+    description:'Converts objectives into OKRs with SMART breakdowns, milestones, check-ins, risks, and countermeasures.',
+    features:['Objective and key results','SMART breakdown','Milestones and check-ins'],
+    usecases:['Quarterly planning','Team OKRs','Personal goal setting'],
+    url:'/goalKai.html'
+  },
+  {
+    slug:'cheatKai',icon:'📌',name:'cheatKai',cat:'learning',
+    color:'#00f3ff',colorRgb:'0,243,255',
+    tagline:'Cheat sheet for any topic/tool.',
+    description:'Concise cheat sheets with sections, examples, gotchas, and shortcuts for any topic or tool.',
+    features:['Sectioned bullets','Examples and gotchas','Shortcuts list'],
+    usecases:['Quick reference','Onboarding docs','Workshop handouts'],
+    url:'/cheatKai.html'
   },
 ];
 
