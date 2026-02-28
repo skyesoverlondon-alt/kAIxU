@@ -23,7 +23,7 @@ exports.handler = async (event) => {
   const key = (process.env.KAIXU_GEMINI_API_KEY || "").toString().trim();
   if (!key) return json(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, cors);
 
-  const maxBytes = clampInt(process.env.KAIXU_MAX_BODY_BYTES, 1024, 2_000_000, 262144);
+  const maxBytes = clampInt(process.env.KAIXU_MAX_BODY_BYTES, 1024, 16_000_000, 5_242_880);
   const rawBody = event.body || "";
   if (rawBody.length > maxBytes) {
     return json(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, cors);

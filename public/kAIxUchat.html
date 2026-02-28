@@ -465,7 +465,7 @@ async function send() {
       body: JSON.stringify({
         model: modelSelect.value || 'gemini-2.5-flash',
         messages: convo.messages.map(m => ({ role: m.role, content: m.content })),
-        generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
+        generationConfig: { temperature: 0.7 }
       })
     });
     typing.remove();
