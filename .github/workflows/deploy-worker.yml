@@ -22,7 +22,7 @@ jobs:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: worker
-          wranglerVersion: '4'
+          wranglerVersion: '4.69.0'
           secrets: |
             KAIXU_GEMINI_API_KEY
             KAIXU_APP_TOKENS
