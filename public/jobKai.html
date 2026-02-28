@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>💼 jobKai — kAIxU</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}
+  body{background:#05040a;color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:rgba(3,3,7,.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(255,255,255,.08);padding:10px 18px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:relative;z-index:10}
+  .logo-txt{font-size:13px;font-weight:700;margin-right:6px;white-space:nowrap}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:#7a7a9a;border:1px solid rgba(255,255,255,.08);transition:color .15s;white-space:nowrap}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(255,159,67,.18);color:#ff9f43;border-color:rgba(255,159,67,.4)}
+  main{flex:1;max-width:880px;width:100%;margin:0 auto;padding:28px 16px 60px;display:flex;flex-direction:column;gap:18px;position:relative;z-index:10}
+  h1{font-size:22px;font-weight:700;margin-bottom:4px;color:#ff9f43}
+  .sub{font-size:12px;color:#7a7a9a}
+  .card{background:rgba(255,255,255,.04);backdrop-filter:blur(40px) saturate(180%);border:1px solid rgba(255,255,255,.1);border-top:1px solid rgba(255,255,255,.22);border-radius:14px;padding:18px;box-shadow:0 8px 40px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1)}
+  label{font-size:11px;color:#7a7a9a;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+  input,select,textarea{width:100%;background:rgba(255,255,255,.05);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.1);border-top:1px solid rgba(255,255,255,.18);border-radius:8px;color:#f0f0f8;font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical;transition:border-color .15s}
+  input:focus,select:focus,textarea:focus{border-color:rgba(255,159,67,.5)}
+  select option{background:#12121e}
+  .btn{border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s}
+  .btn:hover{opacity:.85}.btn:disabled{opacity:.4;cursor:not-allowed}
+  .btn-ghost{background:rgba(255,255,255,.05);color:#f0f0f8;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:8px 16px;font-size:12px;cursor:pointer;transition:background .15s}
+  .btn-ghost:hover{background:rgba(255,255,255,.1)}
+  .status{font-size:12px;color:#7a7a9a;margin-left:4px}.status.err{color:#ff3c6e}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+  .token-row{display:flex;align-items:center;gap:8px}
+  .eye-btn{background:none;border:none;color:rgba(255,255,255,.3);cursor:pointer;font-size:15px;padding:0 4px}
+  .copy-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:6px;color:#f0f0f8;font-size:11px;padding:4px 10px;cursor:pointer;margin-top:6px}
+  .copy-btn:hover{background:rgba(255,255,255,.14)}
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:640px){.two-col{grid-template-columns:1fr}}
+  .result-section{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px;margin-bottom:10px}
+  .result-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#ff9f43;margin-bottom:8px}
+  .result-body{font-size:13px;color:#c8c8e0;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+  .tag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;border:1px solid rgba(255,159,67,.3);background:rgba(255,159,67,.08);color:#ff9f43;margin:2px}
+  .boot-sequence{position:fixed;inset:0;z-index:-1;background:#030307;overflow:hidden;pointer-events:none}
+  .bg-stars{position:absolute;inset:0;overflow:hidden}
+  .bg-star{position:absolute;border-radius:50%;background:#fff;opacity:0;animation:bg-twinkle var(--twinkle-dur) var(--twinkle-del) ease-in-out infinite alternate,bg-drift var(--drift-dur) linear infinite alternate}
+  @keyframes bg-twinkle{0%{opacity:.1;background:#fff}100%{opacity:1;box-shadow:0 0 10px var(--star-color),0 0 25px var(--star-color);background:var(--star-color)}}
+  @keyframes bg-drift{0%{transform:translate(0,0)}100%{transform:translate(var(--drift-x),var(--drift-y))}}
+  .scanlines{position:absolute;inset:0;background:linear-gradient(to bottom,transparent,transparent 50%,rgba(0,0,0,.2) 50%,rgba(0,0,0,.2));background-size:100% 4px;z-index:10;opacity:.45}
+  .vignette{position:absolute;inset:0;background:radial-gradient(circle at center,transparent 40%,rgba(0,0,0,.88) 100%);z-index:11}
+  .cyber-grid{position:absolute;bottom:-30%;left:-50%;width:200%;height:100%;background-image:linear-gradient(rgba(0,243,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(0,243,255,.08) 1px,transparent 1px);background-size:50px 50px;transform:rotateX(75deg);transform-origin:top center;animation:gridS 3s linear infinite;z-index:1}
+  @keyframes gridS{0%{transform:rotateX(75deg) translateY(0)}100%{transform:rotateX(75deg) translateY(50px)}}</style>
+</head>
+<body>
+<div class="boot-sequence"><div class="bg-stars" id="bg-stars"></div><div class="scanlines"></div><div class="vignette"></div><div class="cyber-grid"></div></div>
+<header>
+  <span class="logo-txt" style="color:#ff9f43">💼 jobKai</span>
+  <a href="/briefKai.html" class="nav-link">📋 Brief</a>
+  <a href="/codeKai.html" class="nav-link">💻 Code</a>
+  <a href="/coverKai.html" class="nav-link">📄 Cover</a>
+  <a href="/diagramKai.html" class="nav-link">📊 Diagram</a>
+  <a href="/flashKai.html" class="nav-link">⚡ Flash</a>
+  <a href="/journalKai.html" class="nav-link">📓 Journal</a>
+  <a href="/mailKai.html" class="nav-link">✉ Mail</a>
+  <a href="/mathKai.html" class="nav-link">∑ Math</a>
+  <a href="/meetKai.html" class="nav-link">🤝 Meet</a>
+  <a href="/nameKai.html" class="nav-link">✨ Name</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 Palette</a>
+  <a href="/photoKai.html" class="nav-link">📷 Photo</a>
+  <a href="/quizKai.html" class="nav-link">🧩 Quiz</a>
+  <a href="/readKai.html" class="nav-link">📚 Read</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 Recipe</a>
+  <a href="/resumeKai.html" class="nav-link">📋 Resume</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 SQL</a>
+  <a href="/storyKai.html" class="nav-link">📖 Story</a>
+  <a href="/TriviaGo.html" class="nav-link">🎮 TriviaGo</a>
+  <a href="/pitchKai.html" class="nav-link">🎯 Pitch</a>
+  <a href="/contractKai.html" class="nav-link">📝 Contract</a>
+  <a href="/debugKai.html" class="nav-link">🐛 Debug</a>
+  <a href="/translateKai.html" class="nav-link">🌐 Translate</a>
+  <a href="/roastKai.html" class="nav-link">🔥 Roast</a>
+  <a href="/legalKai.html" class="nav-link">⚖ Legal</a>
+  <a href="/threadKai.html" class="nav-link">🧵 Thread</a>
+  <a href="/voiceKai.html" class="nav-link">🎤 Voice</a>
+  <a href="/scriptKai.html" class="nav-link">🎬 Script</a>
+  <a href="/mapKai.html" class="nav-link">🗺️ Map</a>
+  <a href="/adKai.html" class="nav-link">📢 Ad</a>
+  <a href="/landingKai.html" class="nav-link">🚀 Landing</a>
+  <a href="/invoiceKai.html" class="nav-link">🧾 Invoice</a>
+  <a href="/proposalKai.html" class="nav-link">📋 Proposal</a>
+  <a href="/coldKai.html" class="nav-link">❄ Cold</a>
+  <a href="/seoKai.html" class="nav-link">🔍 SEO</a>
+  <a href="/jobKai.html" class="nav-link active">💼 Job</a>
+  <a href="/prKai.html" class="nav-link">📣 PR</a>
+  <a href="/policyKai.html" class="nav-link">🔒 Policy</a>
+</header>
+<main>
+  <div><h1>💼 jobKai</h1><p class="sub">Write compelling job descriptions that attract the right candidates — in any tone.</p></div>
+  <div class="card"><div class="col">
+      <div><label>API Token</label><div class="token-row"><input type="password" id="tok" placeholder="Bearer token (saved locally)" style="flex:1"><button class="eye-btn" id="eye">&#128065;</button></div></div>
+      <div class="two-col">
+        <div><label>Role Title</label><input id="role" type="text" placeholder="e.g. Senior Product Designer"></div>
+        <div><label>Company Name</label><input id="company" type="text" placeholder="e.g. Acme Inc."></div>
+      </div>
+      <div class="two-col">
+        <div><label>Industry</label><input id="industry" type="text" placeholder="e.g. SaaS, Fintech, Agency"></div>
+        <div><label>Salary Range (optional)</label><input id="salary" type="text" placeholder="e.g. $90k - $120k"></div>
+      </div>
+      <div><label>Key Responsibilities</label><textarea id="responsibilities" rows="3" placeholder="e.g. Lead product design, run user research, own design system, collaborate with engineers..."></textarea></div>
+      <div><label>Required Skills</label><textarea id="skills" rows="2" placeholder="e.g. 4+ years product design, Figma expert, B2B SaaS experience"></textarea></div>
+      <div><label>Tone</label><select id="tone"><option>Startup / Casual</option><option>Professional / Corporate</option><option>Creative / Bold</option><option>Technical / Detailed</option></select></div>
+    <div class="row"><button class="btn" id="run-btn" style="background:#ff9f43;color:#0a0a12">Generate</button><span class="status" id="status"></span></div>
+  </div></div>
+  <div id="out" style="display:none;padding-bottom:20px"></div>
+</main>
+<script>(function(){
+  var sc=document.getElementById('bg-stars');
+  var colors=['#00f3ff','#a243ff','#ffd36a','#ffffff'];
+  for(var i=0;i<220;i++){var s=document.createElement('div');s.className='bg-star';var sz=Math.random()*3+1,col=colors[Math.floor(Math.random()*colors.length)];s.style.cssText='width:'+sz+'px;height:'+sz+'px;left:'+Math.random()*100+'%;top:'+Math.random()*100+'%';s.style.setProperty('--star-color',col);s.style.setProperty('--twinkle-dur',(Math.random()*2+1)+'s');s.style.setProperty('--twinkle-del',(Math.random()*5)+'s');s.style.setProperty('--drift-x',(Math.random()-.5)*200+'px');s.style.setProperty('--drift-y',(Math.random()-.5)*200+'px');s.style.setProperty('--drift-dur',(Math.random()*20+20)+'s');sc.appendChild(s);}
+})();</script>
+<script>
+const GATE='https://kaixu67.skyesoverlondon.workers.dev';
+const LS='kaixu_gate_token';
+const $=id=>document.getElementById(id);
+const tok=$('tok');
+if(tok){tok.value=localStorage.getItem(LS)||'';tok.addEventListener('input',()=>localStorage.setItem(LS,tok.value.trim()));}
+if($('eye'))$('eye').onclick=()=>{tok.type=tok.type==='password'?'text':'password'};
+function setStatus(msg,err){const s=$('status');if(!s)return;s.textContent=msg;s.className='status'+(err?' err':'');}
+async function callGate(messages,useJson){
+  const token=tok.value.trim();
+  if(!token){setStatus('Paste your token first.',true);return null;}
+  setStatus('Working…');
+  try{
+    const body={messages,model:'gemini-2.5-flash'};
+    if(useJson)body.output={format:'json'};
+    const res=await fetch(GATE+'/v1/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
+    if(!res.ok){const t=await res.text();throw new Error('Gate '+res.status+': '+t);}
+    const d=await res.json();
+    if(!d.ok)throw new Error(d.error||'Gateway error');
+    setStatus('Done ✓');return d.text;
+  }catch(e){setStatus(e.message,true);return null;}
+}
+function parseJSON(raw){
+  if(!raw)return null;
+  const c=raw.replace(/^```[\w]*\n?/,'').replace(/\n?```$/,'').trim();
+  try{return JSON.parse(c);}catch(_){const m=c.match(/[\[{][\s\S]*/);if(m)try{return JSON.parse(m[0]);}catch(e){}}return null;
+}
+function copyText(txt){navigator.clipboard.writeText(txt).catch(()=>{});}
+
+$('run-btn').onclick=async()=>{
+  const role=$('role').value.trim(),company=$('company').value.trim(),industry=$('industry').value.trim(),salary=$('salary').value.trim(),responsibilities=$('responsibilities').value.trim(),skills=$('skills').value.trim(),tone=$('tone').value;
+  if(!role||!company){setStatus('Fill in role and company.',true);return;}
+  $('run-btn').disabled=true;
+  const prompt=`Write a compelling job description.\nRole: ${role}\nCompany: ${company}\nIndustry: ${industry||'tech'}\nSalary: ${salary||'competitive'}\nResponsibilities: ${responsibilities||'standard for this role'}\nSkills: ${skills||'standard for this role'}\nTone: ${tone}\n\nReturn JSON: {"role_summary":"2-3 compelling sentences","about_company":"2 sentences","responsibilities":["r1","r2","r3","r4","r5","r6","r7"],"requirements":["req1","req2","req3","req4","req5","req6"],"nice_to_have":["n1","n2","n3"],"benefits":["b1","b2","b3","b4","b5"],"closing_line":"punchy closing sentence"}`;
+  const raw=await callGate([{role:'user',content:prompt}],true);
+  $('run-btn').disabled=false;if(!raw)return;
+  const d=parseJSON(raw);if(!d){setStatus('Parse error.',true);return;}
+  const out=$('out');out.style.display='block';out.innerHTML='';
+  function sec(title,html){const el=document.createElement('div');el.className='result-section';el.innerHTML=`<div class="result-title">${title}</div>${html}`;out.appendChild(el);}
+  if(d.role_summary)sec('Role Summary',`<div class="result-body">${d.role_summary}</div>`);
+  if(d.about_company)sec('About The Company',`<div class="result-body">${d.about_company}</div>`);
+  if(d.responsibilities)sec('Responsibilities',(d.responsibilities||[]).map(r=>`<div style="padding:3px 0;color:#c8c8e0">• ${r}</div>`).join(''));
+  if(d.requirements)sec('Requirements',(d.requirements||[]).map(r=>`<div style="padding:3px 0;color:#c8c8e0">• ${r}</div>`).join(''));
+  if(d.nice_to_have)sec('Nice to Have',(d.nice_to_have||[]).map(r=>`<div style="padding:3px 0;color:#7a7a9a">• ${r}</div>`).join(''));
+  if(d.benefits)sec('Benefits',(d.benefits||[]).map(r=>`<span class="tag">${r}</span>`).join(''));
+  if(d.closing_line)sec('Closing',`<div class="result-body" style="font-style:italic">${d.closing_line}</div>`);
+  const jdText=[`${role} at ${company}`,`Salary: ${salary||'Competitive'}`,``,d.role_summary||'',``,`--- RESPONSIBILITIES ---`,...(d.responsibilities||[]).map(r=>`• ${r}`),``,`--- REQUIREMENTS ---`,...(d.requirements||[]).map(r=>`• ${r}`),``,`--- BENEFITS ---`,...(d.benefits||[]).map(r=>`• ${r}`),``,d.closing_line||''].join('\n');
+  const btn=document.createElement('button');btn.className='btn-ghost';btn.style.marginTop='12px';btn.textContent='Copy Full JD';btn.onclick=()=>copyText(jdText);out.appendChild(btn);
+};</script>
+</body></html>

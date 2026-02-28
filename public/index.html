@@ -169,7 +169,8 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
   </div>
 
   <!-- GATEWAY BUTTON -->
-  <a href="/gateway.html" style="display:inline-block;margin-top:32px;padding:12px 28px;border-radius:30px;text-decoration:none;font-family:'Orbitron','Segoe UI',sans-serif;font-size:13px;font-weight:900;letter-spacing:.1em;color:#00f3ff;background:rgba(0,243,255,.06);border:1.5px solid rgba(0,243,255,.45);box-shadow:0 0 24px rgba(0,243,255,.18),inset 0 1px 0 rgba(255,255,255,.08);transition:all .2s" onmouseover="this.style.boxShadow='0 0 50px rgba(0,243,255,.5),0 0 12px rgba(162,67,255,.2),inset 0 1px 0 rgba(255,255,255,.12)';this.style.borderColor='rgba(0,243,255,.9)';this.style.color='#7df6ff'" onmouseout="this.style.boxShadow='0 0 24px rgba(0,243,255,.18),inset 0 1px 0 rgba(255,255,255,.08)';this.style.borderColor='rgba(0,243,255,.45)';this.style.color='#00f3ff'">⬡ Enter Gate Delta</a>
+  <a href="/gateway.html" style="display:inline-block;margin-top:40px;padding:22px 56px;border-radius:16px;text-decoration:none;font-family:'Orbitron','Segoe UI',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#ffd36a;background:rgba(255,211,106,.07);border:2px solid rgba(255,211,106,.6);box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12);text-shadow:0 0 20px rgba(255,211,106,.8),0 0 40px rgba(255,211,106,.4);transition:all .25s;animation:gold-pulse 2.5s ease-in-out infinite" onmouseover="this.style.boxShadow='0 0 70px rgba(255,211,106,.7),0 0 140px rgba(255,211,106,.3),inset 0 1px 0 rgba(255,255,255,.18)';this.style.borderColor='rgba(255,211,106,1)';this.style.color='#ffe899';this.style.textShadow='0 0 30px rgba(255,211,106,1),0 0 60px rgba(255,211,106,.7)'" onmouseout="this.style.boxShadow='0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12)';this.style.borderColor='rgba(255,211,106,.6)';this.style.color='#ffd36a';this.style.textShadow='0 0 20px rgba(255,211,106,.8),0 0 40px rgba(255,211,106,.4)'">⬡ Enter Gate Delta</a>
+  <style>@keyframes gold-pulse{0%,100%{box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 0 60px rgba(255,211,106,.55),0 0 120px rgba(255,211,106,.25),inset 0 1px 0 rgba(255,255,255,.12)}}</style>
 </section>
 
 <div class="divider"></div>
@@ -189,6 +190,7 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
     <button class="ftab" data-cat="creative">Creative</button>
     <button class="ftab" data-cat="learning">Learning</button>
     <button class="ftab" data-cat="game">Game</button>
+    <button class="ftab" data-cat="revenue">💰 Revenue</button>
   </div>
 </div>
 
@@ -513,6 +515,87 @@ const APPS = [
     features:['5-8 top-level subtopics generated','3-5 children per subtopic','Expandable/collapsible tree nodes','Three depth levels (overview, intermediate, deep)','Instant interactive rendering','No page loads — pure in-browser expansion'],
     usecases:['New subject orientation','Course curriculum planning','Research scoping','Teaching and tutoring','Knowledge base creation','Pre-project domain mapping'],
     url:'/mapKai.html'
+  },
+  {
+    slug:'adKai',icon:'📢',name:'adKai',cat:'revenue',
+    color:'#ff3c6e',colorRgb:'255,60,110',
+    tagline:'Ad copy for Facebook, Google, LinkedIn, TikTok & X — 3 variants per platform.',
+    description:'Describe your product and audience, pick a platform and goal, and get 3 complete ad variants: headline, primary text, CTA, and strategy note. Optimised for conversion.',
+    features:['3 ad copy variants per generation','Platform-specific optimisation','Headline, body, and CTA per variant','Strategy notes included','5 platforms supported','Tone selector (bold, friendly, urgent, witty)'],
+    usecases:['Facebook/Instagram ad campaigns','Google search ads','LinkedIn lead gen ads','TikTok video ad scripts','Twitter/X promoted posts','A/B testing creative'],
+    url:'/adKai.html'
+  },
+  {
+    slug:'landingKai',icon:'🚀',name:'landingKai',cat:'revenue',
+    color:'#a243ff',colorRgb:'162,67,255',
+    tagline:'Full landing page copy — hero, features, FAQ, social proof, and CTAs in one shot.',
+    description:'Give it your product and tone, get back a complete landing page: hero headlines, subheadline, 5 features, testimonials, FAQ, and CTA variants. Copy-ready in seconds.',
+    features:['3 hero headline options','5 feature blocks with descriptions','FAQ section (5 Q&As)','Social proof / testimonial copy','CTA variant library','Tone selector'],
+    usecases:['SaaS landing pages','Product launches','Campaign microsites','Lead gen pages','Agency client sites','Coming soon pages'],
+    url:'/landingKai.html'
+  },
+  {
+    slug:'invoiceKai',icon:'🧾',name:'invoiceKai',cat:'revenue',
+    color:'#00ffaa',colorRgb:'0,255,170',
+    tagline:'Professional invoice generator with line items, tax, totals, and payment terms.',
+    description:'Enter your line items and rates, set tax and terms, and get a fully formatted invoice with subtotal, tax, and total. Copy the text or use it as a template in any tool.',
+    features:['Multi-line item support','Automatic tax calculation','Subtotal / total breakdown','Payment terms selector','Custom due date','Notes and payment instructions'],
+    usecases:['Freelance invoicing','Agency billing','Consultant invoices','Project milestone billing','Retainer invoices','Quick client invoices'],
+    url:'/invoiceKai.html'
+  },
+  {
+    slug:'proposalKai',icon:'📋',name:'proposalKai',cat:'revenue',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Write a winning project proposal from executive summary to next steps.',
+    description:'Fill in scope, timeline, and investment, and get a complete proposal with 8 sections: exec summary, challenge understanding, approach, deliverables, timeline, investment, why us, and next steps.',
+    features:['8-section structured proposal','Executive summary and challenge framing','Methodology and approach section','Deliverables checklist','Investment paragraph','Polished closing and next steps'],
+    usecases:['Agency new business','Freelance project proposals','Consulting engagements','Design and dev projects','Marketing retainers','Partnership proposals'],
+    url:'/proposalKai.html'
+  },
+  {
+    slug:'coldKai',icon:'❄️',name:'coldKai',cat:'revenue',
+    color:'#3bd6ff',colorRgb:'59,214,255',
+    tagline:'Cold outreach email sequences and LinkedIn messages — ready to send.',
+    description:'Describe your product and target prospect, pick the format, and get a full multi-touch sequence: Day 1 hook, Day 3 value, Day 7 breakup, LinkedIn connect note, and LinkedIn follow-up.',
+    features:['3-email drip sequence (Day 1/3/7)','LinkedIn connect note (under 300 chars)','LinkedIn follow-up message','Personalization placeholders','No buzzwords, no jargon','Copy individual messages'],
+    usecases:['B2B sales outreach','Freelance client prospecting','Agency new business','SaaS trial signups','Recruiting outreach','Partnership outreach'],
+    url:'/coldKai.html'
+  },
+  {
+    slug:'seoKai',icon:'🔍',name:'seoKai',cat:'revenue',
+    color:'#b8ff3c',colorRgb:'184,255,60',
+    tagline:'Meta titles, descriptions, H1, H2 structure, URL slugs, and keyword strategy.',
+    description:'Enter your topic and target keyword and get a complete SEO content brief: meta title, meta description with char counts, H1, URL slug, 5 focus keywords, 6 H2 sections with purpose notes, and content tips.',
+    features:['Meta title (60-char optimised)','Meta description (155-char optimised)','H1 and URL slug','5 focus keywords','6 H2 sections with strategy notes','Content tips for ranking'],
+    usecases:['Landing page SEO','Blog post outlines','Product page optimisation','Homepage meta tags','Category page SEO','Content briefs'],
+    url:'/seoKai.html'
+  },
+  {
+    slug:'jobKai',icon:'💼',name:'jobKai',cat:'revenue',
+    color:'#ff9f43',colorRgb:'255,159,67',
+    tagline:'Write compelling job descriptions that attract the right candidates in any tone.',
+    description:'Enter the role, company, responsibilities, and skills, pick a tone, and get a full job description: role summary, company blurb, responsibilities, requirements, nice-to-haves, benefits, and closing.',
+    features:['Role summary and company intro','7 responsibilities generated','6 requirements listed','Nice-to-have section','Benefits tags','Startup to corporate tones'],
+    usecases:['Hiring for any role','Engineering and design JDs','Leadership and exec roles','Remote-first job posts','Agency and startup hiring','HR team templates'],
+    url:'/jobKai.html'
+  },
+  {
+    slug:'prKai',icon:'📣',name:'prKai',cat:'revenue',
+    color:'#ff6bb5',colorRgb:'255,107,181',
+    tagline:'Press releases and journalist pitch emails for launches, funding, and partnerships.',
+    description:'Fill in the announcement details, and get a complete AP-style press release plus a 150-word journalist pitch email. Covers product launches, funding rounds, partnerships, milestones, hires, and events.',
+    features:['Full press release with dateline','Subheadline and lead paragraph','Executive quote generation','Company boilerplate','Press contact block','150-word journalist pitch email'],
+    usecases:['Product launches','Funding announcements','Partnership press releases','Award and milestone PRs','New hire announcements','Event press coverage'],
+    url:'/prKai.html'
+  },
+  {
+    slug:'policyKai',icon:'🔒',name:'policyKai',cat:'revenue',
+    color:'#00e5cc',colorRgb:'0,229,204',
+    tagline:'Privacy policy and Terms of Service generator for any site or app.',
+    description:'Enter your app name, data collected, and jurisdiction, and get a complete Privacy Policy and/or Terms of Service with 8+ sections each. Plain English but legally structured for GDPR, US, UK, and more.',
+    features:['Privacy Policy with 8+ sections','Terms of Service with 8+ sections','GDPR / US / UK / PIPEDA compliant structure','Multi-jurisdiction support','Plain English legal language','Copy-ready formatted output'],
+    usecases:['SaaS apps','E-commerce stores','Mobile apps','Content sites','Marketplaces','Agency client projects'],
+    url:'/policyKai.html'
   },
 ];
 
