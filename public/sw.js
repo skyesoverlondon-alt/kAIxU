@@ -1,9 +1,10 @@
-const CACHE = 'kaixu-v2';
+const CACHE = 'kaixu-v3';
 const PRECACHE = [
   '/',
   '/index.html',
   '/gateway.html',
   '/Intro.html',
+  '/InnerSanctum.html',
   '/kAIxUchat.html',
   '/manifest.json',
   '/icons/icon-192.png',
