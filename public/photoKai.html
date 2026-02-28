@@ -440,14 +440,18 @@ async function removeBg() {
   showProg('Loading AI model… (first run ~20-30s)');
   try {
     const { removeBackground } = await import(
-      'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/index.browser.mjs'
+      'https://unpkg.com/@imgly/background-removal@1.4.5/dist/index.browser.mjs'
     );
     showProg('Removing background…');
     const tmp = document.createElement('canvas');
     tmp.width = S.w; tmp.height = S.h;
     tmp.getContext('2d').drawImage(S.originalImage,0,0);
     const blob = await new Promise(r => tmp.toBlob(r,'image/png'));
-    const result = await removeBackground(blob, { model:'small', output:{format:'image/png',quality:1} });
+    const result = await removeBackground(blob, {
+      publicPath: 'https://unpkg.com/@imgly/background-removal@1.4.5/dist/',
+      model: 'small',
+      output: { format: 'image/png', quality: 1 }
+    });
     S.bgRemovedBlob   = result;
     S.bgRemovedBitmap = await createImageBitmap(result);
     S.bgRemoved = true;
@@ -457,7 +461,7 @@ async function removeBg() {
     autoSave();
     appendMsg('sys', '✂ Background removed. Pick a replacement background or export with transparency.');
   } catch(e) {
-    appendMsg('err', `Background removal failed: ${e.message || e}\n\nNote: Uses @imgly/background-removal (browser WASM). Works best in Chrome/Edge.`);
+    appendMsg('err', `Background removal failed: ${e.message || e}\n\nNote: Uses @imgly/background-removal (browser WASM). If it times out, try again — the model downloads once and caches.`);
   } finally {
     S.busy = false; $('removeBgBtn').disabled = false; hideProg();
   }
