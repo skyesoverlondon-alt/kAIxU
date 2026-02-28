@@ -1,0 +1,45 @@
+# kAIxU Suite — Build Checklist
+
+All single-file HTML apps, routed through the gate at `/v1/generate`.
+
+---
+
+## Text / Language
+
+- [x] **flashKai** — Paste notes or a topic, AI generates a flashcard deck. Flip-card UI, quiz mode with score tracking, IndexedDB deck storage.
+- [ ] **mailKai** — Email composer. Pick tone (formal / friendly / assertive), paste context, AI drafts. One-click copy. No backend needed.
+- [ ] **coverKai** — Paste a job description + your resume text, AI writes a tailored cover letter. Export as plain text or styled PDF via `window.print()`.
+- [ ] **resumeKai** — Guided resume builder. Section-by-section input, AI rewrites each bullet for impact. Export as clean printable HTML.
+- [ ] **sqlKai** — Natural language → SQL query. Paste your schema, describe what you want, get a query back. Syntax-highlighted output with copy button.
+
+---
+
+## Productivity / Notes
+
+- [ ] **meetKai** — Paste raw meeting notes, AI returns structured summary: decisions, action items, owners, next steps. Markdown output.
+- [ ] **journalKai** — Daily journal with AI reflection. Write your entry, AI responds with a brief reflection + mood tag. IndexedDB history by date.
+- [ ] **briefKai** — Paste any long text (article, doc, email thread), AI returns a 3-sentence brief + key bullet points. Adjustable brevity slider.
+
+---
+
+## Creative
+
+- [ ] **storyKai** — Branching collaborative fiction. Write an opening, AI continues. Pick from 3 generated paths at each branch. Tree view of story history.
+- [ ] **nameKai** — Brand/product name generator. Describe what you're building, AI returns 10 names with rationale, vibe tag, and domain hint.
+- [ ] **paletteKai** — Color palette generator. Describe a mood, brand, or scene in text. AI returns 5 hex colors with names and use-case notes. Visual swatches rendered live.
+
+---
+
+## Visual / Multimodal (uses `inline_data` like photoKai)
+
+- [ ] **recipeKai** — Snap or upload a photo of fridge contents. AI identifies ingredients and generates 3 recipes ranked by effort. Shopping list for missing items.
+- [ ] **diagramKai** — Upload a whiteboard photo, flowchart, or sketch. AI describes the logic, generates a Mermaid diagram, and summarizes the process.
+- [ ] **readKai** — Upload a photo of any printed text (handwriting, book page, sign). AI transcribes, cleans up, and optionally translates.
+
+---
+
+## Learning / Reference
+
+- [ ] **mathKai** — Step-by-step math tutor. Paste a problem, AI walks through solution with KaTeX-rendered equations. Hint mode before full solution.
+- [ ] **codeKai** — Paste a function or snippet, pick a review mode (explain / optimize / find bugs / add types). AI returns structured feedback. Diff view for suggested rewrites.
+- [ ] **quizKai** — Paste any topic or document, AI generates a 10-question multiple-choice quiz. Score tracked, wrong answers explained after submission.
