@@ -5,6 +5,9 @@
 [functions]
 directory = "netlify/functions"
 
+[[plugins]]
+package = "@netlify/plugin-functions-install-core"
+
 # API routes (stable paths your apps will call)
 [[redirects]]
   from = "/v1/health"
