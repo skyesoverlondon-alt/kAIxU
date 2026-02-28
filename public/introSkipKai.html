@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>introSkipKai — Intro pass + skip toggle</title>
+<style>
+:root{--bg:#05060d;--fg:#f5f7ff;--muted:#9aa0bc;--cyan:#00f3ff;--gold:#ffd36a;--border:rgba(255,255,255,.12);}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 20% 20%,rgba(0,243,255,.08),transparent 35%),radial-gradient(circle at 80% 10%,rgba(255,211,106,.08),transparent 32%),#05060d;color:var(--fg);padding:24px}
+.card{max-width:720px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
+p{margin:0 0 14px;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));color:var(--fg);font-weight:700;letter-spacing:.2px;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease}
+button:active{transform:translateY(1px) scale(.99)}
+.status{border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(0,0,0,.3);margin:10px 0;color:var(--muted);white-space:pre-wrap}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.28);color:var(--muted);font-size:12px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);box-shadow:0 0 14px rgba(0,243,255,.4)}
+.ok .dot{background:rgba(0,255,170,.8);box-shadow:0 0 14px rgba(0,255,170,.6)}
+.off .dot{background:rgba(255,90,110,.85);box-shadow:0 0 14px rgba(255,90,110,.45)}
+a{color:var(--gold)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <h1>introSkipKai</h1>
+        <p>Issue a one-time intro pass or set a persistent skip flag on this device.</p>
+      </div>
+      <div class="badge" id="badge"><span class="dot"></span><span id="badgeText">Checking…</span></div>
+    </div>
+
+    <div class="row">
+      <button id="btnPass">Grant one-time pass</button>
+      <button id="btnConsume">Consume pass now</button>
+      <button id="btnEnable">Enable skip intro</button>
+      <button id="btnDisable">Disable skip intro</button>
+      <button id="btnClear">Clear all flags</button>
+    </div>
+
+    <div class="status" id="status"></div>
+    <div class="status" style="font-size:12px">Uses localStorage key <strong>kaixuIntroSkip</strong> and sessionStorage key <strong>kaixuIntroPass</strong>. This only affects this browser.</div>
+    <div style="margin-top:12px;color:var(--muted);font-size:13px">Need to return to where you left off? The intro sets <strong>kaixuIntroReturn</strong> to send you back after the cinematic.</div>
+  </div>
+<script>
+  const passKey='kaixuIntroPass';
+  const skipKey='kaixuIntroSkip';
+  const badge=document.getElementById('badge');
+  const badgeText=document.getElementById('badgeText');
+  const statusEl=document.getElementById('status');
+
+  function update(){
+    const skip=!!localStorage.getItem(skipKey);
+    const pass=!!sessionStorage.getItem(passKey);
+    const lines=[
+      `Skip flag: ${skip ? 'enabled (localStorage)' : 'disabled'}`,
+      `One-time pass: ${pass ? 'present (sessionStorage)' : 'none'}`,
+      `Return target: ${sessionStorage.getItem('kaixuIntroReturn')||'(none set)'}`
+    ];
+    statusEl.textContent = lines.join('\n');
+    badge.classList.toggle('ok', skip||pass);
+    badge.classList.toggle('off', !(skip||pass));
+    badgeText.textContent = skip ? 'Skip enabled' : (pass ? 'Pass ready' : 'Default');
+  }
+
+  document.getElementById('btnPass').onclick=()=>{sessionStorage.setItem(passKey,'1');update();};
+  document.getElementById('btnConsume').onclick=()=>{sessionStorage.removeItem(passKey);update();};
+  document.getElementById('btnEnable').onclick=()=>{localStorage.setItem(skipKey,'1');sessionStorage.setItem(passKey,'1');update();};
+  document.getElementById('btnDisable').onclick=()=>{localStorage.removeItem(skipKey);sessionStorage.removeItem(passKey);update();};
+  document.getElementById('btnClear').onclick=()=>{localStorage.removeItem(skipKey);sessionStorage.removeItem(passKey);sessionStorage.removeItem('kaixuIntroReturn');update();};
+
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>offlinePackKai — precache pack</title>
+<style>
+:root{--bg:#06060d;--fg:#f7f8ff;--muted:#a2a7c4;--cyan:#00f3ff;--gold:#ffd36a;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#06060d;color:var(--fg);padding:24px}
+.card{max-width:820px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
+p{margin:0 0 12px;color:var(--muted)}
+button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));color:var(--fg);font-weight:700;letter-spacing:.2px;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease}
+button:active{transform:translateY(1px) scale(.99)}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:center}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:14px;padding:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.28);color:var(--muted);font-size:12px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);box-shadow:0 0 14px rgba(0,243,255,.4)}
+.ok .dot{background:rgba(0,255,170,.8);box-shadow:0 0 14px rgba(0,255,170,.6)}
+.off .dot{background:rgba(255,90,110,.85);box-shadow:0 0 14px rgba(255,90,110,.45)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <h1>offlinePackKai</h1>
+        <p>Precache key shells for offline demos. Purge when you need a fresh pull.</p>
+      </div>
+      <div class="badge" id="pill"><span class="dot"></span><span id="pillText">Checking…</span></div>
+    </div>
+
+    <div class="row">
+      <button id="btnPrecache">Precache pack</button>
+      <button id="btnDrop">Drop pack</button>
+      <button id="btnList">List pack entries</button>
+    </div>
+
+    <pre id="log">(waiting)</pre>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px">Cache key: <strong>kaixu-offline-pack-v1</strong>. Uses the browser Cache API; does not touch your SW registration.</div>
+  </div>
+<script>
+  const CACHE_NAME='kaixu-offline-pack-v1';
+  const urls=[
+    '/', '/index.html','/InnerSanctum.html','/gateway.html','/kAIxUchat.html',
+    '/sw.js','/coverKai.html','/codeKai.html','/briefKai.html','/resumeKai.html'
+  ];
+  const logEl=document.getElementById('log');
+  const pill=document.getElementById('pill');
+  const pillText=document.getElementById('pillText');
+
+  function setPill(ok,msg){pill.classList.toggle('ok',ok);pill.classList.toggle('off',!ok);pillText.textContent=msg;}
+
+  async function precache(){
+    try{
+      const c=await caches.open(CACHE_NAME);
+      await c.addAll(urls);
+      log(`Cached ${urls.length} assets. Ready offline.`);
+      setPill(true,'Pack ready');
+    }catch(e){
+      log('Error precaching: '+e);
+      setPill(false,'Error');
+    }
+  }
+  async function drop(){
+    try{await caches.delete(CACHE_NAME);log('Pack removed.');setPill(false,'No pack');}
+    catch(e){log('Error deleting: '+e);}
+  }
+  async function list(){
+    try{
+      const keys=await caches.keys();
+      const has=keys.includes(CACHE_NAME);
+      setPill(has,'Pack '+(has?'ready':'missing'));
+      if(!has){log('No pack yet.');return;}
+      const c=await caches.open(CACHE_NAME);
+      const reqs=await c.keys();
+      log(reqs.map(r=>r.url.replace(location.origin,'')).join('\n')||'(empty)');
+    }catch(e){log('Error listing: '+e);}
+  }
+  function log(msg){logEl.textContent=msg;}
+  document.getElementById('btnPrecache').onclick=precache;
+  document.getElementById('btnDrop').onclick=drop;
+  document.getElementById('btnList').onclick=list;
+  setPill(navigator.onLine,'Online');
+  list();
+</script>
+</body>
+</html>

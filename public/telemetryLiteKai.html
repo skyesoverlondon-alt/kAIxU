@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>telemetryLiteKai — client beacons</title>
+<style>
+:root{--bg:#07070f;--fg:#f5f7ff;--muted:#9aa0bc;--cyan:#00f3ff;--gold:#ffd36a;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#07070f;color:var(--fg);padding:24px}
+.card{max-width:820px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
+p{margin:0 0 12px;color:var(--muted)}
+button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));color:var(--fg);font-weight:700;letter-spacing:.2px;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease}
+button:active{transform:translateY(1px) scale(.99)}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:center}
+input,textarea{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--fg)}
+textarea{min-height:90px;font-family:inherit}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:14px;padding:12px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>telemetryLiteKai</h1>
+    <p>Send lightweight client beacons for intro events, CTA clicks, or errors. Uses <code>navigator.sendBeacon</code> with a simple JSON payload.</p>
+
+    <div class="row">
+      <input id="event" placeholder="event name e.g. intro_start" />
+      <input id="user" placeholder="user/session id (optional)" />
+    </div>
+    <textarea id="context" placeholder='context JSON e.g. {"page":"index","cta":"gold"}'></textarea>
+    <div class="row">
+      <button id="btnSend">Send beacon</button>
+      <button id="btnPrefill">Prefill intro/cta</button>
+      <button id="btnError">Send error sample</button>
+    </div>
+
+    <pre id="log">(waiting)</pre>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px">Endpoint: <strong>/v1/telemetry</strong> (same origin). If unavailable, falls back to <code>fetch</code> POST.</div>
+  </div>
+<script>
+  const logEl=document.getElementById('log');
+  const evEl=document.getElementById('event');
+  const userEl=document.getElementById('user');
+  const ctxEl=document.getElementById('context');
+
+  function payload(evt, ctx){
+    return {
+      event: evt,
+      user: userEl.value || undefined,
+      ts: Date.now(),
+      context: ctx
+    };
+  }
+  function log(msg){logEl.textContent=msg;}
+
+  async function send(evt, ctx){
+    const body=JSON.stringify(payload(evt, ctx));
+    let ok=false;
+    if(navigator.sendBeacon){
+      ok = navigator.sendBeacon('/v1/telemetry', new Blob([body],{type:'application/json'}));
+    }
+    if(!ok){
+      try{await fetch('/v1/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body});ok=true;}
+      catch(e){log('Failed: '+e);return;}
+    }
+    log('Sent beacon:\n'+body);
+  }
+
+  document.getElementById('btnSend').onclick=()=>{
+    const evt=evEl.value.trim()||'custom_event';
+    let ctx={};
+    try{ctx=ctxEl.value?JSON.parse(ctxEl.value):{};}catch(_){ctx={raw:ctxEl.value};}
+    send(evt, ctx);
+  };
+  document.getElementById('btnPrefill').onclick=()=>{
+    evEl.value='intro_start';
+    ctxEl.value='{"page":"index","cta":"gold"}';
+  };
+  document.getElementById('btnError').onclick=()=>{
+    evEl.value='client_error';
+    ctxEl.value=JSON.stringify({page:location.pathname,message:'Sample error',ua:navigator.userAgent},null,2);
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>searchBoosterKai — fuzzy search</title>
+<style>
+:root{--bg:#06070f;--fg:#f6f7ff;--muted:#9aa0bc;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 16% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#06070f;color:var(--fg);padding:24px}
+.card{max-width:820px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
+p{margin:0 0 12px;color:var(--muted)}
+input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--fg);font-size:14px}
+ul{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:10px}
+li{border:1px solid var(--border);border-radius:12px;padding:10px;background:rgba(0,0,0,.25)}
+.score{font-family:'SFMono-Regular',Consolas,monospace;font-size:12px;color:var(--muted)}
+mark{background:rgba(0,243,255,.18);color:inherit;padding:0 2px;border-radius:4px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>searchBoosterKai</h1>
+    <p>Client-side fuzzy search over the Inner Sanctum catalog. Type to see scores and highlighted hits.</p>
+    <input id="q" placeholder="Search apps..." autofocus />
+    <ul id="results"></ul>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Scoring: +3 for prefix, +2 for substring, +1 for token match; penalizes distance.</div>
+  </div>
+<script>
+  const data=[
+    'kAIxUchat — chat and multi-model',
+    'skAIxu IDE — code + editor',
+    'watchdogKai — SW + cache health',
+    'liveModeKai — prod/stage switcher',
+    'offlinePackKai — precache shell',
+    'introSkipKai — intro flag toggle',
+    'telemetryLiteKai — beacons',
+    'themeReactorKai — themes',
+    'quickPaletteKai — cmd+k overlay',
+    'searchBoosterKai — fuzzy search',
+    'paletteKai — color palettes'
+  ];
+
+  const q=document.getElementById('q');
+  const ul=document.getElementById('results');
+
+  function score(str, term){
+    const hay=str.toLowerCase();
+    const needle=term.toLowerCase();
+    if(!needle) return 0;
+    let s=0;
+    if(hay.startsWith(needle)) s+=3;
+    if(hay.includes(needle)) s+=2;
+    needle.split(/\s+/).forEach(tok=>{ if(tok && hay.includes(tok)) s+=1; });
+    return s - Math.max(0, hay.length - needle.length)*0.01;
+  }
+  function highlight(str, term){
+    const n=term.trim();
+    if(!n) return str;
+    const re=new RegExp(n.replace(/[-/\\^$*+?.()|[\]{}]/g,'\\$&'),'ig');
+    return str.replace(re, m=>`<mark>${m}</mark>`);
+  }
+  function render(){
+    const term=q.value.trim();
+    const items=data.map(text=>({text,score:score(text,term)})).filter(i=>term?i.score>0:true).sort((a,b)=>b.score-a.score);
+    ul.innerHTML=items.map(i=>`<li><div>${highlight(i.text,term)}</div><div class="score">score ${i.score.toFixed(2)}</div></li>`).join('');
+  }
+  q.addEventListener('input', render);
+  render();
+</script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>liveModeKai — Env switcher</title>
+<style>
+:root{--bg:#04060e;--fg:#f5f7ff;--muted:#9aa0bc;--cyan:#00f3ff;--gold:#ffd36a;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 12% 18%,rgba(0,243,255,.09),transparent 34%),radial-gradient(circle at 82% 8%,rgba(255,211,106,.09),transparent 32%),#04060e;color:var(--fg);padding:24px}
+.card{max-width:780px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
+p{margin:0 0 14px;color:var(--muted)}
+select,button{padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--fg);font-weight:700;letter-spacing:.2px}
+button{cursor:pointer;background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease}
+button:active{transform:translateY(1px) scale(.99)}
+.row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:center}
+.box{border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(255,255,255,.04);margin-top:12px}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.28);color:var(--muted);font-size:12px}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);box-shadow:0 0 14px rgba(0,243,255,.4)}
+.ok .dot{background:rgba(0,255,170,.8);box-shadow:0 0 14px rgba(0,255,170,.6)}
+.off .dot{background:rgba(255,90,110,.85);box-shadow:0 0 14px rgba(255,90,110,.45)}
+</style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <h1>liveModeKai</h1>
+        <p>Flip staging/prod for the gateway and verify API health inline.</p>
+      </div>
+      <div class="badge" id="pill"><span class="dot"></span><span id="pillText">Checking…</span></div>
+    </div>
+
+    <div class="row">
+      <select id="env">
+        <option value="prod">Prod</option>
+        <option value="stage">Stage</option>
+      </select>
+      <button id="btnSave">Save env</button>
+      <button id="btnHealth">Check /v1/health</button>
+    </div>
+
+    <div class="box"><strong>Health</strong><pre id="health">(waiting)</pre></div>
+    <div class="box"><strong>Current base</strong><pre id="base">(waiting)</pre></div>
+    <div class="box" style="font-size:12px">Uses localStorage key <strong>kaixuEnv</strong> so gateway and other tools stay in sync.</div>
+  </div>
+<script>
+  const ENVS={
+    prod:'https://kaixu67.skyesoverlondon.workers.dev',
+    stage:'https://kaixu67.skyesoverlondon.workers.dev'
+  };
+  const envSel=document.getElementById('env');
+  const pill=document.getElementById('pill');
+  const pillText=document.getElementById('pillText');
+  const healthEl=document.getElementById('health');
+  const baseEl=document.getElementById('base');
+
+  function applySaved(){
+    const saved=localStorage.getItem('kaixuEnv')||'prod';
+    envSel.value=saved;
+    baseEl.textContent=ENVS[saved]||ENVS.prod;
+  }
+  function setPill(ok,msg){
+    pill.classList.toggle('ok',ok);
+    pill.classList.toggle('off',!ok);
+    pillText.textContent=msg;
+  }
+  async function check(){
+    const base=ENVS[envSel.value]||ENVS.prod;
+    baseEl.textContent=base;
+    try{
+      const r=await fetch(`${base}/v1/health`,{cache:'no-store'});
+      const j=await r.json();
+      setPill(!!j.ok,j.ok?'Online':'Offline');
+      healthEl.textContent=JSON.stringify(j,null,2);
+    }catch(e){
+      setPill(false,'Offline');
+      healthEl.textContent=String(e);
+    }
+  }
+  document.getElementById('btnSave').onclick=()=>{localStorage.setItem('kaixuEnv',envSel.value);applySaved();check();};
+  document.getElementById('btnHealth').onclick=check;
+  applySaved();
+  check();
+</script>
+</body>
+</html>

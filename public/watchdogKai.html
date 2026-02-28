@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>watchdogKai — Gate health + cache</title>
+  <style>
+    :root{
+      --bg:#05060d;--fg:#f4f5ff;--muted:#a8acc7;--cyan:#00f3ff;--gold:#ffd36a;--border:rgba(255,255,255,.12);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 20% 20%,rgba(0,243,255,.08),transparent 35%),radial-gradient(circle at 80% 10%,rgba(255,211,106,.08),transparent 32%),#05060d;color:var(--fg);padding:22px}
+    .card{max-width:720px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:20px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+    h1{margin:0 0 6px;font-size:22px;letter-spacing:.4px}
+    p{margin:0 0 14px;color:var(--muted)}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0}
+    button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.2),rgba(0,243,255,.08));color:var(--fg);font-weight:700;letter-spacing:.2px;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease,filter .2s ease}
+    button:active{transform:translateY(1px) scale(.99)}
+    select{padding:10px 12px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--fg);min-width:160px}
+    pre{background:rgba(0,0,0,.35);border:1px solid var(--border);padding:12px;border-radius:14px;overflow:auto;max-height:320px;white-space:pre-wrap;word-break:break-word;margin:0}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.28);color:var(--muted);font-size:12px}
+    .dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.3);box-shadow:0 0 14px rgba(0,243,255,.4)}
+    .ok .dot{background:rgba(0,255,170,.8);box-shadow:0 0 14px rgba(0,255,170,.6)}
+    .bad .dot{background:rgba(255,90,110,.85);box-shadow:0 0 14px rgba(255,90,110,.45)}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}
+    .box{border:1px solid var(--border);border-radius:14px;padding:12px;background:rgba(255,255,255,.03)}
+    .box h3{margin:0 0 6px;font-size:14px}
+    .muted{color:var(--muted);font-size:12px}
+    a{color:var(--gold)}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+      <div>
+        <h1>watchdogKai</h1>
+        <p>Check gateway health, see SW/cache state, and purge when stale.</p>
+      </div>
+      <div class="pill" id="pill"><span class="dot"></span><span id="pillText">Checking…</span></div>
+    </div>
+
+    <div class="row">
+      <select id="env">
+        <option value="prod">Prod</option>
+        <option value="stage">Stage</option>
+      </select>
+      <button id="btnHealth">Check health</button>
+      <button id="btnCaches">List caches</button>
+      <button id="btnPurge">Purge caches + unregister SW</button>
+      <button id="btnSW">SW version</button>
+    </div>
+
+    <div class="grid">
+      <div class="box">
+        <h3>Gateway health</h3>
+        <pre id="health">(waiting)</pre>
+      </div>
+      <div class="box">
+        <h3>Cache keys</h3>
+        <pre id="caches">(waiting)</pre>
+      </div>
+      <div class="box">
+        <h3>Service worker</h3>
+        <pre id="sw">(waiting)</pre>
+      </div>
+    </div>
+    <div class="muted">Tip: If the gold CTA or intro isn’t updating, hit “Purge caches” then reload.</div>
+  </div>
+
+<script>
+  const ENVS = {
+    prod: 'https://kaixu67.skyesoverlondon.workers.dev',
+    stage: 'https://kaixu67.skyesoverlondon.workers.dev'
+  };
+  const envSel = document.getElementById('env');
+  const pill = document.getElementById('pill');
+  const pillText = document.getElementById('pillText');
+  const healthEl = document.getElementById('health');
+  const cachesEl = document.getElementById('caches');
+  const swEl = document.getElementById('sw');
+
+  function setPill(ok,msg){
+    pill.classList.toggle('ok', ok);
+    pill.classList.toggle('bad', !ok);
+    pillText.textContent = msg;
+  }
+
+  async function checkHealth(){
+    const base = ENVS[envSel.value] || ENVS.prod;
+    try{
+      const r = await fetch(`${base}/v1/health`, {cache:'no-store'});
+      const j = await r.json();
+      setPill(!!j.ok, j.ok ? 'Online' : 'Offline');
+      healthEl.textContent = JSON.stringify(j, null, 2);
+    }catch(e){
+      setPill(false,'Offline');
+      healthEl.textContent = String(e);
+    }
+  }
+
+  async function listCaches(){
+    try{
+      const keys = await caches.keys();
+      cachesEl.textContent = keys.join('\n') || '(none)';
+    }catch(e){
+      cachesEl.textContent = 'n/a';
+    }
+  }
+
+  async function purgeCaches(){
+    try{
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+      cachesEl.textContent = '(purged)';
+      swEl.textContent = 'unregistered';
+    }catch(e){
+      cachesEl.textContent = 'error purging';
+    }
+  }
+
+  async function swVersion(){
+    try{
+      const reg = await navigator.serviceWorker.getRegistration();
+      swEl.textContent = reg && reg.active ? (reg.active.scriptURL + '\nstate: ' + reg.active.state) : 'no active SW';
+    }catch(e){
+      swEl.textContent = 'n/a';
+    }
+  }
+
+  envSel.addEventListener('change', checkHealth);
+  document.getElementById('btnHealth').addEventListener('click', checkHealth);
+  document.getElementById('btnCaches').addEventListener('click', listCaches);
+  document.getElementById('btnPurge').addEventListener('click', purgeCaches);
+  document.getElementById('btnSW').addEventListener('click', swVersion);
+
+  checkHealth();
+  listCaches();
+  swVersion();
+</script>
+</body>
+</html>

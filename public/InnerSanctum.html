@@ -176,9 +176,9 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
     <div class="line1">Welcome To The</div>
     <div class="line2">Inner Sanctum</div>
   </h1>
-  <p class="hero-sub">Every tool, every capability, every use case — laid out in full. 29 AI-powered apps, one gated intelligence, zero vendor exposure. Pick what you need and ship.</p>
+  <p class="hero-sub">Every tool, every capability, every use case — laid out in full. <span id="hero-count">37</span> AI-powered apps, one gated intelligence, zero vendor exposure. Pick what you need and ship.</p>
   <div class="stats-bar">
-    <div class="stat"><div class="stat-num" id="cnt-apps">29</div><div class="stat-label">AI Apps</div></div>
+    <div class="stat"><div class="stat-num" id="cnt-apps">37</div><div class="stat-label">AI Apps</div></div>
     <div class="stat"><div class="stat-num">1</div><div class="stat-label">Unified Gate</div></div>
     <div class="stat"><div class="stat-num">∞</div><div class="stat-label">Use Cases</div></div>
     <div class="stat"><div class="stat-num">0</div><div class="stat-label">API Keys Exposed</div></div>
@@ -283,6 +283,78 @@ const APPS = [
     features:['AI code generation from natural language','Multi-language syntax support','In-editor debugging and suggestions','Paste-to-explain any code block','Export to clipboard or file','Session-persistent code state'],
     usecases:['Rapid prototyping','Learning new languages','Code generation from specs','Refactoring and cleanup','Interview prep'],
     url:'/skaixuIDE.html'
+  },
+  {
+    slug:'watchdogKai',icon:'🩺',name:'watchdogKai',cat:'code',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Gate watchdog app for SW version, cache keys, and gateway health.',
+    description:'Standalone watchdog console to sanity-check the gate: see current service worker, enumerate caches, purge them when stale, and verify gateway health per environment.',
+    features:['List service worker version and state','Enumerate and purge caches in one click','Gateway /v1/health check with status pill','Env selector (prod/stage) persisted locally'],
+    usecases:['Fix stale gold CTA or intro assets','Verify deploy freshness','Troubleshoot offline issues','Force-reset SW and caches safely'],
+    url:'/watchdogKai.html'
+  },
+  {
+    slug:'introSkipKai',icon:'⏭',name:'introSkipKai',cat:'code',
+    color:'#00f3ff',colorRgb:'0,243,255',
+    tagline:'Toggle intro skip flag and one-time pass tokens.',
+    description:'Control the cinematic intro locally: set a persistent skip flag, issue a single-use pass, clear everything, and see what the return target is.',
+    features:['Enable/disable persistent intro skip','Grant or consume one-time intro pass','Inspect intro return target','LocalStorage + sessionStorage visibility'],
+    usecases:['Skip intro for demos','Debug intro pass handling','Reset to default behavior quickly','Verify intro return routing'],
+    url:'/introSkipKai.html'
+  },
+  {
+    slug:'liveModeKai',icon:'⚙',name:'liveModeKai',cat:'code',
+    color:'#3bd6ff',colorRgb:'59,214,255',
+    tagline:'Prod/stage gateway switcher with inline health check.',
+    description:'Set the active gateway environment (kaixuEnv), persist it, and verify /v1/health immediately so every tool points at the right target.',
+    features:['Prod / stage selector persisted to kaixuEnv','Inline /v1/health fetch','Status pill for online/offline','Shows resolved API base'],
+    usecases:['Flip staging for tests','Confirm prod health before demos','Align gateway base across pages','Debug connectivity issues'],
+    url:'/liveModeKai.html'
+  },
+  {
+    slug:'offlinePackKai',icon:'📦',name:'offlinePackKai',cat:'code',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Precache a demo pack for offline or flaky networks.',
+    description:'Cache a curated set of core shells (gateway, chat, key apps) into a dedicated pack. List or drop the pack any time without touching your SW registration.',
+    features:['Precache shell bundle to Cache API','List cached entries','Drop the pack when stale','Status pill for pack presence'],
+    usecases:['Offline demo prep','Air-gapped rehearsals','Quick reset for stale assets','Travel/flight work mode'],
+    url:'/offlinePackKai.html'
+  },
+  {
+    slug:'telemetryLiteKai',icon:'📡',name:'telemetryLiteKai',cat:'code',
+    color:'#a243ff',colorRgb:'162,67,255',
+    tagline:'Send lightweight client beacons via sendBeacon.',
+    description:'Fire intro/CTA/error events with a tiny JSON payload using navigator.sendBeacon, with fetch fallback. Inspect the payload you just sent.',
+    features:['sendBeacon with JSON payload','Fallback to fetch POST','Prefill common intro/CTA events','Inline payload log'],
+    usecases:['Instrument intro start/finish','Track gold CTA clicks','Capture client errors','Smoke-test telemetry endpoint'],
+    url:'/telemetryLiteKai.html'
+  },
+  {
+    slug:'themeReactorKai',icon:'🎨',name:'themeReactorKai',cat:'creative',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Switch Neon / Gold / Noir themes and persist.',
+    description:'A focused palette switcher for the whole estate. Writes kaixuTheme to localStorage and previews how buttons and badges will render.',
+    features:['Set Neon, Gold, or Noir','Writes kaixuTheme in localStorage','Instant CSS variable application','Preview block reflecting theme'],
+    usecases:['Force gold CTA palette','Match deck styling to demos','Debug theme persistence','Show options to stakeholders'],
+    url:'/themeReactorKai.html'
+  },
+  {
+    slug:'searchBoosterKai',icon:'🔍',name:'searchBoosterKai',cat:'code',
+    color:'#00f3ff',colorRgb:'0,243,255',
+    tagline:'Fuzzy search demo with scoring and highlighting.',
+    description:'See how client-side fuzzy scoring ranks app names and tags. Type to watch scores update and highlights render.',
+    features:['Prefix/substring/token scoring','Score display per result','Highlight matches inline','No backend required'],
+    usecases:['Tune Inner Sanctum search feel','Demo scoring behavior','Validate token coverage','Spot naming collisions'],
+    url:'/searchBoosterKai.html'
+  },
+  {
+    slug:'quickPaletteKai',icon:'⚡',name:'quickPaletteKai',cat:'chat',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Standalone Cmd/Ctrl+K quick actions palette.',
+    description:'Open a minimal action palette to jump to gateway, chat, watchdog, env switch, and toggle intro skip — without hunting through the grid.',
+    features:['Cmd/Ctrl+K shortcut','Click overlay palette','Direct links to key ops tools','Inline actions for intro skip'],
+    usecases:['Power-nav during demos','Surface ops tools fast','Bypass scrolling the grid','Showcase palette UX pattern'],
+    url:'/quickPaletteKai.html'
   },
   {
     slug:'briefKai',icon:'📰',name:'briefKai',cat:'writing',
@@ -635,8 +707,13 @@ document.getElementById('search').addEventListener('input', e => {
   render();
 });
 
+const APP_COUNT = APPS.length;
+
 // Feature list color
-document.addEventListener('DOMContentLoaded', () => {});
+document.addEventListener('DOMContentLoaded', () => {
+  const heroCount = document.getElementById('hero-count');
+  if(heroCount){ heroCount.textContent = APP_COUNT; }
+});
 
 render();
 
