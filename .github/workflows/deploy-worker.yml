@@ -4,14 +4,17 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'worker/**'
   workflow_dispatch:        # manual re-deploy button in GitHub UI
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy to Cloudflare Workers
+    # Only redeploy when worker code actually changes
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(join(github.event.commits.*.modified, ','), 'worker/') ||
+      contains(join(github.event.commits.*.added, ','), 'worker/')
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,10 +26,29 @@ jobs:
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           workingDirectory: worker
           wranglerVersion: '4'
-          # Secrets are only re-pushed when the GH secret name is set
           secrets: |
             KAIXU_GEMINI_API_KEY
             KAIXU_APP_TOKENS
         env:
           KAIXU_GEMINI_API_KEY: ${{ secrets.KAIXU_GEMINI_API_KEY }}
           KAIXU_APP_TOKENS: ${{ secrets.KAIXU_APP_TOKENS }}
+
+  sync-secrets:
+    runs-on: ubuntu-latest
+    name: Sync Worker Secrets
+    # Always sync secrets on every push (keeps them fresh even without a deploy)
+    steps:
+      - name: Push KAIXU_GEMINI_API_KEY
+        run: printf '%s' "$VAL" | npx wrangler@4 secret put KAIXU_GEMINI_API_KEY --name kaixu67
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          VAL: ${{ secrets.KAIXU_GEMINI_API_KEY }}
+
+      - name: Push KAIXU_APP_TOKENS
+        run: printf '%s' "$VAL" | npx wrangler@4 secret put KAIXU_APP_TOKENS --name kaixu67
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          VAL: ${{ secrets.KAIXU_APP_TOKENS }}
+
