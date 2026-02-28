@@ -25,8 +25,8 @@
       font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
 
     /* ── LAYOUT ── */
-    #shell { display: grid; height: 100vh; grid-template-rows: 42px 1fr 260px;
-      grid-template-columns: 220px 1fr 340px; }
+    #shell { display: grid; height: 100vh; grid-template-rows: 42px 1fr;
+      grid-template-columns: 220px 1fr 1fr 320px; }
 
     /* TOP BAR */
     #topbar { grid-column: 1/-1; display: flex; align-items: center; gap: 10px;
@@ -82,7 +82,7 @@
     #monacoContainer { flex: 1; }
 
     /* AI PANEL */
-    #aiPanel { grid-row: 2; grid-column: 3;
+    #aiPanel { grid-row: 2; grid-column: 4;
       background: var(--surface); border-left: 1px solid var(--border);
       display: flex; flex-direction: column; overflow: hidden; }
     #aiPanel .panel-section { padding: 12px 14px 0; }
@@ -125,9 +125,9 @@
     #diffEmpty { font-size: 12px; color: var(--muted); text-align: center;
       padding: 20px 0; }
 
-    /* PREVIEW STRIP */
-    #previewBar { grid-column: 1/-1; background: var(--surface2); border-top: 1px solid var(--border);
-      display: flex; flex-direction: column; overflow: hidden; }
+    /* PREVIEW PANE (side-by-side) */
+    #previewBar { grid-row: 2; grid-column: 3; background: var(--surface2);
+      border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
     #previewHeader { display: flex; align-items: center; gap: 10px; padding: 7px 14px;
       border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted);
       flex-shrink: 0; }
@@ -236,7 +236,7 @@
     <div id="diffView"><div id="diffEmpty">AI suggested changes will appear here</div></div>
   </aside>
 
-  <!-- PREVIEW -->
+  <!-- PREVIEW (side-by-side) -->
   <div id="previewBar">
     <div id="previewHeader">
       <span class="ph-title">Live Preview</span>
@@ -245,7 +245,7 @@
       <button class="ph-btn" onclick="refreshPreview()">↺ Refresh</button>
       <button class="ph-btn" onclick="detachPreview()">⤡ Detach</button>
     </div>
-    <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms" style="display:none"></iframe>
+    <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms allow-downloads" style="display:none"></iframe>
     <div id="previewPlaceholder">Open an HTML file and click ▶ Run to preview</div>
   </div>
 </div>
@@ -265,6 +265,7 @@ let editor = null;
 let currentFileName = '';
 let currentContent  = '';
 let pendingNewContent = null;
+let previewBlobUrl = null;
 // path → FileSystemFileHandle (for files opened from disk, so we can write back)
 const handleMap = new Map();
 // in-memory file list: [{path, content}]
@@ -713,21 +714,44 @@ async function saveCurrentFile() {
 // ── PREVIEW ──
 function refreshPreview() {
   if (!editor) return;
-  const ext = currentFileName.split('.').pop().toLowerCase();
-  if (['html','htm'].includes(ext)) {
-    showPreview(editor.getValue());
-  } else {
-    setPreviewPlaceholder('Preview is only available for HTML files');
-  }
+  showPreview(editor.getValue());
 }
 
-function showPreview(html) {
+function mimeFromExt(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    html: 'text/html', htm: 'text/html',
+    md: 'text/markdown', markdown: 'text/markdown', txt: 'text/plain',
+    js: 'text/javascript', css: 'text/css', json: 'application/json',
+    xml: 'text/xml', svg: 'image/svg+xml',
+    pdf: 'application/pdf',
+    doc: 'application/msword',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xls: 'application/vnd.ms-excel',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    ppt: 'application/vnd.ms-powerpoint',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', avif: 'image/avif'
+  };
+  return map[ext] || 'text/plain';
+}
+
+function showPreview(content) {
   const frame = document.getElementById('previewFrame');
   const placeholder = document.getElementById('previewPlaceholder');
   frame.style.display = '';
   placeholder.style.display = 'none';
-  frame.srcdoc = html;
-  document.getElementById('previewUrl').textContent = currentFileName;
+
+  if (previewBlobUrl) {
+    URL.revokeObjectURL(previewBlobUrl);
+    previewBlobUrl = null;
+  }
+
+  const mime = mimeFromExt(currentFileName || '');
+  const blob = new Blob([content], { type: mime });
+  previewBlobUrl = URL.createObjectURL(blob);
+  frame.src = previewBlobUrl;
+  document.getElementById('previewUrl').textContent = currentFileName || '(unsaved)';
 }
 
 function setPreviewPlaceholder(msg) {
@@ -799,10 +823,8 @@ ${fileContent}`;
     // Strip accidental code fences if model added them
     pendingNewContent = stripFences(pendingNewContent);
 
-    renderDiff(fileContent, pendingNewContent);
-    setStatus('✦ Review changes below');
-    document.getElementById('btnApply').style.display  = '';
-    document.getElementById('btnReject').style.display = '';
+    // Auto-apply so the file updates immediately for preview
+    await applyEdit(true);
 
   } catch(e) {
     setStatus('⚠ ' + e.message);
@@ -816,20 +838,38 @@ function stripFences(text) {
   return text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
 }
 
-function applyEdit() {
+async function applyEdit(auto = false) {
   if (!pendingNewContent || !editor) return;
+
   editor.setValue(pendingNewContent);
-  currentContent = pendingNewContent; // mark as "saved" baseline? No — let user save
+  currentContent = pendingNewContent;
   pendingNewContent = null;
+
+  // Persist immediately so preview uses the applied file and state survives reload
+  if (currentFileName) {
+    const text = editor.getValue();
+    await storeFile(currentFileName, text);
+    await updateIDBBadge();
+
+    const diskHandle = handleMap.get(currentFileName);
+    if (diskHandle) {
+      try {
+        const writable = await diskHandle.createWritable();
+        await writable.write(text);
+        await writable.close();
+      } catch(_) { /* ignore disk write errors here */ }
+    }
+  }
+
   clearDiff();
-  setStatus('✓ Applied — press Ctrl+S / ⌘S to save', 3000);
   document.getElementById('btnApply').style.display  = 'none';
   document.getElementById('btnReject').style.display = 'none';
-  // Show save button
-  document.getElementById('btnSave').style.display = currentFileName ? '' : 'none';
-  // Auto-refresh HTML preview
+  document.getElementById('btnSave').style.display   = 'none';
+
   const ext = currentFileName.split('.').pop().toLowerCase();
   if (['html','htm'].includes(ext)) showPreview(editor.getValue());
+
+  setStatus(auto ? '✓ Applied and saved — preview updated' : '✓ Applied and saved', 3000);
 }
 
 function rejectEdit() {
