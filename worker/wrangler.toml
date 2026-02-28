@@ -2,6 +2,7 @@ name = "kaixu67"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "994dcbdf4404db05122940396a622102"
 
 # Routes — uncomment and set your domain after deploying
 # routes = [
