@@ -4,6 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Kaixu Gate Delta — kAIxu Core Gateway</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#07060d" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="kAIxUchat" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <meta name="description" content="Kaixu Gate Delta: Netlify-hosted gateway that centralizes kAIxu calls and keeps the API key server-side." />
   <style>
     :root{
@@ -349,6 +356,11 @@ POST /v1/stream   (SSE)</code></pre>
 
   loadModels();
   health();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
