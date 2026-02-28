@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>photoKai — AI Photo Suite · kAIxU</title>
+<style>
+:root {
+  --bg:       #09090e;
+  --surface:  #10101a;
+  --surface2: #171722;
+  --border:   #252535;
+  --accent:   #c8a84b;
+  --text:     #e6e6f0;
+  --muted:    #5a5a78;
+  --error:    #e05555;
+  --ok:       #4caf7d;
+  --radius:   8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden;font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+body{display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:12px;padding:9px 14px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.workspace{display:flex;flex:1;overflow:hidden}
+.status-bar{display:flex;gap:20px;padding:4px 14px;background:var(--surface);border-top:1px solid var(--border);font-size:11px;color:var(--muted);flex-shrink:0}
+.logo{font-weight:700;font-size:17px;letter-spacing:.3px;white-space:nowrap}
+.logo b{color:var(--accent)}
+.hdr-sub{font-size:11px;color:var(--muted)}
+.hdr-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.hdr-right label{font-size:11px;color:var(--muted);white-space:nowrap}
+input.token-input{width:200px;padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+input.token-input:focus{outline:none;border-color:var(--accent)}
+select.model-sel{padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+select.model-sel:focus{outline:none;border-color:var(--accent)}
+.hdot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.hdot.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.hdot.err{background:var(--error)}
+/* LEFT PANEL */
+.left-panel{width:230px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.psec{padding:12px;border-bottom:1px solid var(--border)}
+.psec h3{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.upload-zone{border:2px dashed var(--border);border-radius:var(--radius);padding:20px 10px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--accent);background:rgba(200,168,75,.04)}
+.upload-zone svg{color:var(--accent);margin-bottom:6px}
+.upload-zone p{font-size:11px;color:var(--muted);line-height:1.5}
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:5px;width:100%;padding:8px 10px;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;transition:opacity .15s,border-color .15s}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn+.btn{margin-top:5px}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover:not(:disabled){opacity:.85}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover:not(:disabled){border-color:var(--accent)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);font-family:inherit}
+.btn-ghost:hover:not(:disabled){color:var(--text);border-color:var(--accent)}
+/* SLIDERS */
+.srow{display:flex;align-items:center;gap:6px;margin-bottom:7px}
+.srow label{font-size:11px;color:var(--muted);width:76px;flex-shrink:0}
+.srow input[type=range]{flex:1;accent-color:var(--accent)}
+.srow .sval{font-size:11px;width:28px;text-align:right;flex-shrink:0}
+/* BG OPTIONS */
+.bg-opts{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:2px}
+.bg-opt{padding:5px 6px;border-radius:5px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:border-color .15s,color .15s}
+.bg-opt.active{border-color:var(--accent);color:var(--accent)}
+.color-row{display:flex;gap:6px;align-items:center;margin-top:8px}
+input[type=color]{width:30px;height:26px;border:none;border-radius:4px;cursor:pointer;background:none;padding:0}
+/* EXPORT */
+.exp-row{display:flex;gap:5px;margin-bottom:6px}
+.exp-row select{flex:1;padding:6px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px}
+.exp-row select:focus{outline:none;border-color:var(--accent)}
+/* CANVAS */
+.canvas-area{flex:1;background:var(--bg);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.canvas-wrap{position:relative;box-shadow:0 0 48px rgba(0,0,0,.9)}
+.canvas-wrap::before{content:'';position:absolute;inset:0;background:repeating-conic-gradient(#13131e 0% 25%,#1a1a2a 0% 50%) 0 0/18px 18px;pointer-events:none;z-index:0}
+#mainCanvas{display:block;position:relative;z-index:1}
+.placeholder{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);user-select:none;pointer-events:none}
+.placeholder svg{opacity:.2}
+.placeholder p{font-size:13px}
+/* PROGRESS */
+.progress{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;display:none;align-items:center;gap:10px;min-width:200px;font-size:12px;z-index:20;box-shadow:0 4px 20px rgba(0,0,0,.5)}
+.progress.on{display:flex}
+.spinner{width:15px;height:15px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* RIGHT PANEL */
+.right-panel{width:255px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:9px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;text-align:center;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-body{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.tab-body.active{display:flex}
+/* AI CHAT */
+.ai-msgs{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.amsg{padding:8px 10px;border-radius:6px;font-size:12px;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.amsg.sys{background:var(--surface2);color:var(--muted);font-style:italic}
+.amsg.user{background:rgba(200,168,75,.1);border:1px solid rgba(200,168,75,.2)}
+.amsg.bot{background:var(--surface2);border:1px solid var(--border)}
+.amsg.err{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.3);color:var(--error)}
+.ai-bar{display:flex;gap:6px;padding:9px;border-top:1px solid var(--border);flex-shrink:0}
+.ai-bar textarea{flex:1;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;resize:none;height:56px;font-family:inherit}
+.ai-bar textarea:focus{outline:none;border-color:var(--accent)}
+.ai-send{padding:6px 10px;background:var(--accent);border:none;border-radius:6px;color:#000;font-weight:700;cursor:pointer;font-size:16px;align-self:flex-end;transition:opacity .15s}
+.ai-send:disabled{opacity:.35;cursor:not-allowed}
+/* QUICK ACTIONS */
+.quick-list{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:5px}
+.qbtn{padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;cursor:pointer;text-align:left;transition:border-color .15s,opacity .15s;font-family:inherit;width:100%}
+.qbtn:hover:not(:disabled){border-color:var(--accent)}
+.qbtn:disabled{opacity:.35;cursor:not-allowed}
+.qbtn small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+/* HISTORY */
+.hist-list{flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:6px;min-height:0}
+.hitem{display:flex;align-items:center;gap:8px;padding:7px;background:var(--surface2);border:1px solid var(--border);border-radius:6px}
+.hthumb{width:42px;height:42px;border-radius:4px;object-fit:cover;flex-shrink:0;background:var(--bg)}
+.hinfo{flex:1;min-width:0}
+.hname{font-size:11px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdate{font-size:10px;color:var(--muted);margin-top:2px}
+.hdel{background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;font-size:13px;line-height:1}
+.hdel:hover{color:var(--error)}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><b>photo</b>Kai</div>
+  <div class="hdr-sub">AI Photo Suite · kAIxU</div>
+  <div class="hdr-right">
+    <div class="hdot" id="hdot"></div>
+    <label>Gate Token</label>
+    <input class="token-input" type="text" id="tokenInput" placeholder="Paste kAIxU token…" autocomplete="off" />
+    <select class="model-sel" id="modelSel">
+      <option value="gemini-2.5-flash">Flash</option>
+      <option value="gemini-2.5-pro">Pro</option>
+    </select>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <div class="psec">
+      <h3>Import</h3>
+      <div class="upload-zone" id="uploadZone">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 4 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+        <p>Drop, paste, or click<br>to upload an image</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" />
+    </div>
+
+    <div class="psec">
+      <h3>Background</h3>
+      <button class="btn btn-primary" id="removeBgBtn" disabled>✂ Remove Background</button>
+      <button class="btn btn-secondary" id="restoreBtn" disabled>↩ Restore Original</button>
+      <div style="margin-top:12px">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Replace Background</div>
+        <div class="bg-opts">
+          <div class="bg-opt active" data-bg="transparent">Transparent</div>
+          <div class="bg-opt" data-bg="color">Solid Color</div>
+          <div class="bg-opt" data-bg="gradient">Gradient</div>
+          <div class="bg-opt" data-bg="image">Image</div>
+        </div>
+        <div id="pickColor" style="display:none">
+          <div class="color-row">
+            <input type="color" id="bgColor" value="#1a1a2e" />
+            <span style="font-size:11px;color:var(--muted)">Pick color</span>
+          </div>
+        </div>
+        <div id="pickGrad" style="display:none;margin-top:8px">
+          <div class="color-row">
+            <input type="color" id="gc1" value="#0d0d1a" />
+            <input type="color" id="gc2" value="#c8a84b" />
+            <select id="gdir" style="flex:1;padding:4px 5px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-size:10px">
+              <option value="to bottom">↓ Down</option>
+              <option value="to right">→ Right</option>
+              <option value="to bottom right">↘ Diagonal</option>
+              <option value="radial">◎ Radial</option>
+            </select>
+          </div>
+        </div>
+        <div id="pickBgImg" style="display:none;margin-top:8px">
+          <button class="btn btn-ghost" id="bgImgBtn" style="font-size:11px">Upload Background Image</button>
+          <input type="file" id="bgImgInput" accept="image/*" />
+        </div>
+      </div>
+    </div>
+
+    <div class="psec">
+      <h3>Adjustments</h3>
+      <div class="srow"><label>Brightness</label><input type="range" id="sBright" min="-100" max="100" value="0"><span class="sval" id="vBright">0</span></div>
+      <div class="srow"><label>Contrast</label><input type="range" id="sCont" min="-100" max="100" value="0"><span class="sval" id="vCont">0</span></div>
+      <div class="srow"><label>Saturation</label><input type="range" id="sSat" min="-100" max="100" value="0"><span class="sval" id="vSat">0</span></div>
+      <div class="srow"><label>Blur</label><input type="range" id="sBlur" min="0" max="20" value="0"><span class="sval" id="vBlur">0</span></div>
+      <div class="srow"><label>Warmth</label><input type="range" id="sWarm" min="-100" max="100" value="0"><span class="sval" id="vWarm">0</span></div>
+      <div class="srow"><label>Vignette</label><input type="range" id="sVig" min="0" max="100" value="0"><span class="sval" id="vVig">0</span></div>
+      <button class="btn btn-ghost" id="resetAdj" style="font-size:11px;margin-top:4px">↺ Reset All</button>
+    </div>
+
+    <div class="psec">
+      <h3>Export</h3>
+      <div class="exp-row">
+        <select id="expFmt">
+          <option value="png">PNG (lossless)</option>
+          <option value="jpeg">JPEG</option>
+          <option value="webp">WebP</option>
+        </select>
+        <select id="expQ" style="width:64px">
+          <option value="1">100%</option>
+          <option value="0.9" selected>90%</option>
+          <option value="0.8">80%</option>
+          <option value="0.6">60%</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="exportBtn" disabled>↓ Download</button>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area" id="canvasArea">
+    <div class="placeholder" id="placeholder">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l4-4 4 4 4-6 4 6"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+      <p>Drop an image to get started</p>
+    </div>
+    <div class="canvas-wrap" id="canvasWrap" style="display:none">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+    <div class="progress" id="progress"><div class="spinner"></div><span id="progressTxt">Processing…</span></div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="assist">AI Assist</div>
+      <div class="tab" data-tab="quick">Quick</div>
+      <div class="tab" data-tab="history">History</div>
+    </div>
+
+    <div class="tab-body active" id="tab-assist">
+      <div class="ai-msgs" id="aiMsgs">
+        <div class="amsg sys">Load an image then ask kAIxU anything — analysis, captions, edit suggestions, background ideas, and more.</div>
+      </div>
+      <div class="ai-bar">
+        <textarea id="aiIn" placeholder="Ask kAIxU about your photo…"></textarea>
+        <button class="ai-send" id="aiSend" disabled>➤</button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="tab-quick">
+      <div class="quick-list">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:2px">One-tap AI Actions</div>
+        <button class="qbtn" id="qa1" disabled>🔍 Analyze Photo<small>Describe subjects, colors, mood, composition</small></button>
+        <button class="qbtn" id="qa2" disabled>💡 Suggest Edits<small>Specific adjustments to improve this image</small></button>
+        <button class="qbtn" id="qa3" disabled>✍ Write Captions<small>3 social-ready captions with hashtags</small></button>
+        <button class="qbtn" id="qa4" disabled>🎨 Background Ideas<small>Creative backgrounds for the subject</small></button>
+        <button class="qbtn" id="qa5" disabled>🏷 Generate Tags<small>SEO & Instagram hashtags</small></button>
+        <button class="qbtn" id="qa6" disabled>♿ Alt Text<small>Accessible image description</small></button>
+        <button class="qbtn" id="qa7" disabled>🎨 Color Palette<small>Extract dominant colors with hex values</small></button>
+        <button class="qbtn" id="qa8" disabled>📐 Composition<small>Critique framing, rule of thirds, balance</small></button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="tab-history">
+      <div class="hist-list" id="histList"><div class="amsg sys" style="text-align:center;margin-top:16px">No saved projects yet</div></div>
+      <div style="padding:9px;border-top:1px solid var(--border)">
+        <button class="btn btn-ghost" id="clearHist" style="font-size:11px">Clear All History</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="status-bar">
+  <span id="stDims">No image</span>
+  <span id="stMode">—</span>
+  <span id="stNote"></span>
+</div>
+
+<script type="module">
+const API_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
+const DB_NAME  = 'photoKai';
+const DB_STORE = 'projects';
+
+// ── State ───────────────────────────────────────────────────────────────────
+const S = {
+  originalImage:   null,
+  bgRemovedBitmap: null,
+  bgRemovedBlob:   null,
+  bgType:          'transparent',
+  bgColor:         '#1a1a2e',
+  gc1:             '#0d0d1a',
+  gc2:             '#c8a84b',
+  gdir:            'to bottom',
+  bgBitmap:        null,
+  adj: { bright:0, cont:0, sat:0, blur:0, warm:0, vig:0 },
+  w: 0, h: 0,
+  fileName: 'photokai',
+  bgRemoved: false,
+  busy: false,
+};
+
+// ── DOM ─────────────────────────────────────────────────────────────────────
+const $          = id => document.getElementById(id);
+const canvas     = $('mainCanvas');
+const ctx        = canvas.getContext('2d');
+const tokenInput = $('tokenInput');
+const modelSel   = $('modelSel');
+const hdot       = $('hdot');
+const progress   = $('progress');
+const progressTxt= $('progressTxt');
+const placeholder= $('placeholder');
+const canvasWrap = $('canvasWrap');
+const aiMsgs     = $('aiMsgs');
+const aiIn       = $('aiIn');
+const aiSend     = $('aiSend');
+
+// ── IndexedDB ────────────────────────────────────────────────────────────────
+let db;
+async function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, 1);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(DB_STORE, { keyPath:'id', autoIncrement:true });
+    r.onsuccess = e => { db = e.target.result; res(db); };
+    r.onerror   = rej;
+  });
+}
+const dbTx = (mode='readonly') => db ? db.transaction(DB_STORE, mode).objectStore(DB_STORE) : null;
+async function dbAdd(obj)  { if(!db) return; const s=dbTx('readwrite'); s.add(obj); return new Promise(r=>{s.transaction.oncomplete=r;}); }
+async function dbAll()     { if(!db) return []; return new Promise((r,j)=>{ const req=dbTx().getAll(); req.onsuccess=e=>r(e.target.result.reverse()); req.onerror=j; }); }
+async function dbDel(id)   { if(!db) return; const s=dbTx('readwrite'); s.delete(id); return new Promise(r=>{s.transaction.oncomplete=r;}); }
+async function dbClear()   { if(!db) return; const s=dbTx('readwrite'); s.clear(); return new Promise(r=>{s.transaction.oncomplete=r;}); }
+
+// ── Progress ─────────────────────────────────────────────────────────────────
+function showProg(msg) { progressTxt.textContent = msg; progress.classList.add('on'); }
+function hideProg()    { progress.classList.remove('on'); }
+
+// ── Render ───────────────────────────────────────────────────────────────────
+function render() {
+  if (!S.originalImage) return;
+  const {w, h, adj, bgType, bgRemoved} = S;
+  ctx.clearRect(0, 0, w, h);
+
+  // Background layer
+  if (bgRemoved && bgType !== 'transparent') {
+    if (bgType === 'color') {
+      ctx.fillStyle = S.bgColor;
+      ctx.fillRect(0, 0, w, h);
+    } else if (bgType === 'gradient') {
+      let grd;
+      if      (S.gdir === 'radial')           grd = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*.72);
+      else if (S.gdir === 'to right')          grd = ctx.createLinearGradient(0,0,w,0);
+      else if (S.gdir === 'to bottom right')   grd = ctx.createLinearGradient(0,0,w,h);
+      else                                      grd = ctx.createLinearGradient(0,0,0,h);
+      grd.addColorStop(0, S.gc1);
+      grd.addColorStop(1, S.gc2);
+      ctx.fillStyle = grd; ctx.fillRect(0,0,w,h);
+    } else if (bgType === 'image' && S.bgBitmap) {
+      ctx.drawImage(S.bgBitmap, 0, 0, w, h);
+    }
+  }
+
+  // Subject layer
+  const src = bgRemoved && S.bgRemovedBitmap ? S.bgRemovedBitmap : S.originalImage;
+  const filters = [];
+  if (adj.bright !== 0) filters.push(`brightness(${1 + adj.bright/100})`);
+  if (adj.cont   !== 0) filters.push(`contrast(${1 + adj.cont/100})`);
+  if (adj.sat    !== 0) filters.push(`saturate(${1 + adj.sat/100})`);
+  if (adj.blur   >   0) filters.push(`blur(${adj.blur*.35}px)`);
+  if (adj.warm   >   0) filters.push(`sepia(${adj.warm/200})`);
+  ctx.filter = filters.length ? filters.join(' ') : 'none';
+  ctx.drawImage(src, 0, 0, w, h);
+  ctx.filter = 'none';
+
+  if (adj.warm < 0) { ctx.fillStyle=`rgba(20,60,200,${Math.abs(adj.warm)/400})`; ctx.fillRect(0,0,w,h); }
+
+  if (adj.vig > 0) {
+    const gr = ctx.createRadialGradient(w/2,h/2,0,w/2,h/2,Math.max(w,h)*.72);
+    gr.addColorStop(.45,'rgba(0,0,0,0)');
+    gr.addColorStop(1,`rgba(0,0,0,${adj.vig/110})`);
+    ctx.fillStyle = gr; ctx.fillRect(0,0,w,h);
+  }
+}
+
+// ── Load image ────────────────────────────────────────────────────────────────
+async function loadFile(file) {
+  S.fileName    = file.name.replace(/\.[^.]+$/,'') || 'photo';
+  S.bgRemoved   = false;
+  S.bgRemovedBitmap = null;
+  S.bgRemovedBlob   = null;
+
+  const bm = await createImageBitmap(file);
+  S.originalImage = bm; S.w = bm.width; S.h = bm.height;
+
+  const area = $('canvasArea');
+  const sc   = Math.min(1, (area.clientWidth-40)/S.w, (area.clientHeight-40)/S.h);
+  canvas.width = S.w; canvas.height = S.h;
+  canvas.style.width  = Math.round(S.w*sc)+'px';
+  canvas.style.height = Math.round(S.h*sc)+'px';
+
+  placeholder.style.display = 'none';
+  canvasWrap.style.display  = 'block';
+  $('stDims').textContent   = `${S.w} × ${S.h}px`;
+  $('stMode').textContent   = 'Original';
+  $('stNote').textContent   = `"${S.fileName}"`;
+  updateButtons(true);
+  render();
+}
+
+// ── Background removal ────────────────────────────────────────────────────────
+async function removeBg() {
+  if (!S.originalImage || S.busy) return;
+  S.busy = true; $('removeBgBtn').disabled = true;
+  showProg('Loading AI model… (first run ~20-30s)');
+  try {
+    const { removeBackground } = await import(
+      'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.4.5/dist/index.browser.mjs'
+    );
+    showProg('Removing background…');
+    const tmp = document.createElement('canvas');
+    tmp.width = S.w; tmp.height = S.h;
+    tmp.getContext('2d').drawImage(S.originalImage,0,0);
+    const blob = await new Promise(r => tmp.toBlob(r,'image/png'));
+    const result = await removeBackground(blob, { model:'small', output:{format:'image/png',quality:1} });
+    S.bgRemovedBlob   = result;
+    S.bgRemovedBitmap = await createImageBitmap(result);
+    S.bgRemoved = true;
+    $('restoreBtn').disabled = false;
+    $('stMode').textContent  = 'BG Removed';
+    render();
+    autoSave();
+    appendMsg('sys', '✂ Background removed. Pick a replacement background or export with transparency.');
+  } catch(e) {
+    appendMsg('err', `Background removal failed: ${e.message || e}\n\nNote: Uses @imgly/background-removal (browser WASM). Works best in Chrome/Edge.`);
+  } finally {
+    S.busy = false; $('removeBgBtn').disabled = false; hideProg();
+  }
+}
+
+function restoreOriginal() {
+  S.bgRemoved = false; S.bgRemovedBitmap = null; S.bgRemovedBlob = null;
+  $('restoreBtn').disabled = true;
+  $('stMode').textContent = 'Original';
+  render();
+}
+
+// ── BG type ───────────────────────────────────────────────────────────────────
+function setBgType(type) {
+  S.bgType = type;
+  document.querySelectorAll('.bg-opt').forEach(el => el.classList.toggle('active', el.dataset.bg === type));
+  $('pickColor').style.display  = type === 'color'    ? 'block' : 'none';
+  $('pickGrad').style.display   = type === 'gradient' ? 'block' : 'none';
+  $('pickBgImg').style.display  = type === 'image'    ? 'block' : 'none';
+  render();
+}
+document.querySelectorAll('.bg-opt').forEach(el => el.addEventListener('click', () => setBgType(el.dataset.bg)));
+$('bgColor').addEventListener('input',  e => { S.bgColor = e.target.value; render(); });
+$('gc1').addEventListener('input',      e => { S.gc1 = e.target.value; render(); });
+$('gc2').addEventListener('input',      e => { S.gc2 = e.target.value; render(); });
+$('gdir').addEventListener('change',    e => { S.gdir = e.target.value; render(); });
+$('bgImgBtn').addEventListener('click', () => $('bgImgInput').click());
+$('bgImgInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  S.bgBitmap = await createImageBitmap(f);
+  setBgType('image');
+});
+
+// ── Adjustments ───────────────────────────────────────────────────────────────
+[['sBright','vBright','bright'],['sCont','vCont','cont'],['sSat','vSat','sat'],
+ ['sBlur','vBlur','blur'],['sWarm','vWarm','warm'],['sVig','vVig','vig']
+].forEach(([sid,vid,key]) => {
+  $(sid).addEventListener('input', () => {
+    S.adj[key] = Number($(sid).value); $(vid).textContent = $(sid).value; render();
+  });
+});
+$('resetAdj').addEventListener('click', () => {
+  [['sBright','vBright','bright'],['sCont','vCont','cont'],['sSat','vSat','sat'],
+   ['sBlur','vBlur','blur'],['sWarm','vWarm','warm'],['sVig','vVig','vig']
+  ].forEach(([sid,vid,key]) => { $(sid).value=0; $(vid).textContent='0'; S.adj[key]=0; });
+  render();
+});
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportImage() {
+  if (!S.originalImage) return;
+  const fmt  = $('expFmt').value;
+  const qual = Number($('expQ').value);
+  const mime = fmt === 'png' ? 'image/png' : fmt === 'jpeg' ? 'image/jpeg' : 'image/webp';
+  canvas.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${S.fileName}-photokai.${fmt}`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }, mime, qual);
+}
+
+// ── Gate call ─────────────────────────────────────────────────────────────────
+async function callGate(prompt, withImage = false) {
+  const token = tokenInput.value.trim();
+  if (!token) { appendMsg('err', '⚠ Paste your gate token first.'); return null; }
+
+  let contents;
+  if (withImage && S.originalImage) {
+    showProg('Sending image to kAIxU…');
+    const MAX = 800;
+    const sc  = Math.min(1, MAX/S.w, MAX/S.h);
+    const tw  = Math.round(S.w*sc), th = Math.round(S.h*sc);
+    const tmp = document.createElement('canvas');
+    tmp.width=tw; tmp.height=th;
+    tmp.getContext('2d').drawImage(canvas, 0, 0, tw, th);
+    const b64 = tmp.toDataURL('image/jpeg', 0.82).split(',')[1];
+    contents = [{ role:'user', parts:[
+      { inline_data:{ mime_type:'image/jpeg', data:b64 } },
+      { text: prompt }
+    ]}];
+  } else {
+    contents = [{ role:'user', parts:[{ text: prompt }] }];
+  }
+
+  try {
+    const r = await fetch(`${API_BASE}/v1/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'Authorization':'Bearer '+token },
+      body: JSON.stringify({ model: modelSel.value, contents }),
+    });
+    hideProg();
+    let j;
+    try { j = await r.json(); }
+    catch { return { ok:false, error:`HTTP ${r.status} — non-JSON response from gate` }; }
+    return j;
+  } catch(e) {
+    hideProg();
+    return { ok:false, error:`Network error: ${e.message}\nURL: ${API_BASE}/v1/generate` };
+  }
+}
+
+// ── AI messages ───────────────────────────────────────────────────────────────
+function appendMsg(role, text) {
+  const el = document.createElement('div');
+  el.className = `amsg ${role}`; el.textContent = text;
+  aiMsgs.appendChild(el); aiMsgs.scrollTop = aiMsgs.scrollHeight;
+  if (role !== 'sys') switchTab('assist');
+}
+
+async function sendAI(prompt, withImage = true) {
+  if (S.busy) return;
+  S.busy = true; aiSend.disabled = true;
+  document.querySelectorAll('.qbtn').forEach(b => b.disabled = true);
+  appendMsg('user', prompt.length > 120 ? prompt.slice(0,117)+'…' : prompt);
+  const r = await callGate(prompt, withImage && !!S.originalImage);
+  if (r) {
+    if (!r.ok) appendMsg('err', `⚠ Gate error — ${r.error || JSON.stringify(r)}`);
+    else appendMsg('bot', r.text);
+  }
+  S.busy = false;
+  updateButtons(!!S.originalImage);
+}
+
+// ── Quick actions ─────────────────────────────────────────────────────────────
+const QA = {
+  qa1: 'Analyze this photo in detail: main subjects, composition, lighting quality, dominant colors, mood, and atmosphere.',
+  qa2: 'Give me 5 specific, actionable editing suggestions to improve this photo. Be precise about brightness, contrast, crop, and color.',
+  qa3: 'Write 3 social media captions for this image: one short & punchy, one storytelling, one with 15 hashtags for Instagram.',
+  qa4: 'Based on the subject and mood of this photo, suggest 5 creative replacement backgrounds with specific colors, gradients, and settings.',
+  qa5: 'Generate 20 hashtags and SEO tags for this photo. Organize into: niche, broad, and concept/location categories.',
+  qa6: 'Write a concise, accurate alt text for this image suitable for screen readers. Under 150 characters.',
+  qa7: 'Identify the 5 dominant colors in this photo. For each: name, approximate hex value, and its emotional role in the image.',
+  qa8: 'Critique the composition of this photo: framing, rule of thirds, leading lines, subject placement, and specific improvements.',
+};
+Object.entries(QA).forEach(([id, prompt]) => $(id).addEventListener('click', () => sendAI(prompt, true)));
+
+aiSend.addEventListener('click', () => {
+  const t = aiIn.value.trim(); if (!t) return;
+  aiIn.value = ''; sendAI(t, !!S.originalImage);
+});
+aiIn.addEventListener('keydown', e => { if (e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); aiSend.click(); } });
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab===id));
+  document.querySelectorAll('.tab-body').forEach(t => t.classList.toggle('active', t.id===`tab-${id}`));
+}
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => { switchTab(tab.dataset.tab); if(tab.dataset.tab==='history') renderHistory(); });
+});
+
+// ── History ───────────────────────────────────────────────────────────────────
+async function autoSave() {
+  if (!S.originalImage) return;
+  const tw=56, th=Math.round(S.h*(tw/S.w));
+  const tmp=document.createElement('canvas'); tmp.width=tw; tmp.height=th;
+  tmp.getContext('2d').drawImage(canvas,0,0,tw,th);
+  await dbAdd({ name:S.fileName, thumb:tmp.toDataURL('image/jpeg',.7), date:new Date().toISOString() });
+}
+
+async function renderHistory() {
+  const list = $('histList');
+  const items = await dbAll();
+  list.innerHTML = '';
+  if (!items.length) {
+    list.innerHTML = '<div class="amsg sys" style="text-align:center;margin-top:16px">No saved projects yet</div>';
+    return;
+  }
+  items.forEach(p => {
+    const el = document.createElement('div');
+    el.className = 'hitem';
+    el.innerHTML = `<img class="hthumb" src="${p.thumb}" alt="" /><div class="hinfo"><div class="hname">${p.name||'Untitled'}</div><div class="hdate">${new Date(p.date).toLocaleDateString()}</div></div><button class="hdel" data-id="${p.id}">✕</button>`;
+    el.querySelector('.hdel').addEventListener('click', async e => {
+      e.stopPropagation(); await dbDel(Number(e.currentTarget.dataset.id)); renderHistory();
+    });
+    list.appendChild(el);
+  });
+}
+$('clearHist').addEventListener('click', async () => { await dbClear(); renderHistory(); });
+
+// ── Upload / paste ────────────────────────────────────────────────────────────
+const uploadZone = $('uploadZone');
+const fileInput  = $('fileInput');
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => { if(e.target.files[0]) loadFile(e.target.files[0]); });
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) loadFile(f);
+});
+document.addEventListener('paste', e => {
+  const item = Array.from(e.clipboardData.items).find(i => i.type.startsWith('image/'));
+  if (item) loadFile(item.getAsFile());
+});
+
+// ── Buttons & token ───────────────────────────────────────────────────────────
+$('removeBgBtn').addEventListener('click', removeBg);
+$('restoreBtn').addEventListener('click',  restoreOriginal);
+$('exportBtn').addEventListener('click',   exportImage);
+
+function updateButtons(hasImage) {
+  const hasToken = !!tokenInput.value.trim();
+  $('removeBgBtn').disabled = !hasImage;
+  $('exportBtn').disabled   = !hasImage;
+  aiSend.disabled           = !(hasImage && hasToken);
+  document.querySelectorAll('.qbtn').forEach(b => b.disabled = !(hasImage && hasToken));
+}
+
+tokenInput.addEventListener('input', () => {
+  localStorage.setItem('photoKai_token', tokenInput.value.trim());
+  updateButtons(!!S.originalImage);
+});
+
+// ── Health check ──────────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API_BASE}/v1/health`);
+    const j = await r.json();
+    hdot.className = (j.ok && j.keyConfigured) ? 'hdot ok' : 'hdot err';
+  } catch { hdot.className = 'hdot err'; }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+await openDB();
+checkHealth();
+setInterval(checkHealth, 30000);
+const saved = localStorage.getItem('photoKai_token');
+if (saved) { tokenInput.value = saved; }
+</script>
+</body>
+</html>
