@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kaixu Gate Delta — kAIxu Core Gateway</title>
+  <meta name="description" content="Kaixu Gate Delta: Netlify-hosted gateway that centralizes kAIxu calls and keeps the API key server-side." />
+  <style>
+    :root{
+      --bg:#07060d;
+      --fg:#f2f0ff;
+      --muted:#b7b2d9;
+      --gold:#ffd55a;
+      --violet:#b86bff;
+      --blue:#3bd6ff;
+      --glass: rgba(255,255,255,0.06);
+      --glass2: rgba(255,255,255,0.10);
+      --border: rgba(255,255,255,0.14);
+      --shadow: 0 20px 80px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; min-height:100vh; color:var(--fg);
+      background:
+        radial-gradient(900px 600px at 15% 20%, rgba(184,107,255,.20), transparent 60%),
+        radial-gradient(900px 600px at 85% 25%, rgba(59,214,255,.16), transparent 60%),
+        radial-gradient(1200px 900px at 50% 95%, rgba(255,213,90,.10), transparent 60%),
+        linear-gradient(180deg, #05040a, #07060d 40%, #060512);
+      font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow-x:hidden;
+    }
+    .aurora{
+      position:fixed; inset:-20% -10%;
+      background:
+        conic-gradient(from 200deg at 50% 50%,
+          rgba(184,107,255,.18),
+          rgba(59,214,255,.18),
+          rgba(255,213,90,.10),
+          rgba(184,107,255,.18));
+      filter: blur(70px) saturate(140%);
+      opacity:.55;
+      animation: drift 12s ease-in-out infinite;
+      pointer-events:none;
+      z-index:0;
+    }
+    @keyframes drift{
+      0%{transform: translate3d(-2%, -1%, 0) rotate(-6deg) scale(1.05)}
+      50%{transform: translate3d(2%, 1%, 0) rotate(6deg) scale(1.08)}
+      100%{transform: translate3d(-2%, -1%, 0) rotate(-6deg) scale(1.05)}
+    }
+    .wrap{position:relative; z-index:1; max-width:1100px; margin:0 auto; padding:28px 18px 60px}
+    .logo{
+      position:fixed; top:18px; left:18px; width:64px; height:auto;
+      filter: drop-shadow(0 0 18px rgba(184,107,255,.45)) drop-shadow(0 0 22px rgba(255,213,90,.25));
+      animation:pulse 2.6s ease-in-out infinite;
+      z-index:3;
+    }
+    @keyframes pulse{
+      0%,100%{transform: scale(1); opacity:1}
+      50%{transform: scale(1.04); opacity:.92}
+    }
+    header{
+      margin-top:42px;
+      padding:22px 22px;
+      background: linear-gradient(180deg, var(--glass2), var(--glass));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+    h1{margin:0 0 6px; font-size: 22px; letter-spacing:.2px}
+    .sub{color:var(--muted); margin:0}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap:16px;
+      margin-top:16px;
+    }
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{
+      padding:18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.05));
+      border:1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+    .card h2{margin:0 0 10px; font-size:16px}
+    .k{color:var(--gold)}
+    code, pre{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+    }
+    pre{
+      margin:0;
+      padding:12px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.10);
+      overflow:auto;
+    }
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input, textarea, select{
+      width:100%;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.32);
+      color: var(--fg);
+      outline:none;
+    }
+    textarea{min-height:110px; resize: vertical}
+    .btn{
+      cursor:pointer;
+      padding:10px 14px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,0.18);
+      background: linear-gradient(180deg, rgba(184,107,255,.25), rgba(59,214,255,.16));
+      color: var(--fg);
+      font-weight: 650;
+      letter-spacing:.2px;
+      box-shadow: 0 18px 50px rgba(0,0,0,.45);
+      transition: transform .08s ease, filter .2s ease;
+    }
+    .btn:active{transform: translateY(1px) scale(.99)}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:7px 10px;
+      border-radius: 999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.28);
+      color: var(--muted);
+    }
+    .dot{
+      width:10px; height:10px; border-radius:999px;
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 0 18px rgba(255,213,90,0.22);
+    }
+    .ok .dot{ background: rgba(59,214,255,0.75); box-shadow: 0 0 18px rgba(59,214,255,0.55) }
+    .bad .dot{ background: rgba(255,105,105,0.85); box-shadow: 0 0 18px rgba(255,105,105,0.45) }
+    .small{font-size:12px; color:var(--muted)}
+    footer{margin-top:18px; color:var(--muted); font-size:12px; opacity:.95}
+    a{color:var(--blue); text-decoration:none}
+    a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+  <div class="aurora"></div>
+
+  <!-- Floating logo: no container, subtle glow, slight pulse -->
+  <img class="logo" src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="Skyes Over London LC Logo" border="0" />
+
+  <div class="wrap">
+    <header>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>Kaixu Gate Delta <span class="k">—</span> kAIxu Core Gateway</h1>
+          <p class="sub">Your AI home on Netlify. Apps call this gate; the API key stays server-side.</p>
+        </div>
+        <div class="pill" id="healthPill"><span class="dot"></span><span id="healthText">Checking health…</span></div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Quick endpoints</h2>
+        <pre><code>GET  /v1/health
+GET  /v1/models
+POST /v1/generate
+POST /v1/stream   (SSE)</code></pre>
+
+        <div style="height:10px"></div>
+
+        <h2>Test console</h2>
+        <p class="small">Paste an app token, pick a model, and fire a request. The gateway will never expose your API key.</p>
+
+        <div class="row">
+          <div style="flex:1">
+            <label class="small">App token</label>
+            <input id="token" placeholder="Bearer token (from KAIXU_APP_TOKENS)" />
+          </div>
+          <div style="width:260px">
+            <label class="small">Model</label>
+            <select id="model"></select>
+          </div>
+        </div>
+
+        <div style="height:10px"></div>
+
+        <label class="small">Prompt</label>
+        <textarea id="prompt" placeholder="Type a prompt…">Write a product overview in 5 bullet points.</textarea>
+
+        <div style="height:10px"></div>
+
+        <div class="row">
+          <button class="btn" id="run">Generate</button>
+          <span class="small" id="status"></span>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <label class="small">Response</label>
+        <pre id="out"><code>// Response will appear here</code></pre>
+      </section>
+
+      <aside class="card">
+        <h2>How your apps should call the gate</h2>
+        <pre><code>fetch("https://YOUR-GATE.netlify.app/v1/generate", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer YOUR_APP_TOKEN"
+  },
+  body: JSON.stringify({
+    model: "gemini-2.5-flash",
+    input: { type: "text", content: "Hello" },
+    generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+  })
+})</code></pre>
+
+        <div style="height:10px"></div>
+
+        <h2>Notes</h2>
+        <p class="small">
+          This page is only a console + status. Your real “AI home” is the gateway API.
+          Use Git deploy so the functions run reliably.
+        </p>
+
+        <div style="height:10px"></div>
+
+        <h2>Hardening checklist</h2>
+        <ul class="small" style="margin:0; padding-left:18px">
+          <li>Keep <code>KAIXU_OPEN_GATE</code> = 0</li>
+          <li>Use unique app tokens per product</li>
+          <li>Set <code>KAIXU_ALLOWED_ORIGINS</code> to your domains</li>
+          <li>Rotate tokens quarterly</li>
+        </ul>
+
+        <footer>
+          <span>Skyes Over London LC</span> · <a href="/v1/health">health</a> · <a href="/v1/models">models</a>
+        </footer>
+      </aside>
+    </div>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  function setHealth(ok, msg){
+    const pill = $("healthPill");
+    pill.classList.remove("ok","bad");
+    pill.classList.add(ok ? "ok" : "bad");
+    $("healthText").textContent = msg;
+  }
+
+  async function loadModels(){
+    try{
+      const r = await fetch("/v1/models");
+      const j = await r.json();
+      const sel = $("model");
+      sel.innerHTML = "";
+      (j.models || []).forEach(m => {
+        const opt = document.createElement("option");
+        opt.value = m.id;
+        opt.textContent = m.label || m.id;
+        sel.appendChild(opt);
+      });
+    }catch(e){
+      // If models fails, fall back to a safe default list
+      const fallback = ["gemini-2.5-flash","gemini-2.5-pro","gemini-2.0-flash"];
+      const sel = $("model"); sel.innerHTML="";
+      fallback.forEach(id=>{
+        const opt=document.createElement("option");
+        opt.value=id; opt.textContent=id;
+        sel.appendChild(opt);
+      });
+    }
+  }
+
+  async function health(){
+    try{
+      const r = await fetch("/v1/health");
+      const j = await r.json();
+      setHealth(!!j.ok, j.ok ? "Online" : "Offline");
+    }catch(e){
+      setHealth(false, "Offline");
+    }
+  }
+
+  $("run").addEventListener("click", async () => {
+    $("status").textContent = "Sending…";
+    $("out").textContent = "";
+    try{
+      const token = $("token").value.trim();
+      const model = $("model").value;
+      const prompt = $("prompt").value;
+
+      const r = await fetch("/v1/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { "Authorization": token.startsWith("Bearer ") ? token : ("Bearer " + token) } : {})
+        },
+        body: JSON.stringify({
+          model,
+          input: { type: "text", content: prompt },
+          output: { format: "markdown", style: "brand-neutral" },
+          generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+        })
+      });
+
+      const j = await r.json().catch(()=>({ ok:false, error:"Non-JSON response"}));
+      if(!r.ok || !j.ok){
+        $("status").textContent = "Error";
+        $("out").textContent = JSON.stringify(j, null, 2);
+        return;
+      }
+      $("status").textContent = "Done";
+      $("out").textContent = j.text || JSON.stringify(j, null, 2);
+    }catch(e){
+      $("status").textContent = "Error";
+      $("out").textContent = (e && e.message) ? e.message : String(e);
+    }
+  });
+
+  loadModels();
+  health();
+</script>
+</body>
+</html>
