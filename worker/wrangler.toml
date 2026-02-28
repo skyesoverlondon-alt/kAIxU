@@ -1,0 +1,23 @@
+name = "kaixu-gate"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Routes — uncomment and set your domain after deploying
+# routes = [
+#   { pattern = "api.yourdomain.com/*", zone_name = "yourdomain.com" }
+# ]
+
+# Workers will serve on https://kaixu-gate.<your-subdomain>.workers.dev by default
+
+[vars]
+# Non-secret defaults — override in Cloudflare dashboard > Workers > Settings > Variables
+# Secret values (KAIXU_GEMINI_API_KEY, KAIXU_APP_TOKENS) must be set via:
+#   wrangler secret put KAIXU_GEMINI_API_KEY
+#   wrangler secret put KAIXU_APP_TOKENS
+KAIXU_DEFAULT_MODEL = "gemini-2.5-flash"
+KAIXU_OPEN_GATE = "0"
+KAIXU_MAX_BODY_BYTES = "5242880"
+KAIXU_GLOBAL_SYSTEM = "You are kAIxu, the Skyes Over London LC AI core. Be concise, correct, and brand-neutral unless asked to be branded."
+KAIXU_LOG_LEVEL = "info"
+# KAIXU_ALLOWED_ORIGINS = "https://yourapp.netlify.app,https://anotherapp.com"

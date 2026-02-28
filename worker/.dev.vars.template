@@ -1,0 +1,6 @@
+# worker/.dev.vars — local development secrets for `wrangler dev`
+# DO NOT commit this file with real values — it is gitignored
+# Copy to .dev.vars and fill in your values
+
+KAIXU_GEMINI_API_KEY=your_gemini_key_here
+KAIXU_APP_TOKENS=your_token_here
