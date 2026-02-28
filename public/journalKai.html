@@ -7,7 +7,9 @@
 <style>
   :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;--purple:#b86bff;}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  body{background:radial-gradient(900px 600px at 15% 20%,rgba(184,107,255,.18),transparent 60%),radial-gradient(900px 600px at 85% 25%,rgba(59,214,255,.14),transparent 60%),radial-gradient(1200px 900px at 50% 95%,rgba(255,213,90,.09),transparent 60%),linear-gradient(180deg,#05040a,#07060d 40%,#060512);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  .aurora{position:fixed;inset:-20% -10%;pointer-events:none;z-index:-1;background:conic-gradient(from 200deg at 50% 50%,rgba(184,107,255,.15),rgba(59,214,255,.15),rgba(255,213,90,.08),rgba(184,107,255,.15));filter:blur(70px) saturate(140%);opacity:.5;animation:drift 12s ease-in-out infinite}
+  @keyframes drift{0%{transform:translate3d(-2%,-1%,0) rotate(-6deg) scale(1.05)}50%{transform:translate3d(2%,1%,0) rotate(6deg) scale(1.08)}100%{transform:translate3d(-2%,-1%,0) rotate(-6deg) scale(1.05)}}
   header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
   .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
@@ -55,6 +57,7 @@
 </style>
 </head>
 <body>
+<div class="aurora"></div>
 <header>
   <span class="logo">📓 journalKai</span>
   <a href="/index.html" class="nav-link">⬡ Gateway</a>
