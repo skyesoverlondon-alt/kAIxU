@@ -1,4 +1,4 @@
-const CACHE = 'kaixu-v3';
+const CACHE = 'kaixu-v4';
 const PRECACHE = [
   '/',
   '/index.html',
@@ -34,8 +34,19 @@ self.addEventListener('fetch', e => {
 
   // Network-first for navigation, cache-first for assets
   if (e.request.mode === 'navigate') {
+    const bustedUrl = new URL(e.request.url);
+    bustedUrl.searchParams.set('sw-cache', CACHE);
+    const bustedRequest = new Request(bustedUrl.toString(), {
+      method: e.request.method,
+      headers: e.request.headers,
+      mode: e.request.mode,
+      credentials: e.request.credentials,
+      redirect: e.request.redirect,
+      cache: 'no-store'
+    });
+
     e.respondWith(
-      fetch(e.request)
+      fetch(bustedRequest)
         .then(r => {
           const clone = r.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
