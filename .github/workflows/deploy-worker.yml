@@ -30,7 +30,7 @@ jobs:
 
       - name: Deploy worker code
         working-directory: worker
-        run: wrangler deploy --workers-dev
+        run: wrangler deploy
 
       - name: Sync secrets
         working-directory: worker
