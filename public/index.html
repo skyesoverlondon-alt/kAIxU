@@ -7,6 +7,19 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Inner Sanctum — kAIxU Complete Guide</title>
+<script>
+(function(){
+  const introSeenKey='kaixuIntroSeenV2';
+  const introReturnKey='kaixuIntroReturn';
+  const introUrl='/Intro.html';
+  const alreadySeen=sessionStorage.getItem(introSeenKey);
+  if(!alreadySeen){
+    sessionStorage.setItem(introSeenKey,'1');
+    sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
+    window.location.replace(introUrl);
+  }
+})();
+</script>
 <style>
 :root{
   --cyan:#00f3ff;--purple:#a243ff;--gold:#ffd36a;--red:#ff3c6e;--green:#00ffaa;

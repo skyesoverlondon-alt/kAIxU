@@ -12,6 +12,19 @@
   <meta name="apple-mobile-web-app-title" content="kAIxUchat" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
   <meta name="description" content="Kaixu Gate Delta: Netlify-hosted gateway that centralizes kAIxu calls and keeps the API key server-side." />
+  <script>
+    (function(){
+      const introSeenKey='kaixuIntroSeenV2';
+      const introReturnKey='kaixuIntroReturn';
+      const introUrl='/Intro.html';
+      const alreadySeen=sessionStorage.getItem(introSeenKey);
+      if(!alreadySeen){
+        sessionStorage.setItem(introSeenKey,'1');
+        sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
+        window.location.replace(introUrl);
+      }
+    })();
+  </script>
   <style>
     :root{
       --bg:#07060d;

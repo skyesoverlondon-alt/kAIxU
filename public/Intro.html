@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU: Inner Sanctum - System Boot</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg0: #030307;
+      --bg-grid: #090a10;
+      --ink: #e8ecff;
+      
+      --gold: #ffd36a;
+      --purple: #a243ff;
+      --cyan: #00f3ff;
+      --cyan-dim: rgba(0, 243, 255, 0.15);
+
+      --mono: 'Share Tech Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; padding: 0; }
+    
+    body {
+      background: var(--bg0);
+      color: var(--ink);
+      font-family: var(--mono);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden; /* Prevent scrolling during intro */
+    }
+
+    /* --- FOREGROUND APPLICATION LAYER --- */
+    /* This is your actual app that gets revealed after the boot sequence */
+    .app-container {
+      position: absolute;
+      inset: 0;
+      z-index: 10; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at center, #0f111f 0%, var(--bg0) 100%);
+      opacity: 0;
+      transform: scale(0.95);
+      transition: opacity 0.8s ease-out, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+      transition-delay: 0.2s;
+    }
+    .app-container.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
+    .app-title {
+      font-size: 4rem;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan-dim), 0 0 40px rgba(0, 243, 255, 0.2);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .app-subtitle {
+      font-size: 1.2rem;
+      color: var(--purple);
+      letter-spacing: 0.3em;
+      text-shadow: 0 0 10px rgba(162, 67, 255, 0.4);
+    }
+
+    /* --- INTRO BOOT SEQUENCE OVERLAY --- */
+    .boot-sequence {
+      position: fixed; 
+      inset: 0;
+      z-index: 9999; /* Front and center to cover the app */
+      background: var(--bg0);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      perspective: 1000px;
+      overflow: hidden; 
+      transition: opacity 0.48s ease-in, transform 0.6s cubic-bezier(0.7, 0, 0.3, 1);
+    }
+    .boot-sequence.hidden {
+      opacity: 0;
+      transform: scale(1.15) translateZ(100px);
+      pointer-events: none;
+    }
+
+    /* CRT & Scanline Effects */
+    .scanlines {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.2));
+      background-size: 100% 4px;
+      z-index: 10;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    .vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.85) 100%);
+      z-index: 11;
+      pointer-events: none;
+    }
+
+    /* 3D Moving Floor Grid */
+    .cyber-grid {
+      position: absolute;
+      bottom: -30%;
+      left: -50%;
+      width: 200%;
+      height: 100%;
+      background-image: 
+        linear-gradient(var(--cyan-dim) 1px, transparent 1px),
+        linear-gradient(90deg, var(--cyan-dim) 1px, transparent 1px);
+      background-size: 50px 50px;
+      transform: rotateX(75deg);
+      transform-origin: top center;
+      animation: gridScroll 1.2s linear infinite;
+      z-index: 1;
+      mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 40%, black 100%);
+    }
+    @keyframes gridScroll {
+      0% { transform: rotateX(75deg) translateY(0); }
+      100% { transform: rotateX(75deg) translateY(50px); }
+    }
+
+    /* Neon Stars */
+    .stars-container {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background-color: #fff;
+      opacity: 0;
+      animation: 
+        twinkle var(--twinkle-dur) var(--twinkle-del) ease-in-out infinite alternate,
+        drift var(--drift-dur) linear infinite alternate;
+    }
+    @keyframes twinkle {
+      0% { opacity: 0.1; box-shadow: 0 0 2px var(--star-color); background-color: #fff; }
+      100% { opacity: 1; box-shadow: 0 0 10px var(--star-color), 0 0 25px var(--star-color); background-color: var(--star-color); }
+    }
+    @keyframes drift {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(var(--drift-x), var(--drift-y)); }
+    }
+
+    /* Rising Holographic Entities */
+    .holo-entities {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .holo-entity {
+      position: absolute;
+      bottom: -15%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      /* Glowing holographic HUD look */
+      filter: drop-shadow(0 0 8px var(--entity-color)) drop-shadow(0 0 15px var(--entity-color));
+      animation: entityRise var(--rise-dur) linear infinite;
+      animation-delay: var(--rise-del);
+    }
+    .holo-entity svg {
+      width: 100%;
+      height: 100%;
+    }
+    @keyframes entityRise {
+      0% { transform: translateY(0) scale(0.6) rotate(var(--rot, 0deg)); opacity: 0; }
+      10% { opacity: 0.35; transform: translateY(-10vh) scale(1) rotate(var(--rot, 0deg)); }
+      80% { opacity: 0.2; }
+      100% { transform: translateY(-120vh) scale(0.6) rotate(var(--rot, 0deg)); opacity: 0; }
+    }
+
+    /* Main Console Area */
+    .console-core {
+      position: relative;
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 600px;
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out; /* For parallax */
+    }
+
+    /* Holographic 3D Rings */
+    .hologram-stage {
+      position: relative;
+      width: 480px;
+      height: 480px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      transform-style: preserve-3d;
+    }
+
+    .holo-logo {
+      width: 340px;
+      position: absolute;
+      z-index: 5;
+      filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.4)) drop-shadow(0 0 30px rgba(162, 67, 255, 0.2));
+      animation: logoFloat 1.6s ease-in-out infinite, logoGlitch 2.4s infinite;
+    }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      box-shadow: inset 0 0 15px rgba(255,255,255,0.05), 0 0 15px rgba(255,255,255,0.05);
+    }
+
+    .ring-1 {
+      width: 460px; height: 460px;
+      border-top: 2px solid var(--cyan);
+      border-bottom: 2px solid var(--cyan);
+      animation: spinAxis1 1.6s linear infinite;
+    }
+    .ring-2 {
+      width: 400px; height: 400px;
+      border-left: 2px solid var(--purple);
+      border-right: 2px solid var(--purple);
+      animation: spinAxis2 2s linear infinite;
+    }
+    .ring-3 {
+      width: 340px; height: 340px;
+      border-top: 2px solid var(--gold);
+      border-left: 2px solid var(--gold);
+      animation: spinAxis3 1.4s linear infinite;
+    }
+
+    @keyframes spinAxis1 { 0% { transform: rotateX(70deg) rotateY(0deg) rotateZ(0deg); } 100% { transform: rotateX(70deg) rotateY(0deg) rotateZ(360deg); } }
+    @keyframes spinAxis2 { 0% { transform: rotateX(0deg) rotateY(70deg) rotateZ(0deg); } 100% { transform: rotateX(0deg) rotateY(70deg) rotateZ(360deg); } }
+    @keyframes spinAxis3 { 0% { transform: rotateX(45deg) rotateY(45deg) rotateZ(0deg); } 100% { transform: rotateX(45deg) rotateY(45deg) rotateZ(360deg); } }
+
+    @keyframes logoFloat {
+      0%, 100% { transform: translateY(0px) scale(1) translateZ(10px); }
+      50% { transform: translateY(-8px) scale(1.05) translateZ(10px); }
+    }
+    
+    @keyframes logoGlitch {
+      0%, 96%, 100% { filter: drop-shadow(0 0 15px rgba(0, 243, 255, 0.4)) hue-rotate(0deg); opacity: 1; }
+      97% { filter: drop-shadow(0 0 25px var(--purple)) hue-rotate(90deg); opacity: 0.8; transform: translateX(2px) translateZ(10px); }
+      98% { filter: drop-shadow(0 0 25px var(--cyan)) hue-rotate(-90deg); opacity: 0.9; transform: translateX(-2px) translateZ(10px); }
+      99% { filter: drop-shadow(0 0 15px var(--gold)) hue-rotate(45deg); opacity: 1; transform: translateX(0) translateZ(10px); }
+    }
+
+    /* Terminal Text Area */
+    .terminal-output {
+      width: 100%;
+      height: 100px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .log-line {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.4);
+      margin-bottom: 6px;
+      transition: all 0.3s ease;
+      text-align: center;
+      width: 100%;
+    }
+    /* Chromatic Aberration Effect on Active Text */
+    .log-line.active {
+      color: #fff;
+      font-weight: bold;
+      text-shadow: 
+        1.5px 0px 0px rgba(0, 243, 255, 0.8), /* Cyan split */
+        -1.5px 0px 0px rgba(162, 67, 255, 0.8), /* Purple split */
+        0 0 10px var(--cyan);
+      font-size: 14px;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 8px; 
+      height: 15px;
+      background: var(--cyan);
+      margin-left: 6px;
+      vertical-align: middle;
+      animation: blink 0.32s step-end infinite;
+      box-shadow: 0 0 10px var(--cyan);
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* High-Tech Progress Bar */
+    .progress-container {
+      width: 320px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      position: relative;
+      box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
+      overflow: hidden;
+    }
+    
+    .progress-fill {
+      position: absolute;
+      top: 0; left: 0; bottom: 0;
+      width: 0%;
+      background: linear-gradient(90deg, transparent, var(--cyan) 50%, var(--gold) 80%, #fff 100%);
+      box-shadow: 0 0 15px rgba(0, 243, 255, 0.6);
+      transition: width 0.04s linear;
+    }
+    
+    .progress-glow {
+      position: absolute;
+      right: 0;
+      top: -3px;
+      bottom: -3px;
+      width: 4px;
+      background: #fff;
+      border-radius: 50%;
+      animation: pulseGlow 1.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 8px 2px var(--cyan); }
+      100% { box-shadow: 0 0 16px 6px var(--cyan); }
+    }
+
+    /* Flash bang effect for transition */
+    .flash-bang {
+      position: fixed;
+      inset: 0;
+      background: #fff;
+      z-index: 10000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.16s ease-out;
+    }
+    .flash-bang.active {
+      opacity: 1;
+    }
+
+  </style>
+</head>
+<body>
+
+  <!-- ========================================== -->
+  <!-- MAIN APP INTERFACE (Reveals after boot) -->
+  <!-- ========================================== -->
+  <div class="app-container" id="app-container">
+    <div class="app-title">kAIxU: Inner Sanctum</div>
+    <div class="app-subtitle">BIOMETRIC LOCK DISENGAGED</div>
+  </div>
+
+  <!-- Flash Effect -->
+  <div class="flash-bang" id="flash"></div>
+
+  <!-- ========================================== -->
+  <!-- INTRO BOOT SEQUENCE OVERLAY -->
+  <!-- ========================================== -->
+  <div class="boot-sequence" id="boot-sequence">
+    <div class="stars-container" id="stars-container"></div>
+    <div class="holo-entities" id="holo-entities"></div>
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+    <div class="cyber-grid"></div>
+
+    <div class="console-core" id="console-core">
+      <!-- Hologram Rings & Logo -->
+      <div class="hologram-stage">
+        <div class="ring ring-1"></div>
+        <div class="ring ring-2"></div>
+        <div class="ring ring-3"></div>
+        <img 
+          src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" 
+          alt="kAIxU Logo" 
+          class="holo-logo"
+        >
+      </div>
+
+      <!-- Terminal Output -->
+      <div class="terminal-output" id="terminal"></div>
+
+      <!-- Hardware Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-fill" id="progress-bar">
+          <div class="progress-glow"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      
+      const bootLines = [
+        "INITIALIZING kAIxU NEURAL LINK",
+        "ESTABLISHING SECURE HANDSHAKE",
+        "BYPASSING PERIMETER FIREWALLS",
+        "DECRYPTING SANCTUM ARCHIVES",
+        "SYNCING BIOMETRIC SIGNATURES",
+        "ACCESS GRANTED"
+      ];
+
+      const terminal = document.getElementById('terminal');
+      const progressBar = document.getElementById('progress-bar');
+      const bootSequence = document.getElementById('boot-sequence');
+      const consoleCore = document.getElementById('console-core');
+      const appContainer = document.getElementById('app-container');
+      const flash = document.getElementById('flash');
+      const introReturnKey = 'kaixuIntroReturn';
+      const returnTarget = sessionStorage.getItem(introReturnKey);
+
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+<>?";
+      const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+      // --- 1. Interactive Mouse Parallax ---
+      document.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 2;
+        const y = (e.clientY / window.innerHeight - 0.5) * 2;
+        
+        consoleCore.style.transform = `rotateX(${-y * 6}deg) rotateY(${x * 10}deg)`;
+        
+        const originX = 50 + (x * 15);
+        const originY = 50 + (y * 15);
+        bootSequence.style.perspectiveOrigin = `${originX}% ${originY}%`;
+      });
+
+      // --- 2. Neon Stars Generation ---
+      const starsContainer = document.getElementById('stars-container');
+      const colors = ['var(--cyan)', 'var(--purple)', 'var(--gold)', '#ffffff'];
+      
+      for (let i = 0; i < 200; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        
+        const size = Math.random() * 3 + 1; 
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const posX = Math.random() * 100; 
+        const posY = Math.random() * 100; 
+        const twinkleDuration = Math.random() * 0.8 + 0.4; 
+        const twinkleDelay = Math.random() * 2; 
+        const driftX = (Math.random() - 0.5) * 200; 
+        const driftY = (Math.random() - 0.5) * 200; 
+        const driftDuration = Math.random() * 8 + 8; 
+        
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.left = `${posX}%`;
+        star.style.top = `${posY}%`;
+        star.style.setProperty('--star-color', color);
+        star.style.setProperty('--twinkle-dur', `${twinkleDuration}s`);
+        star.style.setProperty('--twinkle-del', `${twinkleDelay}s`);
+        star.style.setProperty('--drift-x', `${driftX}px`);
+        star.style.setProperty('--drift-y', `${driftY}px`);
+        star.style.setProperty('--drift-dur', `${driftDuration}s`);
+        
+        starsContainer.appendChild(star);
+      }
+
+      // --- 3. Rising Holographic Ships & Planets ---
+      const entitiesContainer = document.getElementById('holo-entities');
+      
+      const realisticEntities = [
+        `<svg viewBox="0 0 200 200" fill="none" stroke="var(--entity-color)" stroke-width="1.5"><circle cx="100" cy="100" r="80" stroke-width="2" stroke-dasharray="10 5"/><circle cx="100" cy="100" r="70" opacity="0.5"/><circle cx="100" cy="100" r="20" stroke-width="2"/><path d="M100 20 L100 80 M100 180 L100 120 M20 100 L80 100 M180 100 L120 100 M43 43 L85 85 M157 157 L115 115 M43 157 L85 115 M157 43 L115 85" opacity="0.7"/><rect x="85" y="85" width="30" height="30" fill="var(--bg0)" stroke="var(--entity-color)"/><circle cx="100" cy="100" r="5" fill="var(--entity-color)"/></svg>`,
+        `<svg viewBox="0 0 200 200" fill="none" stroke="var(--entity-color)"><defs><radialGradient id="planetGrad" cx="30%" cy="30%" r="70%"><stop offset="0%" stop-color="var(--entity-color)" stop-opacity="0.4"/><stop offset="100%" stop-color="var(--bg0)" stop-opacity="0.9"/></radialGradient></defs><ellipse cx="100" cy="100" rx="90" ry="25" stroke-width="2" opacity="0.5" transform="rotate(-20 100 100)"/><ellipse cx="100" cy="100" rx="70" ry="15" stroke-width="1" stroke-dasharray="4 4" opacity="0.8" transform="rotate(-20 100 100)"/><circle cx="100" cy="100" r="45" fill="url(#planetGrad)" stroke-width="1.5"/><path d="M 16 100 A 90 25 0 0 0 184 100" stroke-width="2.5" transform="rotate(-20 100 100)"/><path d="M 100 55 C 130 55, 145 70, 145 100" stroke-width="1" opacity="0.4"/></svg>`,
+        `<svg viewBox="0 0 200 200" fill="none" stroke="var(--entity-color)"><path d="M100 120 L100 180 M100 180 L80 200 M100 180 L120 200" stroke-width="2"/><ellipse cx="100" cy="60" rx="50" ry="15" stroke-width="2"/><path d="M50 60 Q100 100 150 60" stroke-width="2"/><rect x="85" y="100" width="30" height="40" stroke-width="2"/><line x1="85" y1="110" x2="30" y2="130" stroke-width="2"/><line x1="115" y1="110" x2="170" y2="130" stroke-width="2"/><rect x="10" y="120" width="20" height="20" stroke-dasharray="2 2"/><rect x="170" y="120" width="20" height="20" stroke-dasharray="2 2"/><circle cx="100" cy="60" r="5" fill="var(--entity-color)"/><path d="M100 60 L100 20 M100 20 L90 10" stroke-width="1.5"/></svg>`,
+        `<svg viewBox="0 0 200 200" fill="none" stroke="var(--entity-color)"><circle cx="100" cy="100" r="80" stroke-width="2"/><ellipse cx="100" cy="100" rx="30" ry="80" stroke-width="1" opacity="0.4"/><ellipse cx="100" cy="100" rx="60" ry="80" stroke-width="1" opacity="0.4"/><ellipse cx="100" cy="100" rx="80" ry="30" stroke-width="1" opacity="0.4"/><ellipse cx="100" cy="100" rx="80" ry="60" stroke-width="1" opacity="0.4"/><path d="M40 70 Q60 50 90 70 T150 60 M50 130 Q80 160 120 120 T170 140" stroke-width="1.5" stroke-linejoin="round"/><circle cx="90" cy="70" r="2" fill="var(--entity-color)"/><circle cx="120" cy="120" r="3" fill="var(--entity-color)"/><circle cx="100" cy="100" r="95" stroke-width="0.5" stroke-dasharray="5 15" opacity="0.5"/></svg>`,
+        `<svg viewBox="0 0 200 200" fill="none" stroke="var(--entity-color)"><path d="M100 20 L130 80 L140 160 L100 140 L60 160 L70 80 Z" stroke-width="2"/><path d="M100 20 L100 140" stroke-width="1" opacity="0.6"/><path d="M70 80 L130 80" stroke-width="1" opacity="0.6"/><path d="M65 120 L40 140 L40 170 L60 160 Z" stroke-width="1.5"/><path d="M135 120 L160 140 L160 170 L140 160 Z" stroke-width="1.5"/><rect x="90" y="145" width="20" height="15" stroke-width="2"/><line x1="100" y1="160" x2="100" y2="180" stroke-width="3" stroke-dasharray="4 4" opacity="0.8"/><circle cx="100" cy="60" r="8" stroke-width="1"/></svg>`
+      ];
+      
+      for (let i = 0; i < 20; i++) {
+        const entity = document.createElement('div');
+        entity.classList.add('holo-entity');
+        
+        entity.innerHTML = realisticEntities[Math.floor(Math.random() * realisticEntities.length)];
+
+        const posX = Math.random() * 100;
+        const riseDuration = Math.random() * 12 + 8; 
+        const riseDelay = Math.random() * 8; 
+        const color = Math.random() > 0.6 ? 'var(--purple)' : 'var(--cyan)';
+        const size = Math.random() * 70 + 40; 
+        const randomRotation = (Math.random() - 0.5) * 60; 
+
+        entity.style.left = `${posX}%`;
+        entity.style.width = `${size}px`;
+        entity.style.height = `${size}px`;
+        entity.style.setProperty('--entity-color', color);
+        entity.style.setProperty('--rise-dur', `${riseDuration}s`);
+        entity.style.setProperty('--rise-del', `-${riseDelay}s`);
+        entity.style.setProperty('--rot', `${randomRotation}deg`); 
+
+        entitiesContainer.appendChild(entity);
+      }
+
+      // --- 4. Boot Text Scrambler ---
+      async function scrambleText(element, finalString) {
+        let currentString = "";
+        
+        for (let i = 0; i < finalString.length; i++) {
+          for (let j = 0; j < 2; j++) {
+            let randomChar = chars[Math.floor(Math.random() * chars.length)];
+            element.innerHTML = currentString + randomChar + '<span class="cursor"></span>';
+            await sleep(6);
+          }
+          currentString += finalString[i];
+          element.innerHTML = currentString + '<span class="cursor"></span>';
+          
+          updateProgress(finalString.length, i);
+        }
+      }
+
+      let totalChars = bootLines.join("").length;
+      let charsTyped = 0;
+
+      function updateProgress(lineLength, charIndex) {
+        charsTyped++;
+        let percent = (charsTyped / totalChars) * 100;
+        progressBar.style.width = `${percent}%`;
+      }
+      
+      async function triggerUnlock() {
+        // Flash bang effect
+        flash.classList.add('active');
+        await sleep(120); // White out screen
+        
+        // Hide boot screen & show app while screen is white
+        bootSequence.classList.add('hidden');
+        if (returnTarget && returnTarget !== window.location.pathname) {
+          const target = returnTarget;
+          sessionStorage.removeItem(introReturnKey);
+          setTimeout(() => {
+            window.location.href = target;
+          }, 80); // keep flash visible during handoff
+          return;
+        }
+
+        appContainer.classList.add('active');
+        document.body.style.overflow = 'auto'; // allow scrolling again
+        
+        await sleep(40);
+        // Fade out flash
+        flash.classList.remove('active');
+      }
+
+      async function runBootSequence() {
+        charsTyped = 0;
+        terminal.innerHTML = '';
+        
+        const logElements = [];
+
+        for (let i = 0; i < bootLines.length; i++) {
+          if (logElements.length > 0) {
+            logElements[logElements.length - 1].classList.remove('active');
+            logElements[logElements.length - 1].innerHTML = logElements[logElements.length - 1].innerText; 
+          }
+
+          const lineEl = document.createElement('div');
+          lineEl.className = 'log-line active';
+          terminal.appendChild(lineEl);
+          logElements.push(lineEl);
+
+          if (logElements.length > 3) {
+            logElements[logElements.length - 4].style.display = 'none';
+          }
+
+          await scrambleText(lineEl, bootLines[i]);
+          
+          if (i !== bootLines.length - 1) {
+            await sleep(160); 
+          } else {
+            progressBar.style.width = '100%';
+              await sleep(400);
+          }
+        }
+
+        // Sequence is finished -> Trigger App transition
+        triggerUnlock();
+      }
+
+      setTimeout(() => {
+        runBootSequence();
+      }, 200);
+
+    });
+  </script>
+</body>
+</html>
