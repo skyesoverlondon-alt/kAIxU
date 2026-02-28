@@ -99,6 +99,13 @@
       background: rgba(0,0,0,0.35);
       border: 1px solid rgba(255,255,255,0.10);
       overflow:auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    #out{
+      min-height: 220px;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
     .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
     input, textarea, select{
@@ -237,8 +244,23 @@ POST /v1/stream   (SSE)</code></pre>
           <li>Rotate tokens quarterly</li>
         </ul>
 
-        <footer>
-          <span>Skyes Over London LC</span> · <a href="/v1/health">health</a> · <a href="/v1/models">models</a>
+        <footer style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px">
+          <span><span>Skyes Over London LC</span> · <a href="/v1/health">health</a> · <a href="/v1/models">models</a></span>
+          <a href="/kAIxUchat.html" style="
+            display:inline-flex; align-items:center; gap:6px;
+            padding:8px 16px;
+            border-radius:999px;
+            background: linear-gradient(135deg, rgba(255,213,90,.18), rgba(255,213,90,.08));
+            border:1.5px solid var(--gold);
+            color:var(--gold);
+            font-weight:700;
+            font-size:12px;
+            letter-spacing:.4px;
+            text-decoration:none;
+            box-shadow: 0 0 18px rgba(255,213,90,.35), 0 0 40px rgba(255,213,90,.15);
+            transition: box-shadow .2s ease, transform .1s ease;
+            white-space:nowrap;
+          " onmouseover="this.style.boxShadow='0 0 28px rgba(255,213,90,.65), 0 0 60px rgba(255,213,90,.25)'; this.style.transform='scale(1.03)'" onmouseout="this.style.boxShadow='0 0 18px rgba(255,213,90,.35), 0 0 40px rgba(255,213,90,.15)'; this.style.transform='scale(1)'">✦ try kAIxUchat</a>
         </footer>
       </aside>
     </div>
