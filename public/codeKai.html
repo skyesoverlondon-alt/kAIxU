@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>codeKai — AI Code Review · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;--blue:#5c9eff;--orange:#e09c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:760px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,select,textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,select:focus,textarea:focus{border-color:rgba(200,168,75,.5)}
+  textarea.code-font{font-family:'Courier New',Consolas,monospace;font-size:12px;line-height:1.5}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  /* Mode chips */
+  .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .mode-chip{padding:8px;border-radius:8px;border:1px solid var(--border);background:var(--card);cursor:pointer;font-size:12px;color:var(--muted);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:2px;align-items:center}
+  .mode-chip:hover,.mode-chip.active{border-color:rgba(200,168,75,.4);color:var(--accent);background:rgba(200,168,75,.06)}
+  .mode-chip .chip-icon{font-size:18px}
+  /* Output */
+  .feedback-section{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+  .section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+  .feedback-item{display:flex;gap:10px;margin-bottom:8px;font-size:13px;line-height:1.5}
+  .sev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .sev-high{background:var(--red)}.sev-med{background:var(--orange)}.sev-low{background:var(--green)}
+  /* Diff */
+  .diff-view{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  @media(max-width:600px){.diff-view{grid-template-columns:1fr}}
+  .diff-block{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+  .diff-header{font-size:10px;font-weight:700;text-transform:uppercase;padding:6px 10px;color:var(--muted)}
+  .diff-header.before{border-bottom:1px solid rgba(224,92,92,.3);background:rgba(224,92,92,.06);}
+  .diff-header.after{border-bottom:1px solid rgba(76,175,130,.3);background:rgba(76,175,130,.06);}
+  pre.diff-code{font-family:'Courier New',Consolas,monospace;font-size:11px;line-height:1.6;padding:10px 12px;overflow-x:auto;white-space:pre;color:var(--text)}
+  .overall-score{text-align:center;padding:12px;border-radius:10px;background:rgba(200,168,75,.07);border:1px solid rgba(200,168,75,.2);margin-bottom:12px}
+  .score-num{font-size:36px;font-weight:800;color:var(--accent)}
+  .score-lbl{font-size:11px;color:var(--muted)}
+  .placeholder-msg{text-align:center;padding:40px;color:var(--muted);font-size:13px;font-style:italic}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">&lt;/&gt; codeKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link">📖 readKai</a>
+  <a href="/mathKai.html" class="nav-link">∑ mathKai</a>
+  <a href="/codeKai.html" class="nav-link active">&lt;/&gt; codeKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>codeKai</h1>
+    <p class="sub">Paste any code — get an expert review: explanation, optimisations, bug report, or type annotations. Side-by-side diff for rewrites.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token"/>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:130px">
+        <label>Language</label>
+        <select id="lang">
+          <option value="auto-detect">Auto-detect</option>
+          <option value="JavaScript">JavaScript</option>
+          <option value="TypeScript">TypeScript</option>
+          <option value="Python">Python</option>
+          <option value="Rust">Rust</option>
+          <option value="Go">Go</option>
+          <option value="Java">Java</option>
+          <option value="C++">C++</option>
+          <option value="C#">C#</option>
+          <option value="SQL">SQL</option>
+          <option value="Shell">Shell</option>
+          <option value="Ruby">Ruby</option>
+          <option value="PHP">PHP</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label>Review mode</label>
+      <div class="mode-grid">
+        <div class="mode-chip active" onclick="setMode('explain',this)"><div class="chip-icon">📖</div>Explain</div>
+        <div class="mode-chip" onclick="setMode('optimize',this)"><div class="chip-icon">⚡</div>Optimize</div>
+        <div class="mode-chip" onclick="setMode('bugs',this)"><div class="chip-icon">🐛</div>Find Bugs</div>
+        <div class="mode-chip" onclick="setMode('types',this)"><div class="chip-icon">🏷</div>Add Types</div>
+      </div>
+    </div>
+    <div>
+      <label>Your code</label>
+      <textarea class="code-font" id="codeInput" rows="14" placeholder="Paste your code here…"></textarea>
+    </div>
+    <button class="btn-primary" id="reviewBtn" onclick="review()">Review Code</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="panel" id="outPanel" style="min-height:300px">
+    <div id="outContent"><div class="placeholder-msg">Paste code and select a review mode…</div></div>
+  </div>
+</main>
+
+<script>
+const API='https://kaixu67.skyesoverlondon.workers.dev';
+let currentMode='explain';
+
+function setMode(m, el){
+  currentMode=m;
+  document.querySelectorAll('.mode-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+async function review(){
+  const tok=document.getElementById('tok').value.trim();
+  const code=document.getElementById('codeInput').value.trim();
+  const lang=document.getElementById('lang').value;
+  if(!tok){st('Add your token.',true);return;}
+  if(!code){st('Paste some code.',true);return;}
+
+  const btn=document.getElementById('reviewBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Reviewing…';
+  st('');
+
+  const schemas={
+    explain: `{"score": 0-100,  "summary": "2-3 sentence overview","sections": [{"title":"string","content":"detailed explanation","severity":"info"}]}`,
+    optimize: `{"score": 0-100, "summary": "overview of optimisation opportunities","sections": [{"title":"string","content":"what to improve and why","severity":"high|medium|low"}], "rewrite": "complete improved version of the code"}`,
+    bugs: `{"score": 0-100, "summary": "overall code health","sections": [{"title":"Bug title","content":"description and fix","severity":"high|medium|low","line":"optional line number or range"}], "rewrite": "corrected version of the code"}`,
+    types: `{"score": 0-100, "summary": "typing coverage assessment","sections": [{"title":"string","content":"what types were added and why","severity":"info"}], "rewrite": "fully type-annotated version"}`
+  };
+  const modeLabels={explain:'Explain',optimize:'Optimize',bugs:'Find Bugs',types:'Add Types'};
+  const sys=`You are a senior software engineer conducting a ${modeLabels[currentMode]} code review${lang!=='auto-detect'?` for ${lang}`:''}.
+Return ONLY valid JSON matching this schema exactly:
+${schemas[currentMode]}
+For the "rewrite" field (when present), include the complete rewritten code as a string. No markdown, no code fences, raw JSON only.`;
+
+  try {
+    const r=await fetch(`${API}/v1/generate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({system:sys,messages:[{role:'user',content:`Review this code:\n\`\`\`\n${code}\n\`\`\``}]})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`HTTP ${r.status} · ${e.error||'error'}`);}
+    const d=await r.json();
+    let raw=(d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let parsed;
+    try{parsed=JSON.parse(raw);}catch{throw new Error('AI returned non-JSON. Try again.');}
+    renderOutput(parsed, code);
+    localStorage.setItem('codeKai_token',tok);
+  } catch(e){st(e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Review Code';}
+}
+
+function renderOutput(data, originalCode){
+  const out=document.getElementById('outContent');
+  const sevColor={high:'sev-high',medium:'sev-med',med:'sev-med',low:'sev-low',info:'sev-low'};
+  const score = Math.max(0,Math.min(100,parseInt(data.score)||0));
+
+  let html=`<div class="overall-score">
+    <div class="score-num">${score}</div>
+    <div class="score-lbl">Code Score / 100</div>
+  </div>`;
+
+  if(data.summary){
+    html+=`<div class="feedback-section">
+      <div class="section-lbl">Summary</div>
+      <div style="font-size:13px;line-height:1.6">${esc(data.summary)}</div>
+    </div>`;
+  }
+
+  if(data.sections && data.sections.length){
+    html+=`<div class="feedback-section"><div class="section-lbl">Findings</div>`;
+    data.sections.forEach(s=>{
+      const dot=sevColor[s.severity]||'sev-low';
+      html+=`<div class="feedback-item">
+        <div class="sev-dot ${dot}"></div>
+        <div><strong style="font-size:13px">${esc(s.title)}</strong>${s.line?` <span style="font-size:11px;color:var(--muted)">${esc(s.line)}</span>`:''}
+        <div style="color:var(--muted);font-size:12px;margin-top:3px">${esc(s.content)}</div></div>
+      </div>`;
+    });
+    html+='</div>';
+  }
+
+  if(data.rewrite){
+    html+=`<div class="section-lbl" style="margin:12px 0 6px">Diff View</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn-sm" onclick="copyRewrite()">Copy rewrite</button>
+    </div>
+    <div class="diff-view">
+      <div class="diff-block">
+        <div class="diff-header before">Before</div>
+        <pre class="diff-code">${esc(originalCode)}</pre>
+      </div>
+      <div class="diff-block">
+        <div class="diff-header after">After</div>
+        <pre class="diff-code" id="rewriteCode">${esc(data.rewrite)}</pre>
+      </div>
+    </div>`;
+    window._rewrite=data.rewrite;
+  }
+
+  out.innerHTML=html;
+}
+
+function copyRewrite(){
+  navigator.clipboard.writeText(window._rewrite||'');
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('codeKai_token');if(s)document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

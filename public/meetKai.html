@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>meetKai — AI Meeting Notes · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:880px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:660px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus{border-color:rgba(200,168,75,.5)}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  .out-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .out-header h2{font-size:14px;font-weight:600;color:var(--muted)}
+  .section{margin-bottom:18px}
+  .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);margin-bottom:8px}
+  .decision-item,.action-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px;line-height:1.5}
+  .action-item{border-left:3px solid var(--accent)}
+  .action-owner{font-size:11px;color:var(--muted);margin-top:3px}
+  .summary-text{font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text)}
+  .placeholder-text{font-size:13px;color:var(--muted);font-style:italic;padding:24px 0;text-align:center}
+  .status{font-size:12px;color:var(--muted);text-align:center}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">📋 meetKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link active">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link">📖 readKai</a>
+  <a href="/mathKai.html" class="nav-link">∑ mathKai</a>
+  <a href="/codeKai.html" class="nav-link">&lt;/&gt; codeKai</a>
+  <a href="/quizKai.html" class="nav-link">🧩 quizKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>meetKai</h1>
+    <p class="sub">Paste raw meeting notes — get structured summary, decisions, and action items.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token"/>
+    </div>
+    <div>
+      <label>Meeting title / context (optional)</label>
+      <input id="title" placeholder="e.g. Q2 Planning · Product Team · Feb 28"/>
+    </div>
+    <div>
+      <label>Raw Notes (dump everything — messy is fine)</label>
+      <textarea id="notes" rows="16" placeholder="Paste your raw meeting notes here…&#10;&#10;e.g.&#10;- john said we need to ship the new dashboard by march&#10;- sarah gonna do the backend, needs figma files from mike&#10;- decided to drop v1 feature due to time constraints&#10;- next meeting thursday 3pm&#10;- budget approved for Q2 tooling $5k"></textarea>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()">Summarize Notes</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="panel">
+    <div class="out-header">
+      <h2>Structured Summary</h2>
+      <button class="btn-sm" onclick="copyOut()">Copy</button>
+    </div>
+    <div id="out"><div class="placeholder-text">Your structured notes will appear here…</div></div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+
+async function generate() {
+  const tok = document.getElementById('tok').value.trim();
+  const notes = document.getElementById('notes').value.trim();
+  const title = document.getElementById('title').value.trim();
+  if (!tok) { st('Add your token.', true); return; }
+  if (!notes) { st('Paste your meeting notes.', true); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Processing…';
+  st('');
+
+  const sys = `You are a meeting notes assistant. Return ONLY a valid JSON object with this shape:
+{
+  "summary": "2–3 sentence overview of what the meeting covered",
+  "decisions": ["decision 1", "decision 2"],
+  "actions": [{"task": "what to do", "owner": "person or team (or Unknown)", "due": "due date or empty string"}],
+  "next_steps": "brief paragraph on what happens next"
+}
+No markdown, no code fences, raw JSON only.`;
+
+  const user = `${title ? `Meeting: ${title}\n\n` : ''}Raw notes:\n${notes}`;
+
+  try {
+    const r = await fetch(`${API}/v1/generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
+      body: JSON.stringify({ system: sys, messages:[{role:'user',content:user}] })
+    });
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||'error'}`); }
+    const d = await r.json();
+    let raw = (d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { throw new Error('AI returned non-JSON. Try again.'); }
+    renderOutput(parsed);
+    localStorage.setItem('meetKai_token', tok);
+  } catch(e) { st(e.message, true); }
+  finally { btn.disabled=false; btn.textContent='Summarize Notes'; }
+}
+
+function renderOutput(d) {
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let html = '';
+  if (d.summary) html += `<div class="section"><div class="section-title">Summary</div><div class="summary-text">${esc(d.summary)}</div></div>`;
+  if (d.decisions?.length) {
+    html += `<div class="section"><div class="section-title">Decisions (${d.decisions.length})</div>`;
+    d.decisions.forEach(dec => html += `<div class="decision-item">${esc(dec)}</div>`);
+    html += `</div>`;
+  }
+  if (d.actions?.length) {
+    html += `<div class="section"><div class="section-title">Action Items (${d.actions.length})</div>`;
+    d.actions.forEach(a => html += `<div class="action-item">${esc(a.task)}<div class="action-owner">Owner: ${esc(a.owner)}${a.due ? ` · Due: ${esc(a.due)}`  : ''}</div></div>`);
+    html += `</div>`;
+  }
+  if (d.next_steps) html += `<div class="section"><div class="section-title">Next Steps</div><div class="summary-text">${esc(d.next_steps)}</div></div>`;
+  document.getElementById('out').innerHTML = html || '<div class="placeholder-text">Nothing parsed.</div>';
+}
+
+function copyOut() {
+  const lines = [];
+  document.querySelectorAll('.section-title').forEach(t => {
+    lines.push('\n' + t.textContent.toUpperCase());
+    t.parentElement.querySelectorAll('.decision-item,.action-item,.summary-text').forEach(el => lines.push(el.textContent));
+  });
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{const b=document.querySelector('.btn-sm');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy',1500);});
+}
+
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('meetKai_token');if(s)document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>recipeKai — AI Recipe from Photo · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:940px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:340px 1fr;gap:20px}
+  @media(max-width:700px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  /* Drop zone */
+  .drop-zone{border:2px dashed rgba(200,168,75,.3);border-radius:12px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(200,168,75,.05)}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .drop-zone .dz-icon{font-size:32px}
+  .drop-zone .dz-text{font-size:13px;color:var(--muted)}
+  .preview-img{width:100%;max-height:200px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:none}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  /* Recipes */
+  .recipes-area{display:flex;flex-direction:column;gap:14px}
+  .recipe-card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+  .recipe-card:hover,.recipe-card.open{border-color:rgba(200,168,75,.45)}
+  .recipe-header{padding:14px 16px;display:flex;align-items:center;gap:12px}
+  .recipe-rank{width:28px;height:28px;border-radius:50%;background:rgba(200,168,75,.15);color:var(--accent);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .recipe-title{font-size:15px;font-weight:700;flex:1}
+  .effort-badge{font-size:10px;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border)}
+  .recipe-body{padding:0 16px 14px;display:none}
+  .recipe-card.open .recipe-body{display:block}
+  .section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:12px 0 6px}
+  .ingredients-list{display:flex;flex-wrap:wrap;gap:6px}
+  .ing-chip{font-size:12px;padding:3px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--text)}
+  .ing-chip.missing{border-color:rgba(224,92,92,.4);color:var(--red)}
+  .steps-list{display:flex;flex-direction:column;gap:8px}
+  .step-item{display:flex;gap:10px;font-size:13px;line-height:1.5;color:var(--text)}
+  .step-num{width:22px;height:22px;border-radius:50%;border:1px solid rgba(200,168,75,.4);color:var(--accent);font-size:11px;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .shopping-list{display:flex;flex-direction:column;gap:4px}
+  .shop-item{font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);color:var(--text);display:flex;gap:8px}
+  .shop-item::before{content:'🛒';font-size:12px}
+  .placeholder-msg{text-align:center;padding:48px 0;color:var(--muted);font-size:13px;font-style:italic}
+  .ingredient-override{font-size:12px;margin-top:-4px}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🍳 recipeKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link active">🍳 recipeKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>recipeKai</h1>
+    <p class="sub">Photo your fridge or pantry — AI spots your ingredients and suggests 3 recipes ranked by effort.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token"/>
+    </div>
+    <div>
+      <label>Fridge / pantry photo</label>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" accept="image/*" id="imgInput" onchange="onFile(this.files[0])"/>
+        <div class="dz-icon">📷</div>
+        <div class="dz-text">Tap or drag image here</div>
+      </div>
+      <img id="previewImg" class="preview-img" alt="preview"/>
+    </div>
+    <div>
+      <label>Extra ingredients (optional — things not in the photo)</label>
+      <input id="extras" placeholder="e.g. salt, olive oil, pasta, garlic"/>
+    </div>
+    <div>
+      <label>Dietary preferences</label>
+      <input id="dietary" placeholder="e.g. vegetarian, gluten-free, low-carb"/>
+    </div>
+    <div>
+      <label>Missing ingredient shopping help?</label>
+      <select id="shopping">
+        <option value="yes">Yes — show me what to buy</option>
+        <option value="no">No — use only what I have</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()" disabled>Upload a photo first</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="panel" style="padding:0;overflow:hidden;border:none;background:transparent">
+    <div class="recipes-area" id="recipesArea">
+      <div class="placeholder-msg">Upload a fridge photo to see recipe ideas…</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API='https://kaixu67.skyesoverlondon.workers.dev';
+let imgData=null, imgMime=null;
+
+const dz=document.getElementById('dropZone');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)onFile(f);});
+
+function onFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  imgMime=file.type;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    imgData=ev.target.result.split(',')[1];
+    const prev=document.getElementById('previewImg');
+    prev.src=ev.target.result;prev.style.display='block';
+    const btn=document.getElementById('genBtn');
+    btn.disabled=false;btn.textContent='Find Recipes';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function generate(){
+  const tok=document.getElementById('tok').value.trim();
+  const extras=document.getElementById('extras').value.trim();
+  const dietary=document.getElementById('dietary').value.trim();
+  const shoppingHelp=document.getElementById('shopping').value==='yes';
+  if(!tok){st('Add your token.',true);return;}
+  if(!imgData){st('Upload a photo first.',true);return;}
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Analysing…';
+  st('');
+
+  const sys=`You are a chef and nutritionist. Analyse the ingredients visible in the image${extras?` plus these additional items: ${extras}`:''}. 
+Return ONLY valid JSON:
+{
+  "identified": ["ingredient1","ingredient2"],
+  "recipes": [
+    {"title":"Recipe Name","effort":"Easy|Medium|Hard","time":"e.g. 20 mins","description":"1 sentence","ingredients_have":["item"],"ingredients_need":["item"],"steps":["step 1","step 2"]}
+  ]
+}
+Provide exactly 3 recipes sorted from easiest to hardest.${dietary?` Respect: ${dietary}.`:''}
+${shoppingHelp?'Include ingredients_need for any missing items.':'Set ingredients_need to [].'}
+No markdown, no code fences, raw JSON only.`;
+
+  try {
+    const r=await fetch(`${API}/v1/generate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({
+      system:sys,
+      contents:[{role:'user',parts:[{inline_data:{mime_type:imgMime,data:imgData}},{text:'Analyse the ingredients and suggest 3 recipes.'}]}]
+    })});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`HTTP ${r.status} · ${e.error||'error'}`);}
+    const d=await r.json();
+    let raw=(d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let parsed;
+    try{parsed=JSON.parse(raw);}catch{throw new Error('AI returned non-JSON. Try again.');}
+    renderRecipes(parsed, shoppingHelp);
+    localStorage.setItem('recipeKai_token',tok);
+  } catch(e){st(e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Find Recipes';}
+}
+
+function renderRecipes(data, showShopping){
+  const area=document.getElementById('recipesArea');
+  area.innerHTML='';
+  const allNeed=[...new Set((data.recipes||[]).flatMap(r=>r.ingredients_need||[]))];
+
+  (data.recipes||[]).forEach((r,i)=>{
+    const div=document.createElement('div');
+    div.className='recipe-card'+(i===0?' open':'');
+    const haveHtml=(r.ingredients_have||[]).map(g=>`<span class="ing-chip">${esc(g)}</span>`).join('');
+    const needHtml=(r.ingredients_need||[]).map(g=>`<span class="ing-chip missing">${esc(g)}</span>`).join('');
+    const stepsHtml=(r.steps||[]).map((s,si)=>`<div class="step-item"><div class="step-num">${si+1}</div><span>${esc(s)}</span></div>`).join('');
+    div.innerHTML=`
+      <div class="recipe-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="recipe-rank">${i+1}</div>
+        <div>
+          <div class="recipe-title">${esc(r.title)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(r.description)}</div>
+        </div>
+        <span class="effort-badge">${esc(r.effort)} · ${esc(r.time)}</span>
+      </div>
+      <div class="recipe-body">
+        <div class="section-lbl">Ingredients you have</div>
+        <div class="ingredients-list">${haveHtml}</div>
+        ${needHtml?`<div class="section-lbl">You'll also need</div><div class="ingredients-list">${needHtml}</div>`:''}
+        <div class="section-lbl">Steps</div>
+        <div class="steps-list">${stepsHtml}</div>
+      </div>`;
+    area.appendChild(div);
+  });
+
+  if(showShopping && allNeed.length){
+    const sh=document.createElement('div');
+    sh.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:4px';
+    sh.innerHTML=`<div class="section-lbl" style="margin-top:0">Shopping List</div><div class="shopping-list">${allNeed.map(i=>`<div class="shop-item">${esc(i)}</div>`).join('')}</div>`;
+    area.appendChild(sh);
+  }
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('recipeKai_token');if(s)document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

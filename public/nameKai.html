@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>nameKai — Brand Name Generator · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:900px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:300px 1fr;gap:20px}
+  @media(max-width:660px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  /* Name cards */
+  .names-grid{display:flex;flex-direction:column;gap:12px}
+  .name-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;transition:border-color .15s}
+  .name-card:hover{border-color:rgba(200,168,75,.4)}
+  .name-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px}
+  .name-text{font-size:22px;font-weight:800;color:var(--accent);letter-spacing:-.3px}
+  .vibe-tag{font-size:10px;padding:3px 9px;border-radius:10px;background:rgba(200,168,75,.1);color:var(--accent);border:1px solid rgba(200,168,75,.25);flex-shrink:0}
+  .name-rationale{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:6px}
+  .domain-hint{font-size:11px;color:var(--muted);font-family:monospace}
+  .name-actions{display:flex;gap:6px;margin-top:8px}
+  .saved-badge{display:none;font-size:10px;color:var(--green);margin-left:auto;align-self:center}
+  .status{font-size:12px;color:var(--muted);text-align:center}
+  .status.err{color:var(--red)}
+  .placeholder-wrap{text-align:center;padding:40px 0;color:var(--muted);font-size:13px;font-style:italic}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">✨ nameKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link active">✨ nameKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>nameKai</h1>
+    <p class="sub">Describe your product or brand — get 10 name ideas with rationale, vibe, and domain hints.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token"/>
+    </div>
+    <div>
+      <label>What are you building?</label>
+      <textarea id="desc" rows="4" placeholder="A B2B SaaS tool that helps small teams track project time and bill clients automatically…"></textarea>
+    </div>
+    <div>
+      <label>Industry / audience</label>
+      <input id="industry" placeholder="e.g. freelancers, healthcare, e-commerce"/>
+    </div>
+    <div>
+      <label>Name style preference</label>
+      <select id="style">
+        <option value="Any style">Any style</option>
+        <option value="Short, punchy (1–2 syllables)">Short &amp; punchy</option>
+        <option value="Compound word (two words merged)">Compound word</option>
+        <option value="Abstract / invented word">Abstract / invented</option>
+        <option value="Descriptive (says what it does)">Descriptive</option>
+        <option value="Metaphorical / evocative">Metaphorical</option>
+      </select>
+    </div>
+    <div>
+      <label>Words / vibes to avoid</label>
+      <input id="avoid" placeholder="e.g. Hub, Pro, AI, Suite"/>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()">Generate Names</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="panel" style="gap:0;padding:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:14px;font-weight:600;color:var(--muted)">Name Ideas</span>
+      <button class="btn-sm" onclick="exportSaved()">Export saved</button>
+    </div>
+    <div class="names-grid" id="namesGrid">
+      <div class="placeholder-wrap">Names will appear here…</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+let saved = JSON.parse(localStorage.getItem('nameKai_saved')||'[]');
+
+async function generate() {
+  const tok = document.getElementById('tok').value.trim();
+  const desc = document.getElementById('desc').value.trim();
+  const industry = document.getElementById('industry').value.trim();
+  const style = document.getElementById('style').value;
+  const avoid = document.getElementById('avoid').value.trim();
+  if (!tok){st('Add your token.',true);return;}
+  if (!desc){st('Describe your product.',true);return;}
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Generating…';
+  st('');
+
+  const sys=`You are a brand naming expert. Return ONLY a valid JSON array of exactly 10 objects:
+[{"name":"string","rationale":"1 sentence why this name works","vibe":"2–4 word vibe tag e.g. Bold & Technical","domain":"e.g. getname.io or namehq.com"}]
+Names should be creative, memorable, and unique. No generic tech clichés unless specifically requested.
+No markdown, no code fences, raw JSON only.`;
+
+  const user=`Product: ${desc}
+${industry?`Industry/audience: ${industry}`:''}
+Style preference: ${style}
+${avoid?`Avoid words/vibes: ${avoid}`:''}`;
+
+  try {
+    const r=await fetch(`${API}/v1/generate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({system:sys,messages:[{role:'user',content:user}]})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`HTTP ${r.status} · ${e.error||'error'}`);}
+    const d=await r.json();
+    let raw=(d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let names;
+    try{names=JSON.parse(raw);}catch{throw new Error('AI returned non-JSON. Try again.');}
+    renderNames(names);
+    localStorage.setItem('nameKai_token',tok);
+  } catch(e){st(e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Generate Names';}
+}
+
+function renderNames(names) {
+  const grid=document.getElementById('namesGrid');
+  grid.innerHTML='';
+  names.forEach((n,i)=>{
+    const isSaved = saved.some(s=>s.name===n.name);
+    const div=document.createElement('div');
+    div.className='name-card';
+    div.innerHTML=`
+      <div class="name-top">
+        <span class="name-text">${esc(n.name)}</span>
+        <span class="vibe-tag">${esc(n.vibe)}</span>
+      </div>
+      <div class="name-rationale">${esc(n.rationale)}</div>
+      <div class="domain-hint">🌐 ${esc(n.domain)}</div>
+      <div class="name-actions">
+        <button class="btn-sm" onclick="saveItem(${i})" id="save-${i}">${isSaved?'✓ Saved':'Save'}</button>
+        <button class="btn-sm" onclick="copyName('${esc(n.name)}')">Copy</button>
+      </div>`;
+    div._data = n;
+    grid.appendChild(div);
+  });
+  window._currentNames=names;
+}
+
+function saveItem(i){
+  const n=window._currentNames[i];
+  if(!saved.some(s=>s.name===n.name)) saved.unshift(n);
+  localStorage.setItem('nameKai_saved',JSON.stringify(saved));
+  const btn=document.getElementById(`save-${i}`);
+  btn.textContent='✓ Saved';btn.style.color='var(--green)';
+}
+
+function exportSaved(){
+  if(!saved.length){alert('No saved names yet.');return;}
+  const text=saved.map(n=>`${n.name}\nVibe: ${n.vibe}\nRationale: ${n.rationale}\nDomain: ${n.domain}`).join('\n\n---\n\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download='nameKai-saved.txt';a.click();
+}
+
+function copyName(name){navigator.clipboard.writeText(name);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');}
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('nameKai_token');if(s)document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

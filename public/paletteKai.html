@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>paletteKai — AI Color Palette · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:860px;width:100%;margin:0 auto;padding:28px 16px;display:flex;flex-direction:column;gap:20px}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px}
+  input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus{border-color:rgba(200,168,75,.5)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row>*{flex:1;min-width:180px}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;transition:opacity .15s;white-space:nowrap}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  /* Palette display */
+  .palette-bar{display:flex;height:100px;border-radius:12px;overflow:hidden;margin-bottom:16px}
+  .palette-swatch{flex:1;transition:flex .3s;cursor:pointer;position:relative}
+  .palette-swatch:hover{flex:1.6}
+  .swatch-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;background:rgba(0,0,0,.45);padding:2px 6px;border-radius:6px;white-space:nowrap;color:#fff;opacity:0;transition:opacity .15s;pointer-events:none}
+  .palette-swatch:hover .swatch-label{opacity:1}
+  .colors-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:600px){.colors-grid{grid-template-columns:1fr 1fr}}
+  .color-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+  .color-card:hover{border-color:rgba(200,168,75,.5)}
+  .color-block{height:80px}
+  .color-info{padding:10px}
+  .color-hex{font-size:13px;font-weight:700;font-family:monospace;margin-bottom:3px}
+  .color-name{font-size:11px;color:var(--muted);margin-bottom:3px}
+  .color-use{font-size:10px;color:var(--muted);font-style:italic}
+  .copied-flash{font-size:10px;color:var(--green);margin-top:2px;display:none}
+  .palette-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+  /* History */
+  .history-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  .history-swatch-row{display:flex;height:30px;border-radius:6px;overflow:hidden;width:80px;flex-shrink:0;cursor:pointer}
+  .history-swatch-row div{flex:1}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🎨 paletteKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link active">🎨 paletteKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div>
+    <h1>paletteKai</h1>
+    <p class="sub">Describe a mood, brand, or scene — AI returns 5 harmonious colors with names and use cases.</p>
+  </div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:12px">
+      <div>
+        <label>App Token</label>
+        <input type="password" id="tok" placeholder="kAIxU token"/>
+      </div>
+      <div>
+        <label>Count</label>
+        <select id="count" style="width:90px">
+          <option value="5" selected>5</option>
+          <option value="6">6</option>
+          <option value="8">8</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>Describe your mood, brand, scene, or concept</label>
+      <textarea id="prompt" rows="3" placeholder="A cozy autumn coffee shop at golden hour — warm, inviting, slightly rustic with a modern edge…"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn-primary" id="genBtn" onclick="generate()">Generate Palette</button>
+      <span class="status" id="st"></span>
+    </div>
+  </div>
+
+  <div class="card" id="outCard" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span style="font-size:14px;font-weight:600;color:var(--muted)">Your Palette</span>
+      <div style="display:flex;gap:8px">
+        <button class="btn-sm" onclick="exportCSS()">Export CSS</button>
+        <button class="btn-sm" onclick="exportJSON()">Export JSON</button>
+      </div>
+    </div>
+    <div class="palette-bar" id="paletteBar"></div>
+    <div class="colors-grid" id="colorsGrid"></div>
+  </div>
+
+  <div class="card" id="histCard" style="display:none">
+    <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:10px">Recent Palettes</div>
+    <div class="history-row" id="histRow"></div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+let currentColors = [];
+let history = JSON.parse(localStorage.getItem('paletteKai_history')||'[]');
+
+async function generate() {
+  const tok=document.getElementById('tok').value.trim();
+  const prompt=document.getElementById('prompt').value.trim();
+  const count=document.getElementById('count').value;
+  if(!tok){st('Add your token.',true);return;}
+  if(!prompt){st('Describe a mood or scene.',true);return;}
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Generating…';
+  st('');
+
+  const sys=`You are a color theory expert. Return ONLY a valid JSON array of exactly ${count} color objects:
+[{"hex":"#RRGGBB","name":"Creative color name","use":"How to use this in a design (primary, accent, background, etc. — 1 sentence)"}]
+Choose harmonious colors that evoke the described mood. Hex values must be valid 6-digit hex. No markdown, no code fences, raw JSON only.`;
+
+  try {
+    const r=await fetch(`${API}/v1/generate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({system:sys,messages:[{role:'user',content:`Create a color palette for: ${prompt}`}]})});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`HTTP ${r.status} · ${e.error||'error'}`);}
+    const d=await r.json();
+    let raw=(d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let colors;
+    try{colors=JSON.parse(raw);}catch{throw new Error('AI returned non-JSON. Try again.');}
+    currentColors=colors;
+    renderPalette(colors, prompt);
+    addHistory(colors, prompt);
+    localStorage.setItem('paletteKai_token',tok);
+  } catch(e){st(e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Generate Palette';}
+}
+
+function renderPalette(colors, label) {
+  const bar=document.getElementById('paletteBar');
+  bar.innerHTML=colors.map(c=>`<div class="palette-swatch" style="background:${c.hex}" onclick="copyHex('${c.hex}')"><div class="swatch-label">${c.hex}</div></div>`).join('');
+  const grid=document.getElementById('colorsGrid');
+  grid.innerHTML=colors.map((c,i)=>`
+    <div class="color-card" onclick="copyHex('${c.hex}',${i})">
+      <div class="color-block" style="background:${c.hex}"></div>
+      <div class="color-info">
+        <div class="color-hex">${c.hex}</div>
+        <div class="color-name">${esc(c.name)}</div>
+        <div class="color-use">${esc(c.use)}</div>
+        <div class="copied-flash" id="cf-${i}">Copied!</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('outCard').style.display='';
+}
+
+function copyHex(hex, idx) {
+  navigator.clipboard.writeText(hex);
+  if(idx!==undefined){const el=document.getElementById(`cf-${idx}`);el.style.display='block';setTimeout(()=>el.style.display='none',1200);}
+}
+
+function exportCSS() {
+  const css=`:root {\n${currentColors.map((c,i)=>`  --color-${i+1}: ${c.hex}; /* ${c.name} */`).join('\n')}\n}`;
+  download(css,'palette.css','text/css');
+}
+function exportJSON() { download(JSON.stringify(currentColors,null,2),'palette.json','application/json'); }
+function download(text,name,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();}
+
+function addHistory(colors, label) {
+  history.unshift({colors, label, ts: Date.now()});
+  if(history.length>12) history.pop();
+  localStorage.setItem('paletteKai_history',JSON.stringify(history));
+  renderHistory();
+}
+function renderHistory() {
+  if(!history.length){document.getElementById('histCard').style.display='none';return;}
+  document.getElementById('histCard').style.display='';
+  document.getElementById('histRow').innerHTML=history.slice(0,8).map((h,i)=>`
+    <div title="${esc(h.label)}" onclick="loadHist(${i})" class="history-swatch-row">
+      ${h.colors.map(c=>`<div style="background:${c.hex}"></div>`).join('')}
+    </div>`).join('');
+}
+function loadHist(i){currentColors=history[i].colors;renderPalette(history[i].colors,history[i].label);}
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('paletteKai_token');if(s)document.getElementById('tok').value=s;
+  renderHistory();
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

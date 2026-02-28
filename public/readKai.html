@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>readKai — Photo to Text · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:920px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+  @media(max-width:680px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit}
+  input:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  .drop-zone{border:2px dashed rgba(200,168,75,.3);border-radius:12px;height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:border-color .2s;position:relative}
+  .drop-zone:hover{border-color:var(--accent);background:rgba(200,168,75,.04)}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .drop-zone .dz-icon{font-size:28px}
+  .drop-zone .dz-text{font-size:12px;color:var(--muted)}
+  .preview-img{width:100%;max-height:190px;object-fit:contain;border-radius:8px;border:1px solid var(--border);display:none;background:#0a0a10}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  /* Output */
+  .out-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;min-height:300px}
+  .out-header{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:600;color:var(--muted)}
+  .section-block{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+  .section-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px}
+  .transcript-text{font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text)}
+  .translate-text{font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--text)}
+  .lang-detected{font-size:11px;color:var(--muted);margin-bottom:6px}
+  .placeholder-msg{text-align:center;padding:48px 0;color:var(--muted);font-size:13px;font-style:italic;flex:1}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">📖 readKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link active">📖 readKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>readKai</h1>
+    <p class="sub">Photograph any printed or handwritten text — AI transcribes it and optionally translates it.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token"/>
+    </div>
+    <div>
+      <label>Photo of text</label>
+      <div class="drop-zone" id="dz">
+        <input type="file" accept="image/*" id="imgInput" onchange="onFile(this.files[0])"/>
+        <div class="dz-icon">📄</div>
+        <div class="dz-text">Tap or drag image here</div>
+      </div>
+      <img id="previewImg" class="preview-img" alt="preview"/>
+    </div>
+    <div>
+      <label>Translate to (optional)</label>
+      <select id="targetLang">
+        <option value="">No translation — transcribe only</option>
+        <option value="English">English</option>
+        <option value="Spanish">Spanish</option>
+        <option value="French">French</option>
+        <option value="German">German</option>
+        <option value="Japanese">Japanese</option>
+        <option value="Mandarin Chinese">Mandarin Chinese</option>
+        <option value="Arabic">Arabic</option>
+        <option value="Portuguese">Portuguese</option>
+        <option value="Korean">Korean</option>
+        <option value="Russian">Russian</option>
+        <option value="Italian">Italian</option>
+        <option value="Hindi">Hindi</option>
+      </select>
+    </div>
+    <div>
+      <label>Formatting hint (optional)</label>
+      <select id="formatHint">
+        <option value="">Auto-detect</option>
+        <option value="printed document">Printed document</option>
+        <option value="handwritten note">Handwritten note</option>
+        <option value="sign or label">Sign or label</option>
+        <option value="receipt or invoice">Receipt / invoice</option>
+        <option value="book or article page">Book / article</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()" disabled>Upload a photo first</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="out-panel" id="outPanel">
+    <div class="out-header">
+      <span>Output</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" onclick="copyAll()">Copy all</button>
+        <button class="btn-sm" onclick="downloadTxt()">Download .txt</button>
+      </div>
+    </div>
+    <div id="outContent"><div class="placeholder-msg">Upload a photo to get started…</div></div>
+  </div>
+</main>
+
+<script>
+const API='https://kaixu67.skyesoverlondon.workers.dev';
+let imgData=null, imgMime=null;
+let lastTranscript='', lastTranslation='', lastDetectedLang='';
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.borderColor='var(--accent)';});
+dz.addEventListener('dragleave',()=>dz.style.borderColor='');
+dz.addEventListener('drop',e=>{e.preventDefault();dz.style.borderColor='';const f=e.dataTransfer.files[0];if(f)onFile(f);});
+
+function onFile(file){
+  if(!file||!file.type.startsWith('image/'))return;
+  imgMime=file.type;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    imgData=ev.target.result.split(',')[1];
+    const prev=document.getElementById('previewImg');
+    prev.src=ev.target.result;prev.style.display='block';
+    const btn=document.getElementById('genBtn');btn.disabled=false;btn.textContent='Transcribe';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function generate(){
+  const tok=document.getElementById('tok').value.trim();
+  const targetLang=document.getElementById('targetLang').value;
+  const hint=document.getElementById('formatHint').value;
+  if(!tok){st('Add your token.',true);return;}
+  if(!imgData){st('Upload an image.',true);return;}
+
+  const btn=document.getElementById('genBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Reading…';
+  st('');
+
+  const translatePart=targetLang?`,"translation": "${targetLang} translation of the full transcript"`:'"translation": null';
+  const sys=`You are an expert OCR and translation assistant. Read all text visible in the image${hint?` (${hint})`:''}. 
+Return ONLY valid JSON:
+{"detected_language": "name of detected language","transcript": "complete verbatim transcription preserving line breaks where significant",${translatePart}}
+No markdown, no code fences, raw JSON only.`;
+
+  try {
+    const r=await fetch(`${API}/v1/generate`,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},body:JSON.stringify({
+      system:sys,
+      contents:[{role:'user',parts:[{inline_data:{mime_type:imgMime,data:imgData}},{text:`Transcribe all text in this image.${targetLang?` Then translate to ${targetLang}.`:''}`}]}]
+    })});
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(`HTTP ${r.status} · ${e.error||'error'}`);}
+    const d=await r.json();
+    let raw=(d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let parsed;
+    try{parsed=JSON.parse(raw);}catch{throw new Error('AI returned non-JSON. Try again.');}
+    lastTranscript=parsed.transcript||'';
+    lastTranslation=parsed.translation||'';
+    lastDetectedLang=parsed.detected_language||'';
+    renderOutput(parsed, targetLang);
+    localStorage.setItem('readKai_token',tok);
+  } catch(e){st(e.message,true);}
+  finally{btn.disabled=false;btn.textContent='Transcribe';}
+}
+
+function renderOutput(data, targetLang){
+  let html=`<div class="section-block">
+    <div class="section-lbl">Transcription</div>
+    ${data.detected_language?`<div class="lang-detected">Detected: ${esc(data.detected_language)}</div>`:''}
+    <div class="transcript-text">${esc(data.transcript||'(no text detected)')}</div>
+  </div>`;
+  if(targetLang && data.translation){
+    html+=`<div class="section-block">
+      <div class="section-lbl">${esc(targetLang)} Translation</div>
+      <div class="translate-text">${esc(data.translation)}</div>
+    </div>`;
+  }
+  document.getElementById('outContent').innerHTML=html;
+}
+
+function copyAll(){
+  let text=lastTranscript;
+  if(lastTranslation) text+='\n\n--- Translation ---\n'+lastTranslation;
+  navigator.clipboard.writeText(text);
+}
+function downloadTxt(){
+  let text=`Transcription (${lastDetectedLang||'unknown'}):\n\n${lastTranscript}`;
+  if(lastTranslation) text+=`\n\n--- Translation ---\n\n${lastTranslation}`;
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download='readKai-transcript.txt';a.click();
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function st(m,err=false){const el=document.getElementById('st');el.textContent=m;el.className='status'+(err?' err':'');}
+(async()=>{
+  const s=localStorage.getItem('readKai_token');if(s)document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

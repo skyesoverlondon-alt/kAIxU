@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>mailKai — AI Email Composer · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:860px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:300px 1fr;gap:20px}
+  @media(max-width:660px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+  input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  .tone-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .tone-btn{padding:7px 4px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;text-align:center;transition:all .15s}
+  .tone-btn.selected{background:rgba(200,168,75,.15);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .output-panel{grid-column:2;display:flex;flex-direction:column;gap:10px}
+  @media(max-width:660px){.output-panel{grid-column:1}}
+  .output-header{display:flex;align-items:center;justify-content:space-between}
+  .output-header h2{font-size:14px;font-weight:600;color:var(--muted)}
+  .btn-copy{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-copy:hover{color:var(--text)}
+  .output-box{flex:1;min-height:420px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;font-size:14px;line-height:1.7;color:var(--text);white-space:pre-wrap;overflow-y:auto}
+  .output-box.placeholder{color:var(--muted);font-style:italic}
+  .status{font-size:12px;color:var(--muted);text-align:center}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">✉ mailKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link active">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link">📖 readKai</a>
+  <a href="/mathKai.html" class="nav-link">∑ mathKai</a>
+  <a href="/codeKai.html" class="nav-link">&lt;/&gt; codeKai</a>
+  <a href="/quizKai.html" class="nav-link">🧩 quizKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>mailKai</h1>
+    <p class="sub">Describe what you need to say — pick a tone, AI writes the email.</p>
+  </div>
+
+  <div class="panel">
+    <div>
+      <label>App Token</label>
+      <input type="password" id="tok" placeholder="kAIxU token" autocomplete="off"/>
+    </div>
+    <div>
+      <label>To / Recipient context</label>
+      <input type="text" id="recipient" placeholder="e.g. my manager, a client, HR dept"/>
+    </div>
+    <div>
+      <label>Subject / Goal</label>
+      <input type="text" id="subject" placeholder="e.g. Request time off next week"/>
+    </div>
+    <div>
+      <label>Key points to include</label>
+      <textarea id="points" rows="5" placeholder="— dates: March 3–7&#10;— doctor appointment&#10;— will check email daily"></textarea>
+    </div>
+    <div>
+      <label>Tone</label>
+      <div class="tone-grid" id="toneGrid">
+        <button class="tone-btn selected" data-tone="Professional">Professional</button>
+        <button class="tone-btn" data-tone="Friendly">Friendly</button>
+        <button class="tone-btn" data-tone="Assertive">Assertive</button>
+        <button class="tone-btn" data-tone="Apologetic">Apologetic</button>
+        <button class="tone-btn" data-tone="Formal">Formal</button>
+        <button class="tone-btn" data-tone="Casual">Casual</button>
+      </div>
+    </div>
+    <div>
+      <label>Length</label>
+      <select id="length">
+        <option value="concise">Concise (3–5 sentences)</option>
+        <option value="standard" selected>Standard (1–2 paragraphs)</option>
+        <option value="detailed">Detailed (3+ paragraphs)</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="genBtn" onclick="generate()">Write Email</button>
+    <div class="status" id="st"></div>
+  </div>
+
+  <div class="output-panel">
+    <div class="output-header">
+      <h2>Generated email</h2>
+      <button class="btn-copy" onclick="copyOut()">Copy</button>
+    </div>
+    <div class="output-box placeholder" id="out">Your email will appear here…</div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+let tone = 'Professional';
+
+document.getElementById('toneGrid').addEventListener('click', e => {
+  const b = e.target.closest('.tone-btn'); if (!b) return;
+  document.querySelectorAll('.tone-btn').forEach(x => x.classList.remove('selected'));
+  b.classList.add('selected');
+  tone = b.dataset.tone;
+});
+
+async function generate() {
+  const tok = document.getElementById('tok').value.trim();
+  const recipient = document.getElementById('recipient').value.trim();
+  const subject = document.getElementById('subject').value.trim();
+  const points = document.getElementById('points').value.trim();
+  const length = document.getElementById('length').value;
+  if (!tok) { st('Add your token.', true); return; }
+  if (!subject) { st('Enter a subject / goal.', true); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Writing…';
+  st('');
+
+  const lengthMap = {concise:'3–5 sentences',standard:'1–2 paragraphs',detailed:'3 or more paragraphs'};
+  const prompt = `Write a ${tone.toLowerCase()}, ${lengthMap[length]} email.
+${recipient ? `Recipient context: ${recipient}` : ''}
+Subject/Goal: ${subject}
+${points ? `Key points to include:\n${points}` : ''}
+
+Return ONLY the email body (no subject line header, no meta-commentary). Start directly with the greeting.`;
+
+  try {
+    const r = await fetch(`${API}/v1/generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
+      body: JSON.stringify({ messages:[{role:'user', content: prompt}] })
+    });
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||r.statusText}`); }
+    const d = await r.json();
+    const text = (d.text||d.content||'').trim();
+    const out = document.getElementById('out');
+    out.textContent = text;
+    out.classList.remove('placeholder');
+    localStorage.setItem('mailKai_token', tok);
+  } catch(e) { st(e.message, true); }
+  finally { btn.disabled=false; btn.textContent='Write Email'; }
+}
+
+function copyOut() {
+  const t = document.getElementById('out').textContent;
+  navigator.clipboard.writeText(t).then(() => { const b = document.querySelector('.btn-copy'); b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy',1500); });
+}
+function st(msg, err=false) { const el=document.getElementById('st'); el.textContent=msg; el.className='status'+(err?' err':''); }
+
+(async () => {
+  const s = localStorage.getItem('mailKai_token'); if(s) document.getElementById('tok').value=s;
+  try { const r=await fetch(`${API}/v1/health`); const j=await r.json(); document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err'); } catch{ document.getElementById('hd').className='health-dot err'; }
+})();
+</script>
+</body>
+</html>

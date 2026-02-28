@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>resumeKai — AI Resume Builder · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:1000px;width:100%;margin:0 auto;padding:28px 16px;display:grid;grid-template-columns:320px 1fr;gap:20px}
+  @media(max-width:700px){main{grid-template-columns:1fr}}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+  .left-col{display:flex;flex-direction:column;gap:14px}
+  .section-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .section-card h3{font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px}
+  input,textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:8px 11px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus{border-color:rgba(200,168,75,.5)}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;width:100%;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  .output-panel{display:flex;flex-direction:column;gap:10px}
+  .out-header{display:flex;align-items:center;justify-content:space-between}
+  .out-header h2{font-size:14px;font-weight:600;color:var(--muted)}
+  .out-actions{display:flex;gap:8px}
+  /* Resume preview */
+  .resume-preview{flex:1;min-height:500px;background:#fff;border-radius:12px;padding:36px 40px;color:#1a1a1a;font-family:Georgia,serif;font-size:13px;line-height:1.7;overflow-y:auto}
+  .resume-preview .rh-name{font-size:22px;font-weight:700;margin-bottom:2px;color:#111}
+  .resume-preview .rh-contact{font-size:11px;color:#555;margin-bottom:14px}
+  .resume-preview .rs{margin-bottom:16px}
+  .resume-preview .rs-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#444;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:8px}
+  .resume-preview .rs-item{margin-bottom:10px}
+  .resume-preview .rs-item-header{display:flex;justify-content:space-between;font-weight:600;font-size:13px}
+  .resume-preview .rs-item-sub{font-size:11px;color:#666;margin-bottom:4px}
+  .resume-preview ul{padding-left:18px}
+  .resume-preview ul li{margin-bottom:3px}
+  .resume-preview.placeholder{color:var(--muted);font-family:inherit;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-style:italic;font-size:13px}
+  .status{font-size:12px;color:var(--muted);text-align:center}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+  @media print{header,.left-col,.status{display:none}main{display:block;padding:0} .resume-preview{box-shadow:none;border-radius:0;padding:0}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">📋 resumeKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link active">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link">📖 readKai</a>
+  <a href="/mathKai.html" class="nav-link">∑ mathKai</a>
+  <a href="/codeKai.html" class="nav-link">&lt;/&gt; codeKai</a>
+  <a href="/quizKai.html" class="nav-link">🧩 quizKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div style="grid-column:1/-1">
+    <h1>resumeKai</h1>
+    <p class="sub">Fill in your details — AI rewrites each section for maximum impact, then print or copy.</p>
+  </div>
+
+  <div class="left-col">
+    <div class="section-card">
+      <h3>Token</h3>
+      <input type="password" id="tok" placeholder="kAIxU app token"/>
+    </div>
+
+    <div class="section-card">
+      <h3>Personal Info</h3>
+      <div><label>Full Name</label><input id="pName" placeholder="Jane Smith"/></div>
+      <div><label>Contact Line</label><input id="pContact" placeholder="jane@email.com · linkedin.com/in/jane · NYC"/></div>
+      <div><label>Professional Summary (rough draft OK)</label><textarea id="pSummary" rows="3" placeholder="5 years in UX design, specializing in SaaS products…"></textarea></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Work Experience</h3>
+      <div><label>Paste your experience (free-form, bullet points fine)</label><textarea id="expRaw" rows="8" placeholder="Senior Designer, Acme 2022–present&#10;- Redesigned onboarding, cut drop-off 40%&#10;- Led team of 3&#10;&#10;Designer, Startup XYZ 2019–2022&#10;- Built design system from scratch"></textarea></div>
+    </div>
+
+    <div class="section-card">
+      <h3>Education</h3>
+      <textarea id="eduRaw" rows="3" placeholder="BA Graphic Design, NYU 2019"></textarea>
+    </div>
+
+    <div class="section-card">
+      <h3>Skills</h3>
+      <input id="skills" placeholder="Figma, React, SQL, Project management…"/>
+    </div>
+
+    <div class="section-card">
+      <h3>Target Role (optional)</h3>
+      <input id="targetRole" placeholder="Senior Product Designer at a SaaS company"/>
+    </div>
+
+    <button class="btn-primary" id="genBtn" onclick="generate()">Build Resume</button>
+    <div class="status" id="statusEl"></div>
+  </div>
+
+  <div class="output-panel">
+    <div class="out-header">
+      <h2>Resume Preview</h2>
+      <div class="out-actions">
+        <button class="btn-sm" onclick="copyOut()">Copy HTML</button>
+        <button class="btn-sm" onclick="window.print()">Print / PDF</button>
+      </div>
+    </div>
+    <div class="resume-preview placeholder" id="out">Your resume will render here…</div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+
+async function generate() {
+  const tok = document.getElementById('tok').value.trim();
+  const pName = document.getElementById('pName').value.trim();
+  const pContact = document.getElementById('pContact').value.trim();
+  const pSummary = document.getElementById('pSummary').value.trim();
+  const expRaw = document.getElementById('expRaw').value.trim();
+  const eduRaw = document.getElementById('eduRaw').value.trim();
+  const skills = document.getElementById('skills').value.trim();
+  const targetRole = document.getElementById('targetRole').value.trim();
+
+  if (!tok) { st('Add your token.', true); return; }
+  if (!expRaw) { st('Add your work experience.', true); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Building…';
+  st('');
+
+  const sys = `You are a professional resume writer. Return ONLY a valid JSON object with this shape:
+{
+  "name": string,
+  "contact": string,
+  "summary": string (2–3 impactful sentences),
+  "experience": [{ "title": string, "company": string, "dates": string, "bullets": [string, ...] }],
+  "education": [{ "degree": string, "school": string, "year": string }],
+  "skills": [string]
+}
+Rewrite all bullets using strong action verbs and quantified results where possible. No markdown, no code fences, raw JSON only.`;
+
+  const user = `Name: ${pName || '(not provided)'}
+Contact: ${pContact || '(not provided)'}
+Summary draft: ${pSummary || '(none)'}
+${targetRole ? `Target role: ${targetRole}` : ''}
+
+WORK EXPERIENCE:
+${expRaw}
+
+EDUCATION:
+${eduRaw || '(not provided)'}
+
+SKILLS: ${skills || '(not provided)'}`;
+
+  try {
+    const r = await fetch(`${API}/v1/generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
+      body: JSON.stringify({ system: sys, messages:[{role:'user', content: user}] })
+    });
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||'error'}`); }
+    const d = await r.json();
+    let raw = (d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let data;
+    try { data = JSON.parse(raw); } catch { throw new Error('AI returned non-JSON. Try again.'); }
+    renderResume(data);
+    localStorage.setItem('resumeKai_token', tok);
+  } catch(e) { st(e.message, true); }
+  finally { btn.disabled=false; btn.textContent='Build Resume'; }
+}
+
+function renderResume(d) {
+  const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let html = `<div class="rh-name">${esc(d.name)}</div><div class="rh-contact">${esc(d.contact)}</div>`;
+  if (d.summary) html += `<div class="rs"><div class="rs-title">Summary</div><p>${esc(d.summary)}</p></div>`;
+  if (d.experience?.length) {
+    html += `<div class="rs"><div class="rs-title">Experience</div>`;
+    d.experience.forEach(e => {
+      html += `<div class="rs-item"><div class="rs-item-header"><span>${esc(e.title)}${e.company?` · ${esc(e.company)}`:''}</span><span>${esc(e.dates)}</span></div>`;
+      if (e.bullets?.length) html += `<ul>${e.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+  }
+  if (d.education?.length) {
+    html += `<div class="rs"><div class="rs-title">Education</div>`;
+    d.education.forEach(e => html += `<div class="rs-item"><div class="rs-item-header"><span>${esc(e.degree)}${e.school?`, ${esc(e.school)}`:''}</span><span>${esc(e.year)}</span></div></div>`);
+    html += `</div>`;
+  }
+  if (d.skills?.length) html += `<div class="rs"><div class="rs-title">Skills</div><p>${d.skills.map(esc).join(' · ')}</p></div>`;
+
+  const out = document.getElementById('out');
+  out.innerHTML = html;
+  out.classList.remove('placeholder');
+  st(`Resume built.`);
+}
+
+function copyOut() {
+  navigator.clipboard.writeText(document.getElementById('out').innerHTML)
+    .then(() => { const b=document.querySelectorAll('.btn-sm')[0]; b.textContent='Copied!'; setTimeout(()=>b.textContent='Copy HTML',1500); });
+}
+function st(m, err=false) { const el=document.getElementById('statusEl'); el.textContent=m; el.className='status'+(err?' err':''); }
+
+(async()=>{
+  const s=localStorage.getItem('resumeKai_token'); if(s) document.getElementById('tok').value=s;
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>

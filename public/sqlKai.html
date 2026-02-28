@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>sqlKai — Natural Language to SQL · kAIxU</title>
+<style>
+  :root{--bg:#0d0d12;--surface:#14141c;--card:#1a1a26;--border:rgba(255,255,255,.08);--muted:#7a7a9a;--text:#f0f0f8;--accent:#c8a84b;--green:#4caf82;--red:#e05c5c;--blue:#5c9eff;}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{font-size:13px;font-weight:700;color:var(--accent);margin-right:8px}
+  .nav-link{font-size:11px;padding:4px 10px;border-radius:16px;text-decoration:none;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--border);transition:color .15s}
+  .nav-link:hover{color:#f2f0ff}
+  .nav-link.active{background:rgba(200,168,75,.2);color:var(--accent);border-color:rgba(200,168,75,.4)}
+  .health-dot{width:7px;height:7px;border-radius:50%;background:#444;margin-left:auto;flex-shrink:0}
+  .health-dot.ok{background:var(--green)}.health-dot.err{background:var(--red)}
+  main{flex:1;max-width:900px;width:100%;margin:0 auto;padding:28px 16px;display:flex;flex-direction:column;gap:20px}
+  h1{font-size:20px;font-weight:700;margin-bottom:4px}
+  .sub{font-size:12px;color:var(--muted)}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+  label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px}
+  input,textarea,select{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;padding:9px 12px;outline:none;font-family:inherit;resize:vertical}
+  input:focus,textarea:focus,select:focus{border-color:rgba(200,168,75,.5)}
+  .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .row>*:first-child{flex:1}
+  .btn-primary{background:var(--accent);color:#0d0d12;border:none;border-radius:8px;padding:10px 22px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .15s}
+  .btn-primary:hover{opacity:.85}
+  .btn-primary:disabled{opacity:.4;cursor:not-allowed}
+  .btn-sm{font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.05);color:var(--muted);cursor:pointer;transition:color .15s}
+  .btn-sm:hover{color:var(--text)}
+  .history-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:border-color .15s}
+  .history-item:hover{border-color:rgba(200,168,75,.4)}
+  .hi-q{font-size:12px;color:var(--muted);margin-bottom:6px}
+  .hi-sql{font-family:monospace;font-size:12px;color:var(--blue);white-space:pre-wrap;word-break:break-all}
+  /* SQL output */
+  .sql-block{background:#0a0f1a;border:1px solid rgba(92,158,255,.2);border-radius:10px;padding:16px;font-family:'Courier New',monospace;font-size:13px;line-height:1.6;color:var(--blue);white-space:pre-wrap;word-break:break-all;min-height:80px}
+  .sql-block.placeholder{color:var(--muted);font-family:inherit;font-size:13px;background:var(--surface);border-color:var(--border)}
+  .explain-block{font-size:13px;line-height:1.6;color:var(--text);white-space:pre-wrap}
+  .out-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .out-header h3{font-size:13px;font-weight:600;color:var(--muted)}
+  .status{font-size:12px;color:var(--muted)}
+  .status.err{color:var(--red)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(200,168,75,.3);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:5px}
+  /* syntax highlight helpers applied via JS */
+  .kw{color:#c792ea}.fn{color:#82aaff}.str{color:#c3e88d}.num{color:#f78c6c}.cm{color:#546e7a;font-style:italic}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">🗄 sqlKai</span>
+  <a href="/index.html" class="nav-link">⬡ Gateway</a>
+  <a href="/kAIxUchat.html" class="nav-link">✦ Chat</a>
+  <a href="/skaixuIDE.html" class="nav-link">⌨ IDE</a>
+  <a href="/photoKai.html" class="nav-link">📸 photoKai</a>
+  <a href="/flashKai.html" class="nav-link">⚡ flashKai</a>
+  <a href="/mailKai.html" class="nav-link">✉ mailKai</a>
+  <a href="/coverKai.html" class="nav-link">📄 coverKai</a>
+  <a href="/resumeKai.html" class="nav-link">📋 resumeKai</a>
+  <a href="/sqlKai.html" class="nav-link active">🗄 sqlKai</a>
+  <a href="/meetKai.html" class="nav-link">🤝 meetKai</a>
+  <a href="/journalKai.html" class="nav-link">📓 journalKai</a>
+  <a href="/briefKai.html" class="nav-link">📰 briefKai</a>
+  <a href="/storyKai.html" class="nav-link">📖 storyKai</a>
+  <a href="/nameKai.html" class="nav-link">✨ nameKai</a>
+  <a href="/paletteKai.html" class="nav-link">🎨 paletteKai</a>
+  <a href="/recipeKai.html" class="nav-link">🍳 recipeKai</a>
+  <a href="/diagramKai.html" class="nav-link">📊 diagramKai</a>
+  <a href="/readKai.html" class="nav-link">📖 readKai</a>
+  <a href="/mathKai.html" class="nav-link">∑ mathKai</a>
+  <a href="/codeKai.html" class="nav-link">&lt;/&gt; codeKai</a>
+  <a href="/quizKai.html" class="nav-link">🧩 quizKai</a>
+  <div class="health-dot" id="hd"></div>
+</header>
+
+<main>
+  <div>
+    <h1>sqlKai</h1>
+    <p class="sub">Describe what you want in plain English — get a SQL query back, with an explanation.</p>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="flex:1;min-width:160px">
+        <label>App Token</label>
+        <input type="password" id="tok" placeholder="kAIxU token"/>
+      </div>
+      <div style="width:140px">
+        <label>Dialect</label>
+        <select id="dialect">
+          <option>PostgreSQL</option>
+          <option>MySQL</option>
+          <option>SQLite</option>
+          <option>BigQuery</option>
+          <option>SQL Server</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:12px">
+      <label>Schema (optional — paste CREATE TABLE or describe tables)</label>
+      <textarea id="schema" rows="5" placeholder="CREATE TABLE orders (id INT, user_id INT, amount DECIMAL, created_at TIMESTAMP);&#10;CREATE TABLE users (id INT, name TEXT, email TEXT, plan TEXT);"></textarea>
+    </div>
+    <div class="row">
+      <div>
+        <label>What do you want to query?</label>
+        <input id="query" placeholder="Show me the top 10 users by total order amount this month" onkeydown="if(event.key==='Enter')generate()"/>
+      </div>
+      <button class="btn-primary" id="genBtn" onclick="generate()">Generate SQL</button>
+    </div>
+    <div class="status" id="st" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card" id="outputCard" style="display:none">
+    <div class="out-header">
+      <h3>Generated SQL</h3>
+      <button class="btn-sm" onclick="copySQL()">Copy SQL</button>
+    </div>
+    <div class="sql-block" id="sqlOut"></div>
+    <div style="margin-top:16px;margin-bottom:6px">
+      <span style="font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.4px">Explanation</span>
+    </div>
+    <div class="explain-block" id="explainOut"></div>
+  </div>
+
+  <div class="card" id="historyCard" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span style="font-size:12px;font-weight:600;color:var(--muted)">History</span>
+      <button class="btn-sm" onclick="clearHistory()">Clear</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</main>
+
+<script>
+const API = 'https://kaixu67.skyesoverlondon.workers.dev';
+let history = JSON.parse(localStorage.getItem('sqlKai_history')||'[]');
+
+async function generate() {
+  const tok = document.getElementById('tok').value.trim();
+  const schema = document.getElementById('schema').value.trim();
+  const query = document.getElementById('query').value.trim();
+  const dialect = document.getElementById('dialect').value;
+  if (!tok) { st('Add your token.', true); return; }
+  if (!query) { st('Enter a query description.', true); return; }
+
+  const btn = document.getElementById('genBtn');
+  btn.disabled=true; btn.innerHTML='<span class="spinner"></span>Generating…';
+  st('');
+
+  const sys = `You are a SQL expert. Return ONLY valid JSON with two fields: "sql" (the ${dialect} query as a string) and "explanation" (a plain English explanation of what the query does, 2–4 sentences). No markdown, no code fences, raw JSON only.`;
+  const user = `${schema ? `Schema:\n${schema}\n\n` : ''}Query request: ${query}\nDialect: ${dialect}`;
+
+  try {
+    const r = await fetch(`${API}/v1/generate`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${tok}`},
+      body: JSON.stringify({ system: sys, messages:[{role:'user',content:user}] })
+    });
+    if (!r.ok) { const e=await r.json().catch(()=>({})); throw new Error(`HTTP ${r.status} · ${e.error||'error'}`); }
+    const d = await r.json();
+    let raw = (d.text||d.content||'').trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch { throw new Error('AI returned non-JSON. Try again.'); }
+
+    showResult(parsed.sql||'', parsed.explanation||'');
+    addHistory(query, parsed.sql||'');
+    localStorage.setItem('sqlKai_token', tok);
+  } catch(e) { st(e.message, true); }
+  finally { btn.disabled=false; btn.textContent='Generate SQL'; }
+}
+
+function showResult(sql, explain) {
+  const card = document.getElementById('outputCard');
+  card.style.display = '';
+  document.getElementById('sqlOut').innerHTML = highlight(sql);
+  document.getElementById('explainOut').textContent = explain;
+}
+
+function highlight(sql) {
+  const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const keywords = /\b(SELECT|FROM|WHERE|JOIN|LEFT|RIGHT|INNER|OUTER|ON|GROUP BY|ORDER BY|HAVING|LIMIT|OFFSET|INSERT|UPDATE|DELETE|CREATE|DROP|ALTER|TABLE|INDEX|WITH|AS|AND|OR|NOT|IN|EXISTS|BETWEEN|LIKE|IS|NULL|DISTINCT|COUNT|SUM|AVG|MAX|MIN|COALESCE|CASE|WHEN|THEN|ELSE|END|INTO|VALUES|SET|BY|DESC|ASC|UNION|ALL)\b/gi;
+  return esc(sql).replace(keywords, m => `<span class="kw">${m.toUpperCase()}</span>`);
+}
+
+function copySQL() {
+  const t = document.getElementById('sqlOut').textContent;
+  navigator.clipboard.writeText(t).then(()=>{ const b=document.querySelector('.btn-sm');b.textContent='Copied!';setTimeout(()=>b.textContent='Copy SQL',1500); });
+}
+
+function addHistory(q, sql) {
+  history.unshift({q, sql, ts: Date.now()});
+  if (history.length > 20) history.pop();
+  localStorage.setItem('sqlKai_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  const card = document.getElementById('historyCard');
+  if (!history.length) { card.style.display='none'; return; }
+  card.style.display='';
+  list.innerHTML = history.slice(0,10).map((h,i)=>`
+    <div class="history-item" onclick="loadHistory(${i})">
+      <div class="hi-q">${esc(h.q)}</div>
+      <div class="hi-sql">${esc(h.sql.slice(0,120))}${h.sql.length>120?'…':''}</div>
+    </div>`).join('');
+}
+
+function loadHistory(i) {
+  const h = history[i];
+  document.getElementById('query').value = h.q;
+  showResult(h.sql, '(loaded from history — re-generate for explanation)');
+}
+
+function clearHistory() { history=[]; localStorage.removeItem('sqlKai_history'); renderHistory(); }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function st(m, err=false) { const el=document.getElementById('st'); el.textContent=m; el.className='status'+(err?' err':''); }
+
+(async()=>{
+  const s=localStorage.getItem('sqlKai_token'); if(s) document.getElementById('tok').value=s;
+  renderHistory();
+  try{const r=await fetch(`${API}/v1/health`);const j=await r.json();document.getElementById('hd').className='health-dot '+(j.ok?'ok':'err');}catch{document.getElementById('hd').className='health-dot err';}
+})();
+</script>
+</body>
+</html>
