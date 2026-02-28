@@ -105,19 +105,29 @@ function extractTextFromGemini(respJson) {
     const c = respJson.candidates && respJson.candidates[0];
     const parts = c && c.content && c.content.parts;
     if (!Array.isArray(parts)) return "";
-    return parts.map(p => p.text || "").join("");
+    // Skip thought parts (gemini-2.5-pro thinking model returns thought:true parts)
+    return parts.filter(p => !p.thought).map(p => p.text || "").join("");
   } catch (_) {
     return "";
   }
 }
 
+function extractFinishReason(respJson) {
+  try {
+    const c = respJson.candidates && respJson.candidates[0];
+    return (c && c.finishReason) || null;
+  } catch (_) {
+    return null;
+  }
+}
+
 function extractUsage(respJson) {
-  // usageMetadata may exist; keep it optional
   const u = respJson.usageMetadata || respJson.usage || null;
-  if (!u) return { promptTokens: 0, candidatesTokens: 0, totalTokens: 0 };
+  if (!u) return { promptTokens: 0, candidatesTokens: 0, thoughtsTokens: 0, totalTokens: 0 };
   return {
     promptTokens: Number(u.promptTokenCount || u.promptTokens || 0) || 0,
     candidatesTokens: Number(u.candidatesTokenCount || u.completionTokens || 0) || 0,
+    thoughtsTokens: Number(u.thoughtsTokenCount || 0) || 0,
     totalTokens: Number(u.totalTokenCount || u.totalTokens || 0) || 0,
   };
 }
@@ -185,13 +195,26 @@ exports.handler = async (event) => {
     }
 
     const outText = upstreamJson ? extractTextFromGemini(upstreamJson) : "";
-    const usage = upstreamJson ? extractUsage(upstreamJson) : { promptTokens: 0, candidatesTokens: 0, totalTokens: 0 };
+    const usage = upstreamJson ? extractUsage(upstreamJson) : { promptTokens: 0, candidatesTokens: 0, thoughtsTokens: 0, totalTokens: 0 };
+    const finishReason = upstreamJson ? extractFinishReason(upstreamJson) : null;
+
+    // If model finished due to MAX_TOKENS with no output, surface a clear error
+    if (finishReason === "MAX_TOKENS" && !outText) {
+      return json(200, {
+        ok: false,
+        error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like gemini-2.5-pro require a larger budget).",
+        model,
+        finishReason,
+        usage,
+      }, cors);
+    }
 
     const includeRaw = !!body.includeRaw;
     return json(200, {
       ok: true,
       model,
       text: outText,
+      finishReason,
       usage,
       ...(includeRaw ? { raw: upstreamJson } : {}),
     }, cors);

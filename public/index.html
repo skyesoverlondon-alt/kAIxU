@@ -222,7 +222,7 @@ POST /v1/stream   (SSE)</code></pre>
   body: JSON.stringify({
     model: "gemini-2.5-flash",
     input: { type: "text", content: "Hello" },
-    generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+    generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
   })
 })</code></pre>
 
@@ -328,7 +328,7 @@ POST /v1/stream   (SSE)</code></pre>
           model,
           input: { type: "text", content: prompt },
           output: { format: "markdown", style: "brand-neutral" },
-          generationConfig: { temperature: 0.7, maxOutputTokens: 512 }
+          generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
         })
       });
 
