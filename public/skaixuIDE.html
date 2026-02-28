@@ -1,0 +1,670 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>skAIxu IDE</title>
+  <link rel="icon" href="/icons/apple-touch-icon.png" />
+  <style>
+    :root {
+      --bg:      #07060d;
+      --surface: #0f0d1a;
+      --surface2:#161328;
+      --fg:      #f2f0ff;
+      --muted:   #7a75a0;
+      --gold:    #ffd55a;
+      --violet:  #b86bff;
+      --blue:    #3bd6ff;
+      --green:   #4ade80;
+      --red:     #f87171;
+      --border:  rgba(255,255,255,0.09);
+      --radius:  10px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--fg);
+      font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+
+    /* ── LAYOUT ── */
+    #shell { display: grid; height: 100vh; grid-template-rows: 42px 1fr 260px;
+      grid-template-columns: 220px 1fr 340px; }
+
+    /* TOP BAR */
+    #topbar { grid-column: 1/-1; display: flex; align-items: center; gap: 10px;
+      padding: 0 14px; background: var(--surface); border-bottom: 1px solid var(--border);
+      z-index: 10; }
+    #topbar .logo { font-weight: 700; font-size: 15px; letter-spacing: -.3px;
+      background: linear-gradient(90deg, var(--violet), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; white-space: nowrap; }
+    #topbar .filename { font-size: 13px; color: var(--muted); flex: 1; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap; padding: 0 6px; }
+    #topbar input, #topbar select {
+      background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+      color: var(--fg); border-radius: 6px; padding: 4px 9px; font-size: 12px; outline: none; }
+    #topbar select { cursor: pointer; }
+    .tb-btn {
+      background: rgba(255,255,255,0.07); border: 1px solid var(--border);
+      color: var(--fg); border-radius: 6px; padding: 5px 12px; font-size: 12px;
+      cursor: pointer; white-space: nowrap; transition: background .15s; }
+    .tb-btn:hover { background: rgba(255,255,255,0.14); }
+    .tb-btn.primary { background: rgba(184,107,255,.25); border-color: var(--violet); color: var(--violet); }
+    .tb-btn.primary:hover { background: rgba(184,107,255,.4); }
+    #healthDot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted);
+      flex-shrink: 0; transition: background .3s; }
+    #healthDot.ok  { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    #healthDot.bad { background: var(--red);   box-shadow: 0 0 6px var(--red); }
+
+    /* FILE TREE */
+    #filetree { grid-row: 2; grid-column: 1;
+      background: var(--surface); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; }
+    #filetree .tree-header { padding: 10px 12px 6px; font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: .8px;
+      display: flex; align-items: center; justify-content: space-between; }
+    #fileList { flex: 1; overflow-y: auto; padding: 4px 0; }
+    #fileList::-webkit-scrollbar { width: 4px; }
+    #fileList::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .file-item { display: flex; align-items: center; gap: 7px; padding: 5px 12px;
+      cursor: pointer; border-radius: 0; transition: background .1s; font-size: 13px;
+      color: var(--muted); border-left: 2px solid transparent; }
+    .file-item:hover { background: rgba(255,255,255,0.05); color: var(--fg); }
+    .file-item.active { background: rgba(184,107,255,.12); color: var(--violet);
+      border-left-color: var(--violet); }
+    .file-item .icon { font-size: 12px; flex-shrink: 0; }
+    .file-item .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-folder { font-size: 11px; color: rgba(255,255,255,0.25); padding: 8px 12px 3px;
+      text-transform: uppercase; letter-spacing: .7px; font-weight: 600; }
+    #emptyTree { padding: 20px 12px; font-size: 12px; color: var(--muted); text-align: center;
+      line-height: 1.8; }
+
+    /* EDITOR */
+    #editorPane { grid-row: 2; grid-column: 2;
+      display: flex; flex-direction: column; overflow: hidden; }
+    #monacoContainer { flex: 1; }
+
+    /* AI PANEL */
+    #aiPanel { grid-row: 2; grid-column: 3;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; }
+    #aiPanel .panel-section { padding: 12px 14px 0; }
+    #aiPanel .panel-label { font-size: 11px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .8px; margin-bottom: 7px; }
+    #aiInstruction { width: 100%; background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border); color: var(--fg); border-radius: 8px;
+      padding: 9px 11px; font-size: 13px; resize: none; outline: none; line-height: 1.5;
+      font-family: inherit; min-height: 80px; }
+    #aiInstruction:focus { border-color: rgba(184,107,255,.5); }
+    #aiInstruction::placeholder { color: var(--muted); }
+    .ai-actions { display: flex; gap: 8px; padding: 10px 14px; }
+    .ai-actions button { flex: 1; padding: 8px 10px; border-radius: 8px; font-size: 13px;
+      cursor: pointer; border: 1px solid var(--border); transition: all .15s; font-family: inherit; }
+    #btnAskAI  { background: rgba(184,107,255,.2); color: var(--violet); border-color: rgba(184,107,255,.4); }
+    #btnAskAI:hover  { background: rgba(184,107,255,.35); }
+    #btnApply  { background: rgba(74,222,128,.15); color: var(--green); border-color: rgba(74,222,128,.35);
+      display: none; }
+    #btnApply:hover  { background: rgba(74,222,128,.3); }
+    #btnReject { background: rgba(248,113,113,.12); color: var(--red); border-color: rgba(248,113,113,.3);
+      display: none; }
+    #btnReject:hover { background: rgba(248,113,113,.25); }
+
+    #aiStatus { padding: 4px 14px 8px; font-size: 12px; color: var(--muted); min-height: 22px; }
+
+    /* DIFF VIEW */
+    #diffView { flex: 1; overflow-y: auto; padding: 0 14px 14px; }
+    #diffView::-webkit-scrollbar { width: 4px; }
+    #diffView::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+    .diff-block { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 11.5px; line-height: 1.6; border-radius: 6px; overflow: hidden;
+      margin-bottom: 4px; }
+    .diff-line { padding: 1px 10px; white-space: pre-wrap; word-break: break-all; }
+    .diff-add { background: rgba(74,222,128,.12); color: #86efac; }
+    .diff-add::before { content: '+ '; color: #4ade80; }
+    .diff-del { background: rgba(248,113,113,.12); color: #fca5a5; }
+    .diff-del::before { content: '- '; color: #f87171; }
+    .diff-ctx { color: rgba(255,255,255,0.3); }
+    .diff-ctx::before { content: '  '; }
+    #diffEmpty { font-size: 12px; color: var(--muted); text-align: center;
+      padding: 20px 0; }
+
+    /* PREVIEW STRIP */
+    #previewBar { grid-column: 1/-1; background: var(--surface2); border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden; }
+    #previewHeader { display: flex; align-items: center; gap: 10px; padding: 7px 14px;
+      border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted);
+      flex-shrink: 0; }
+    #previewHeader .ph-title { font-weight: 600; color: var(--fg); font-size: 12px; }
+    #previewHeader .spacer { flex: 1; }
+    .ph-btn { background: none; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 5px; padding: 3px 10px; font-size: 11px; cursor: pointer;
+      transition: all .15s; font-family: inherit; }
+    .ph-btn:hover { background: rgba(255,255,255,0.07); color: var(--fg); }
+    #previewFrame { flex: 1; width: 100%; border: none; background: #fff; }
+    #previewPlaceholder { flex: 1; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; color: var(--muted); }
+
+    /* SPINNER */
+    .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid var(--muted);
+      border-top-color: var(--violet); border-radius: 50%; animation: spin .7s linear infinite;
+      vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg) } }
+
+    /* RESIZER (preview) */
+    #previewResizer { grid-column: 1/-1; height: 4px; background: transparent; cursor: row-resize;
+      flex-shrink: 0; transition: background .15s; }
+    #previewResizer:hover { background: var(--violet); }
+  </style>
+</head>
+<body>
+<div id="shell">
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <span class="logo">skAIxu IDE</span>
+    <span id="activeFileName" class="filename">no file open</span>
+    <div id="healthDot" title="Gateway status"></div>
+    <input id="tokenInput" type="password" placeholder="Bearer token" style="width:140px"
+      oninput="saveToken(this.value)" />
+    <select id="modelSel" onchange="saveModel(this.value)">
+      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+      <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+    </select>
+    <button class="tb-btn" onclick="openFolder()">📂 Open Folder</button>
+    <button class="tb-btn" onclick="openSingleFile()">📄 Open File</button>
+    <button class="tb-btn primary" onclick="saveCurrentFile()" id="btnSave" style="display:none">💾 Save</button>
+    <button class="tb-btn" onclick="refreshPreview()">▶ Run</button>
+  </header>
+
+  <!-- FILE TREE -->
+  <aside id="filetree">
+    <div class="tree-header">
+      <span>Files</span>
+    </div>
+    <div id="fileList">
+      <div id="emptyTree">Open a folder<br>or file to start</div>
+    </div>
+  </aside>
+
+  <!-- EDITOR -->
+  <div id="editorPane">
+    <div id="monacoContainer"></div>
+  </div>
+
+  <!-- AI PANEL -->
+  <aside id="aiPanel">
+    <div class="panel-section">
+      <div class="panel-label">AI Edit Instruction</div>
+      <textarea id="aiInstruction" rows="4"
+        placeholder="Describe what you want to change…&#10;e.g. 'Add input validation to the form' or 'Refactor this function to async/await'"></textarea>
+    </div>
+    <div class="ai-actions">
+      <button id="btnAskAI"  onclick="runAIEdit()">✦ Ask AI</button>
+      <button id="btnApply"  onclick="applyEdit()">✓ Apply</button>
+      <button id="btnReject" onclick="rejectEdit()">✗ Reject</button>
+    </div>
+    <div id="aiStatus"></div>
+    <div class="panel-section" style="margin-bottom:8px">
+      <div class="panel-label">Changes</div>
+    </div>
+    <div id="diffView"><div id="diffEmpty">AI suggested changes will appear here</div></div>
+  </aside>
+
+  <!-- PREVIEW -->
+  <div id="previewBar">
+    <div id="previewHeader">
+      <span class="ph-title">Live Preview</span>
+      <span id="previewUrl" style="font-size:11px;color:var(--muted)"></span>
+      <span class="spacer"></span>
+      <button class="ph-btn" onclick="refreshPreview()">↺ Refresh</button>
+      <button class="ph-btn" onclick="detachPreview()">⤡ Detach</button>
+    </div>
+    <iframe id="previewFrame" sandbox="allow-scripts allow-same-origin allow-forms" style="display:none"></iframe>
+    <div id="previewPlaceholder">Open an HTML file and click ▶ Run to preview</div>
+  </div>
+</div>
+
+<!-- Monaco Editor (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<script>
+const API_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
+
+// ── STATE ──
+let editor = null;
+let currentFileHandle = null;
+let currentFileName = '';
+let currentContent = '';
+let pendingNewContent = null;
+let dirHandle = null;
+let allFileHandles = [];
+
+// ── PERSISTENCE ──
+function loadToken()  { return localStorage.getItem('kaixu_ide_token') || ''; }
+function saveToken(v) { localStorage.setItem('kaixu_ide_token', v); }
+function loadModel()  { return localStorage.getItem('kaixu_ide_model') || 'gemini-2.5-flash'; }
+function saveModel(v) { localStorage.setItem('kaixu_ide_model', v); }
+
+// ── INIT ──
+document.getElementById('tokenInput').value = loadToken();
+document.getElementById('modelSel').value   = loadModel();
+
+require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
+require(['vs/editor/editor.main'], () => {
+  monaco.editor.defineTheme('kaixu', {
+    base: 'vs-dark', inherit: true,
+    rules: [
+      { token: 'comment',  foreground: '5a556e', fontStyle: 'italic' },
+      { token: 'keyword',  foreground: 'b86bff' },
+      { token: 'string',   foreground: 'ffd55a' },
+      { token: 'number',   foreground: '3bd6ff' },
+      { token: 'function', foreground: 'f2f0ff', fontStyle: 'bold' },
+    ],
+    colors: {
+      'editor.background':          '#08071000',
+      'editor.foreground':          '#f2f0ff',
+      'editorLineNumber.foreground':'#3d3856',
+      'editorCursor.foreground':    '#b86bff',
+      'editor.selectionBackground': '#b86bff33',
+      'editorIndentGuide.background':'#1e1b30',
+    }
+  });
+
+  editor = monaco.editor.create(document.getElementById('monacoContainer'), {
+    theme: 'kaixu',
+    fontSize: 14,
+    fontFamily: "'Fira Code', 'Cascadia Code', 'SF Mono', Menlo, monospace",
+    fontLigatures: true,
+    lineHeight: 22,
+    automaticLayout: true,
+    minimap: { enabled: true },
+    scrollBeyondLastLine: false,
+    wordWrap: 'on',
+    tabSize: 2,
+    insertSpaces: true,
+    renderLineHighlight: 'gutter',
+    smoothScrolling: true,
+    cursorBlinking: 'smooth',
+    value: '// Open a file to start editing\n',
+    language: 'javascript',
+  });
+
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveCurrentFile());
+  editor.onDidChangeModelContent(() => {
+    const isDirty = editor.getValue() !== currentContent;
+    document.getElementById('btnSave').style.display = (currentFileHandle && isDirty) ? '' : 'none';
+  });
+
+  checkHealth();
+  setInterval(checkHealth, 30000);
+});
+
+// ── HEALTH ──
+async function checkHealth() {
+  const dot = document.getElementById('healthDot');
+  const token = loadToken();
+  if (!token) { dot.className = ''; return; }
+  try {
+    const r = await fetch(`${API_BASE}/v1/health`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const j = await r.json();
+    dot.className = (j.ok && j.keyConfigured) ? 'ok' : 'bad';
+  } catch { dot.className = 'bad'; }
+}
+
+// ── LANGUAGE DETECTION ──
+function langFromExt(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const map = {
+    js:'javascript', jsx:'javascript', ts:'typescript', tsx:'typescript',
+    html:'html', htm:'html', css:'css', scss:'scss', sass:'scss',
+    json:'json', md:'markdown', py:'python', rb:'ruby', go:'go',
+    rs:'rust', java:'java', c:'c', cpp:'cpp', cs:'csharp',
+    php:'php', sh:'shell', yml:'yaml', yaml:'yaml', toml:'ini',
+    sql:'sql', xml:'xml', svg:'xml', vue:'html', svelte:'html',
+  };
+  return map[ext] || 'plaintext';
+}
+
+// ── FILE OPEN ──
+async function openSingleFile() {
+  try {
+    const [handle] = await window.showOpenFilePicker({ multiple: false });
+    await loadFileHandle(handle);
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+async function openFolder() {
+  try {
+    dirHandle = await window.showDirectoryPicker();
+    allFileHandles = [];
+    await walkDir(dirHandle, '');
+    renderFileTree();
+  } catch(e) { if (e.name !== 'AbortError') console.error(e); }
+}
+
+async function walkDir(handle, path) {
+  for await (const [name, entry] of handle.entries()) {
+    if (name.startsWith('.') || name === 'node_modules' || name === '__pycache__') continue;
+    if (entry.kind === 'file') {
+      allFileHandles.push({ handle: entry, path: path ? `${path}/${name}` : name });
+    } else if (entry.kind === 'directory') {
+      await walkDir(entry, path ? `${path}/${name}` : name);
+    }
+  }
+}
+
+function renderFileTree() {
+  const list = document.getElementById('fileList');
+  list.innerHTML = '';
+  if (!allFileHandles.length) {
+    list.innerHTML = '<div id="emptyTree">Folder is empty</div>';
+    return;
+  }
+  // Group by folder
+  const folders = {};
+  for (const { handle, path } of allFileHandles) {
+    const parts = path.split('/');
+    const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '/';
+    if (!folders[folder]) folders[folder] = [];
+    folders[folder].push({ handle, path, name: parts[parts.length - 1] });
+  }
+  for (const [folder, files] of Object.entries(folders)) {
+    if (folder !== '/') {
+      const lbl = document.createElement('div');
+      lbl.className = 'file-folder';
+      lbl.textContent = folder;
+      list.appendChild(lbl);
+    }
+    for (const { handle, path, name } of files) {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.dataset.path = path;
+      item.innerHTML = `<span class="icon">${iconFor(name)}</span><span class="name">${name}</span>`;
+      item.onclick = () => loadFileHandle(handle, item);
+      list.appendChild(item);
+    }
+  }
+}
+
+function iconFor(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  const m = { html:'🌐', css:'🎨', scss:'🎨', js:'🟡', ts:'🔷', jsx:'⚛️', tsx:'⚛️',
+    json:'{}', md:'📝', py:'🐍', rb:'💎', go:'🔵', rs:'🦀', vue:'💚', svelte:'🔶',
+    svg:'🖼️', png:'🖼️', jpg:'🖼️', sh:'⚙️', yml:'⚙️', yaml:'⚙️', toml:'⚙️',
+    sql:'🗄️', txt:'📄' };
+  return m[ext] || '📄';
+}
+
+async function loadFileHandle(handle, itemEl) {
+  try {
+    const file = await handle.getFile();
+    const text = await file.text();
+    currentFileHandle = handle;
+    currentFileName   = file.name;
+    currentContent    = text;
+    pendingNewContent = null;
+
+    document.getElementById('activeFileName').textContent = file.name;
+    document.getElementById('btnSave').style.display = 'none';
+    clearDiff();
+
+    const lang = langFromExt(file.name);
+    if (editor) {
+      const model = monaco.editor.createModel(text, lang);
+      editor.setModel(model);
+    }
+
+    // highlight active
+    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+    if (itemEl) itemEl.classList.add('active');
+
+    // auto-preview HTML
+    if (['html','htm'].includes(file.name.split('.').pop().toLowerCase())) {
+      showPreview(text);
+    }
+  } catch(e) { console.error('load error', e); }
+}
+
+// ── SAVE ──
+async function saveCurrentFile() {
+  if (!currentFileHandle || !editor) return;
+  try {
+    const writable = await currentFileHandle.createWritable();
+    const text = editor.getValue();
+    await writable.write(text);
+    await writable.close();
+    currentContent = text;
+    document.getElementById('btnSave').style.display = 'none';
+    setStatus('✓ Saved', 1500);
+
+    // refresh preview if HTML
+    const ext = currentFileName.split('.').pop().toLowerCase();
+    if (['html','htm'].includes(ext)) showPreview(text);
+  } catch(e) { setStatus('⚠ Save failed: ' + e.message, 3000); }
+}
+
+// ── PREVIEW ──
+function refreshPreview() {
+  if (!editor) return;
+  const ext = currentFileName.split('.').pop().toLowerCase();
+  if (['html','htm'].includes(ext)) {
+    showPreview(editor.getValue());
+  } else {
+    setPreviewPlaceholder('Preview is only available for HTML files');
+  }
+}
+
+function showPreview(html) {
+  const frame = document.getElementById('previewFrame');
+  const placeholder = document.getElementById('previewPlaceholder');
+  frame.style.display = '';
+  placeholder.style.display = 'none';
+  frame.srcdoc = html;
+  document.getElementById('previewUrl').textContent = currentFileName;
+}
+
+function setPreviewPlaceholder(msg) {
+  document.getElementById('previewFrame').style.display = 'none';
+  const ph = document.getElementById('previewPlaceholder');
+  ph.style.display = '';
+  ph.textContent = msg;
+}
+
+function detachPreview() {
+  const frame = document.getElementById('previewFrame');
+  const content = frame.srcdoc;
+  if (!content) { alert('Nothing to preview — run an HTML file first'); return; }
+  const win = window.open('', '_blank', 'width=1024,height=720,menubar=no,toolbar=no');
+  win.document.open();
+  win.document.write(content);
+  win.document.close();
+}
+
+// ── AI EDIT ──
+async function runAIEdit() {
+  if (!editor) return;
+  const instruction = document.getElementById('aiInstruction').value.trim();
+  if (!instruction) { setStatus('⚠ Enter an instruction first'); return; }
+  const token = loadToken();
+  if (!token) { setStatus('⚠ Enter your Bearer token first'); return; }
+
+  const fileContent = editor.getValue();
+  const model = loadModel();
+
+  setStatus('<span class="spin"></span>Asking AI…');
+  document.getElementById('btnAskAI').disabled = true;
+  clearDiff();
+
+  const systemPrompt = `You are a code editor AI integrated into skAIxu IDE. 
+The user gives you a file and an instruction. You return ONLY the complete modified file content.
+Do NOT include explanations, markdown fences, or commentary. Return raw file content only.
+If no changes are needed, return the original content unchanged.`;
+
+  const userPrompt = `INSTRUCTION: ${instruction}
+
+FILE NAME: ${currentFileName || 'unknown'}
+
+CURRENT FILE CONTENT:
+${fileContent}`;
+
+  try {
+    const res = await fetch(`${API_BASE}/v1/generate`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model,
+        system: systemPrompt,
+        input: { type: 'text', content: userPrompt },
+      })
+    });
+
+    const data = await res.json();
+
+    if (!data.ok) throw new Error(data.error || 'Gateway error');
+
+    pendingNewContent = data.text;
+
+    // Strip accidental code fences if model added them
+    pendingNewContent = stripFences(pendingNewContent);
+
+    renderDiff(fileContent, pendingNewContent);
+    setStatus('✦ Review changes below');
+    document.getElementById('btnApply').style.display  = '';
+    document.getElementById('btnReject').style.display = '';
+
+  } catch(e) {
+    setStatus('⚠ ' + e.message);
+  }
+
+  document.getElementById('btnAskAI').disabled = false;
+}
+
+function stripFences(text) {
+  // Remove ```lang ... ``` wrappers if AI wrapped output
+  return text.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+}
+
+function applyEdit() {
+  if (!pendingNewContent || !editor) return;
+  editor.setValue(pendingNewContent);
+  currentContent = pendingNewContent; // mark as "saved" baseline? No — let user save
+  pendingNewContent = null;
+  clearDiff();
+  setStatus('✓ Applied — press Ctrl+S / ⌘S to save', 3000);
+  document.getElementById('btnApply').style.display  = 'none';
+  document.getElementById('btnReject').style.display = 'none';
+  // Show save button
+  document.getElementById('btnSave').style.display = currentFileHandle ? '' : 'none';
+  // Auto-refresh HTML preview
+  const ext = currentFileName.split('.').pop().toLowerCase();
+  if (['html','htm'].includes(ext)) showPreview(editor.getValue());
+}
+
+function rejectEdit() {
+  pendingNewContent = null;
+  clearDiff();
+  setStatus('Rejected — no changes made', 2000);
+  document.getElementById('btnApply').style.display  = 'none';
+  document.getElementById('btnReject').style.display = 'none';
+}
+
+// ── DIFF ──
+function renderDiff(before, after) {
+  const diffView = document.getElementById('diffView');
+  diffView.innerHTML = '';
+
+  const bLines = before.split('\n');
+  const aLines = after.split('\n');
+
+  // Simple LCS-based line diff
+  const diff = lineDiff(bLines, aLines);
+  const block = document.createElement('div');
+  block.className = 'diff-block';
+
+  let changeCount = 0;
+  for (const { type, line } of diff) {
+    if (type !== 'ctx') changeCount++;
+    const el = document.createElement('div');
+    el.className = `diff-line diff-${type}`;
+    el.textContent = line;
+    block.appendChild(el);
+  }
+
+  if (changeCount === 0) {
+    diffView.innerHTML = '<div id="diffEmpty">No changes detected</div>';
+    return;
+  }
+
+  diffView.appendChild(block);
+}
+
+function lineDiff(a, b) {
+  // Myers-lite: compute LCS then output del/add/ctx lines
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m+1 }, () => Array(n+1).fill(0));
+  for (let i = m - 1; i >= 0; i--)
+    for (let j = n - 1; j >= 0; j--)
+      dp[i][j] = a[i] === b[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+
+  const result = [];
+  let i = 0, j = 0, ctxWindow = 3;
+  const raw = [];
+
+  while (i < m || j < n) {
+    if (i < m && j < n && a[i] === b[j]) {
+      raw.push({ type: 'ctx', line: a[i] }); i++; j++;
+    } else if (j < n && (i >= m || dp[i+1][j] <= dp[i][j+1])) {
+      raw.push({ type: 'add', line: b[j] }); j++;
+    } else {
+      raw.push({ type: 'del', line: a[i] }); i++;
+    }
+  }
+
+  // Collapse unchanged context to ±3 lines around changes
+  const changed = raw.map((r, idx) => r.type !== 'ctx' ? idx : -1).filter(x => x >= 0);
+  if (!changed.length) return raw;
+
+  const show = new Set();
+  for (const idx of changed) {
+    for (let k = Math.max(0, idx - ctxWindow); k <= Math.min(raw.length-1, idx + ctxWindow); k++) {
+      show.add(k);
+    }
+  }
+
+  let prev = -1;
+  for (const idx of [...show].sort((a,b) => a-b)) {
+    if (prev !== -1 && idx > prev + 1) {
+      result.push({ type: 'ctx', line: `  ··· ${idx - prev - 1} unchanged line(s) ···` });
+    }
+    result.push(raw[idx]);
+    prev = idx;
+  }
+
+  return result;
+}
+
+function clearDiff() {
+  document.getElementById('diffView').innerHTML = '<div id="diffEmpty">AI suggested changes will appear here</div>';
+  document.getElementById('btnApply').style.display  = 'none';
+  document.getElementById('btnReject').style.display = 'none';
+}
+
+// ── UTILS ──
+let statusTimer = null;
+function setStatus(html, clearAfter = 0) {
+  const el = document.getElementById('aiStatus');
+  el.innerHTML = html;
+  if (statusTimer) clearTimeout(statusTimer);
+  if (clearAfter) statusTimer = setTimeout(() => el.innerHTML = '', clearAfter);
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    saveCurrentFile();
+  }
+});
+</script>
+</body>
+</html>
