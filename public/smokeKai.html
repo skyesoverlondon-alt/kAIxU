@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU Smoke Test — System Verification</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#07060d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <style>
+    :root {
+      --bg: #07060d;
+      --fg: #f2f0ff;
+      --muted: #b7b2d9;
+      --gold: #ffd55a;
+      --violet: #b86bff;
+      --blue: #3bd6ff;
+      --green: #3bffb2;
+      --red: #ff6b6b;
+      --glass: rgba(255,255,255,0.06);
+      --glass2: rgba(255,255,255,0.10);
+      --border: rgba(255,255,255,0.12);
+      --shadow: 0 20px 80px rgba(0,0,0,.55);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    body {
+      min-height: 100vh;
+      color: var(--fg);
+      background:
+        radial-gradient(900px 600px at 15% 20%, rgba(184,107,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 25%, rgba(59,214,255,.14), transparent 60%),
+        radial-gradient(1200px 900px at 50% 95%, rgba(255,213,90,.09), transparent 60%),
+        linear-gradient(180deg, #05040a, #07060d 40%, #060512);
+      font: 14px/1.55 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      overflow-x: hidden;
+    }
+    .aurora {
+      position: fixed; inset: -20% -10%; pointer-events: none; z-index: 0;
+      background: conic-gradient(from 200deg at 50% 50%,
+        rgba(184,107,255,.15), rgba(59,214,255,.15),
+        rgba(255,213,90,.08), rgba(184,107,255,.15));
+      filter: blur(70px) saturate(140%); opacity: .5;
+      animation: drift 12s ease-in-out infinite;
+    }
+    @keyframes drift {
+      0%   { transform: translate3d(-2%,-1%,0) rotate(-6deg) scale(1.05) }
+      50%  { transform: translate3d(2%,1%,0) rotate(6deg) scale(1.08) }
+      100% { transform: translate3d(-2%,-1%,0) rotate(-6deg) scale(1.05) }
+    }
+    .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 28px 18px 80px }
+
+    /* ── Header ── */
+    .page-header {
+      display: flex; align-items: center; gap: 14px;
+      padding: 20px 24px;
+      background: linear-gradient(180deg, var(--glass2), var(--glass));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+      margin-bottom: 18px;
+    }
+    .page-header .logo {
+      width: 48px; height: 48px; flex-shrink: 0;
+      filter: drop-shadow(0 0 14px rgba(184,107,255,.5));
+    }
+    .page-header h1 { font-size: 20px; font-weight: 800; letter-spacing: .2px }
+    .page-header h1 span { color: var(--gold) }
+    .page-header .sub { font-size: 12px; color: var(--muted); margin-top: 2px }
+    .back-link {
+      margin-left: auto; font-size: 12px; color: var(--muted);
+      text-decoration: none; border: 1px solid var(--border);
+      padding: 6px 13px; border-radius: 50px; transition: color .15s, border-color .15s;
+    }
+    .back-link:hover { color: var(--fg); border-color: rgba(255,255,255,.3) }
+
+    /* ── Overall banner ── */
+    #overall-banner {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 22px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      margin-bottom: 18px;
+      transition: background .3s, border-color .3s;
+    }
+    #overall-banner.pass {
+      border-color: rgba(59,255,178,.4);
+      background: rgba(59,255,178,.08);
+    }
+    #overall-banner.fail {
+      border-color: rgba(255,107,107,.4);
+      background: rgba(255,107,107,.08);
+    }
+    #overall-banner.running {
+      border-color: rgba(255,213,90,.35);
+      background: rgba(255,213,90,.06);
+    }
+    #banner-icon { font-size: 28px; line-height: 1 }
+    #banner-title { font-size: 17px; font-weight: 800 }
+    #banner-sub { font-size: 12px; color: var(--muted); margin-top: 2px }
+    #banner-time { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap }
+
+    /* ── Token bar ── */
+    .token-bar {
+      display: flex; gap: 10px; align-items: flex-end;
+      padding: 17px 22px;
+      border-radius: var(--radius);
+      background: var(--glass);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(10px);
+      margin-bottom: 18px;
+    }
+    .token-bar label { font-size: 11px; color: var(--muted); display: block; margin-bottom: 5px; letter-spacing: .4px; text-transform: uppercase }
+    .token-bar input {
+      flex: 1; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.14);
+      border-radius: 10px; color: var(--fg); padding: 9px 13px; font-size: 13px;
+      font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      outline: none; transition: border-color .15s;
+    }
+    .token-bar input::placeholder { color: rgba(255,255,255,.25) }
+    .token-bar input:focus { border-color: rgba(255,213,90,.5) }
+    .btn-run {
+      flex-shrink: 0; padding: 10px 26px; border-radius: 50px; cursor: pointer;
+      border: 1.5px solid var(--gold); font-size: 13px; font-weight: 700;
+      background: linear-gradient(135deg, rgba(255,213,90,.18), rgba(255,213,90,.06));
+      color: var(--gold); letter-spacing: .4px;
+      box-shadow: 0 0 18px rgba(255,213,90,.25);
+      transition: box-shadow .2s, transform .1s;
+    }
+    .btn-run:hover { box-shadow: 0 0 32px rgba(255,213,90,.55); transform: scale(1.03) }
+    .btn-run:active { transform: scale(.98) }
+    .btn-run:disabled { opacity: .45; cursor: not-allowed; transform: none }
+    .btn-export {
+      flex-shrink: 0; padding: 10px 18px; border-radius: 50px; cursor: pointer;
+      border: 1px solid rgba(59,214,255,.4); font-size: 12px; font-weight: 600;
+      background: rgba(59,214,255,.07); color: var(--blue); letter-spacing: .3px;
+      transition: background .15s, border-color .15s;
+    }
+    .btn-export:hover { background: rgba(59,214,255,.14); border-color: rgba(59,214,255,.7) }
+    .btn-export:disabled { opacity: .3; cursor: not-allowed }
+
+    /* ── Test cards ── */
+    .tests { display: flex; flex-direction: column; gap: 12px }
+    .test-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      transition: border-color .3s;
+    }
+    .test-card.pass { border-color: rgba(59,255,178,.35) }
+    .test-card.fail { border-color: rgba(255,107,107,.4) }
+    .test-card.running { border-color: rgba(255,213,90,.35) }
+
+    .test-header {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; cursor: pointer; user-select: none;
+    }
+    .test-icon { font-size: 20px; line-height: 1; flex-shrink: 0; width: 28px; text-align: center }
+    .test-name { font-size: 14px; font-weight: 700; flex: 1 }
+    .test-name .tag {
+      display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px;
+      border-radius: 50px; margin-left: 8px; letter-spacing: .4px; vertical-align: middle;
+    }
+    .tag.get  { background: rgba(59,214,255,.15); color: var(--blue); border: 1px solid rgba(59,214,255,.3) }
+    .tag.post { background: rgba(184,107,255,.15); color: var(--violet); border: 1px solid rgba(184,107,255,.3) }
+    .tag.options { background: rgba(255,213,90,.12); color: var(--gold); border: 1px solid rgba(255,213,90,.3) }
+    .tag.sse  { background: rgba(59,255,178,.12); color: var(--green); border: 1px solid rgba(59,255,178,.3) }
+    .test-desc { font-size: 11px; color: var(--muted) }
+    .test-status-pill {
+      margin-left: auto; font-size: 11px; font-weight: 700; padding: 4px 11px;
+      border-radius: 50px; white-space: nowrap; letter-spacing: .3px;
+    }
+    .status-idle    { background: rgba(255,255,255,.07); color: var(--muted) }
+    .status-running { background: rgba(255,213,90,.14); color: var(--gold) }
+    .status-pass    { background: rgba(59,255,178,.14); color: var(--green) }
+    .status-fail    { background: rgba(255,107,107,.15); color: var(--red) }
+    .test-elapsed { font-size: 10px; color: var(--muted); margin-left: 8px; white-space: nowrap }
+
+    .test-body {
+      max-height: 0; overflow: hidden;
+      transition: max-height .3s ease, padding .3s ease;
+      border-top: 1px solid transparent;
+    }
+    .test-body.open {
+      max-height: 600px;
+      padding: 0 18px 16px;
+      border-top-color: var(--border);
+    }
+    .test-body.open.big { max-height: 900px }
+    .detail-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 14px 0 6px }
+    .detail-pre {
+      background: rgba(0,0,0,.40); border: 1px solid rgba(255,255,255,.09);
+      border-radius: 12px; padding: 12px; font-size: 11.5px; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
+      white-space: pre-wrap; word-break: break-word; color: var(--fg); max-height: 300px; overflow-y: auto;
+    }
+    .checks { display: flex; flex-direction: column; gap: 5px; margin-top: 6px }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 12px }
+    .check .ci { font-size: 13px; flex-shrink: 0 }
+    .check.ok .ci::before { content: "✓"; color: var(--green) }
+    .check.fail .ci::before { content: "✗"; color: var(--red) }
+    .check.skip .ci::before { content: "–"; color: var(--muted) }
+
+    /* ── Footer ── */
+    .footer { margin-top: 32px; text-align: center; font-size: 11px; color: var(--muted) }
+    .footer a { color: var(--muted); text-decoration: none }
+    .footer a:hover { color: var(--fg) }
+
+    /* Spinner */
+    @keyframes spin { to { transform: rotate(360deg) } }
+    .spinning { display: inline-block; animation: spin .7s linear infinite }
+  </style>
+</head>
+<body>
+<div class="aurora"></div>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="page-header">
+    <img class="logo" src="/icons/apple-touch-icon.png" alt="kAIxU" onerror="this.style.display='none'" />
+    <div>
+      <h1><span>kAIxU</span> Smoke Test</h1>
+      <div class="sub">System verification · Skyes Over London LC</div>
+    </div>
+    <a class="back-link" href="/">← Dashboard</a>
+  </div>
+
+  <!-- Overall banner -->
+  <div id="overall-banner">
+    <div id="banner-icon">🔬</div>
+    <div>
+      <div id="banner-title">Ready to test</div>
+      <div id="banner-sub">Enter an app token below and click Run All Tests</div>
+    </div>
+    <div id="banner-time"></div>
+  </div>
+
+  <!-- Token + run controls -->
+  <div class="token-bar">
+    <div style="flex:1">
+      <label for="token-input">App Token</label>
+      <input id="token-input" type="password" placeholder="Paste your kAIxU app token here…" autocomplete="off" />
+    </div>
+    <button class="btn-export" id="btn-export" disabled>⬇ Report</button>
+    <button class="btn-run" id="btn-run">▶ Run All Tests</button>
+  </div>
+
+  <!-- Test cards -->
+  <div class="tests" id="tests-container">
+
+    <!-- 1. Health -->
+    <div class="test-card" id="tc-health">
+      <div class="test-header" onclick="toggleBody('health')">
+        <div class="test-icon" id="icon-health">⬜</div>
+        <div>
+          <div class="test-name">Gate Health <span class="tag get">GET</span></div>
+          <div class="test-desc">Confirms the Cloudflare Worker is online, API key is loaded, and auth is configured</div>
+        </div>
+        <span class="test-status-pill status-idle" id="pill-health">Idle</span>
+        <span class="test-elapsed" id="elapsed-health"></span>
+      </div>
+      <div class="test-body" id="body-health">
+        <div class="detail-label">Checks</div>
+        <div class="checks" id="checks-health"></div>
+        <div class="detail-label">Response</div>
+        <pre class="detail-pre" id="resp-health">—</pre>
+      </div>
+    </div>
+
+    <!-- 2. Models -->
+    <div class="test-card" id="tc-models">
+      <div class="test-header" onclick="toggleBody('models')">
+        <div class="test-icon" id="icon-models">⬜</div>
+        <div>
+          <div class="test-name">Models Endpoint <span class="tag get">GET</span></div>
+          <div class="test-desc">Fetches the available AI model list from the gate</div>
+        </div>
+        <span class="test-status-pill status-idle" id="pill-models">Idle</span>
+        <span class="test-elapsed" id="elapsed-models"></span>
+      </div>
+      <div class="test-body" id="body-models">
+        <div class="detail-label">Checks</div>
+        <div class="checks" id="checks-models"></div>
+        <div class="detail-label">Response</div>
+        <pre class="detail-pre" id="resp-models">—</pre>
+      </div>
+    </div>
+
+    <!-- 3. CORS Preflight -->
+    <div class="test-card" id="tc-cors">
+      <div class="test-header" onclick="toggleBody('cors')">
+        <div class="test-icon" id="icon-cors">⬜</div>
+        <div>
+          <div class="test-name">CORS Preflight <span class="tag options">OPTIONS</span></div>
+          <div class="test-desc">Browser cross-origin check — confirms headers that allow any front-end to call the gate</div>
+        </div>
+        <span class="test-status-pill status-idle" id="pill-cors">Idle</span>
+        <span class="test-elapsed" id="elapsed-cors"></span>
+      </div>
+      <div class="test-body" id="body-cors">
+        <div class="detail-label">Checks</div>
+        <div class="checks" id="checks-cors"></div>
+        <div class="detail-label">Headers received</div>
+        <pre class="detail-pre" id="resp-cors">—</pre>
+      </div>
+    </div>
+
+    <!-- 4. Generate -->
+    <div class="test-card" id="tc-generate">
+      <div class="test-header" onclick="toggleBody('generate')">
+        <div class="test-icon" id="icon-generate">⬜</div>
+        <div>
+          <div class="test-name">AI Generate <span class="tag post">POST</span></div>
+          <div class="test-desc">Sends a real prompt through the gate to Gemini and verifies a coherent reply</div>
+        </div>
+        <span class="test-status-pill status-idle" id="pill-generate">Idle</span>
+        <span class="test-elapsed" id="elapsed-generate"></span>
+      </div>
+      <div class="test-body big" id="body-generate">
+        <div class="detail-label">Checks</div>
+        <div class="checks" id="checks-generate"></div>
+        <div class="detail-label">AI Reply</div>
+        <pre class="detail-pre" id="resp-generate">—</pre>
+      </div>
+    </div>
+
+    <!-- 5. Stream -->
+    <div class="test-card" id="tc-stream">
+      <div class="test-header" onclick="toggleBody('stream')">
+        <div class="test-icon" id="icon-stream">⬜</div>
+        <div>
+          <div class="test-name">SSE Streaming <span class="tag sse">STREAM</span></div>
+          <div class="test-desc">Tests real-time token streaming — the typing effect in live chat depends on this</div>
+        </div>
+        <span class="test-status-pill status-idle" id="pill-stream">Idle</span>
+        <span class="test-elapsed" id="elapsed-stream"></span>
+      </div>
+      <div class="test-body big" id="body-stream">
+        <div class="detail-label">Checks</div>
+        <div class="checks" id="checks-stream"></div>
+        <div class="detail-label">Streamed text (first 400 chars)</div>
+        <pre class="detail-pre" id="resp-stream">—</pre>
+      </div>
+    </div>
+
+  </div><!-- /tests -->
+
+  <div class="footer">
+    <p>kAIxU Gate Delta · Skyes Over London LC · <a href="/">Home</a> · <a href="/kAIxUchat.html">Chat</a></p>
+  </div>
+
+</div><!-- /wrap -->
+
+<script>
+const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
+const $ = id => document.getElementById(id);
+
+// ── toggle detail body ──
+function toggleBody(id) {
+  const b = $("body-" + id);
+  b.classList.toggle("open");
+}
+
+// ── set test state ──
+function setState(id, state, elapsed) {
+  const icons = { idle:"⬜", running:"⏳", pass:"✅", fail:"❌" };
+  const pillCls = { idle:"status-idle", running:"status-running", pass:"status-pass", fail:"status-fail" };
+  const pillTxt = { idle:"Idle", running:"Running…", pass:"Passed", fail:"Failed" };
+
+  $("icon-" + id).textContent = state === "running" ? "⏳" : icons[state];
+  const pill = $("pill-" + id);
+  pill.className = "test-status-pill " + pillCls[state];
+  pill.textContent = pillTxt[state];
+
+  $("tc-" + id).className = "test-card" + (state === "idle" ? "" : " " + (state === "running" ? "running" : state === "pass" ? "pass" : "fail"));
+
+  const el = $("elapsed-" + id);
+  el.textContent = elapsed != null ? elapsed + " ms" : "";
+}
+
+// ── render checks ──
+function renderChecks(id, checks) {
+  const el = $("checks-" + id);
+  el.innerHTML = checks.map(c =>
+    `<div class="check ${c.ok ? "ok" : c.skip ? "skip" : "fail"}">
+      <span class="ci"></span>
+      <span>${c.label}</span>
+    </div>`
+  ).join("");
+}
+
+// ── update banner ──
+function setBanner(state, title, sub, timeText) {
+  const b = $("overall-banner");
+  b.className = state === "pass" ? "pass" : state === "fail" ? "fail" : state === "running" ? "running" : "";
+  const icons = { idle:"🔬", running:"⚙️", pass:"🟢", fail:"🔴" };
+  $("banner-icon").textContent = icons[state] || "🔬";
+  $("banner-title").textContent = title;
+  $("banner-sub").textContent = sub;
+  $("banner-time").textContent = timeText || "";
+}
+
+// ── clock ──
+function ms() { return Date.now() }
+
+// ── build auth headers ──
+function authHeaders(token) {
+  if (!token) return {};
+  return { "Authorization": token.startsWith("Bearer ") ? token : "Bearer " + token };
+}
+
+// ── individual tests ──
+async function testHealth(token) {
+  const t0 = ms();
+  setState("health", "running");
+  $("body-health").classList.add("open");
+  try {
+    const r = await fetch(`${API_BASE}/v1/health`, {
+      headers: { ...authHeaders(token) }
+    });
+    const elapsed = ms() - t0;
+    const j = await r.json();
+    $("resp-health").textContent = JSON.stringify(j, null, 2);
+    const checks = [
+      { label: "HTTP 200", ok: r.status === 200 },
+      { label: 'ok === true', ok: !!j.ok },
+      { label: 'keyConfigured (Gemini API key loaded)', ok: !!j.keyConfigured },
+      { label: 'authConfigured (app tokens present)', ok: !!j.authConfigured },
+      { label: 'runtime is cloudflare-workers', ok: j.runtime === "cloudflare-workers" },
+    ];
+    renderChecks("health", checks);
+    const passed = checks.every(c => c.ok);
+    setState("health", passed ? "pass" : "fail", elapsed);
+    return { passed, elapsed, checks, response: j };
+  } catch (e) {
+    const elapsed = ms() - t0;
+    $("resp-health").textContent = "Error: " + e.message;
+    renderChecks("health", [{ label: "Network / CORS reachable", ok: false }]);
+    setState("health", "fail", elapsed);
+    return { passed: false, elapsed, error: e.message };
+  }
+}
+
+async function testModels(token) {
+  const t0 = ms();
+  setState("models", "running");
+  $("body-models").classList.add("open");
+  try {
+    const r = await fetch(`${API_BASE}/v1/models`, {
+      headers: { ...authHeaders(token) }
+    });
+    const elapsed = ms() - t0;
+    const j = await r.json();
+    $("resp-models").textContent = JSON.stringify(j, null, 2);
+    const checks = [
+      { label: "HTTP 200", ok: r.status === 200 },
+      { label: 'ok === true', ok: !!j.ok },
+      { label: 'models array present', ok: Array.isArray(j.models) && j.models.length > 0 },
+      { label: 'default model set', ok: !!j.defaultModel },
+    ];
+    renderChecks("models", checks);
+    const passed = checks.every(c => c.ok);
+    setState("models", passed ? "pass" : "fail", elapsed);
+    return { passed, elapsed, checks, response: j };
+  } catch (e) {
+    const elapsed = ms() - t0;
+    $("resp-models").textContent = "Error: " + e.message;
+    renderChecks("models", [{ label: "Network reachable", ok: false }]);
+    setState("models", "fail", elapsed);
+    return { passed: false, elapsed, error: e.message };
+  }
+}
+
+async function testCors() {
+  const t0 = ms();
+  setState("cors", "running");
+  $("body-cors").classList.add("open");
+  try {
+    const r = await fetch(`${API_BASE}/v1/generate`, {
+      method: "OPTIONS",
+      headers: {
+        "Origin": window.location.origin,
+        "Access-Control-Request-Method": "POST",
+        "Access-Control-Request-Headers": "Content-Type, Authorization"
+      }
+    });
+    const elapsed = ms() - t0;
+    const allowOrigin  = r.headers.get("access-control-allow-origin");
+    const allowMethods = r.headers.get("access-control-allow-methods");
+    const allowHeaders = r.headers.get("access-control-allow-headers");
+    $("resp-cors").textContent = [
+      `HTTP status:                      ${r.status}`,
+      `access-control-allow-origin:      ${allowOrigin || "(missing)"}`,
+      `access-control-allow-methods:     ${allowMethods || "(missing)"}`,
+      `access-control-allow-headers:     ${allowHeaders || "(missing)"}`,
+    ].join("\n");
+    const checks = [
+      { label: "HTTP 204 (no-content preflight)", ok: r.status === 204 },
+      { label: "Access-Control-Allow-Origin present", ok: !!allowOrigin },
+      { label: "POST method allowed", ok: !!(allowMethods && allowMethods.includes("POST")) },
+      { label: "Authorization header allowed", ok: !!(allowHeaders && allowHeaders.toLowerCase().includes("authorization")) },
+    ];
+    renderChecks("cors", checks);
+    const passed = checks.every(c => c.ok);
+    setState("cors", passed ? "pass" : "fail", elapsed);
+    return { passed, elapsed, checks };
+  } catch (e) {
+    const elapsed = ms() - t0;
+    $("resp-cors").textContent = "Error: " + e.message;
+    renderChecks("cors", [{ label: "Preflight request reachable", ok: false }]);
+    setState("cors", "fail", elapsed);
+    return { passed: false, elapsed, error: e.message };
+  }
+}
+
+async function testGenerate(token) {
+  const t0 = ms();
+  setState("generate", "running");
+  $("body-generate").classList.add("open");
+  if (!token) {
+    const elapsed = ms() - t0;
+    $("resp-generate").textContent = "⚠ Skipped — no token provided";
+    renderChecks("generate", [{ label: "Token provided", ok: false }]);
+    setState("generate", "fail", elapsed);
+    return { passed: false, elapsed, skipped: true };
+  }
+  try {
+    const r = await fetch(`${API_BASE}/v1/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders(token) },
+      body: JSON.stringify({
+        model: "gemini-2.5-flash",
+        input: { type: "text", content: 'Say exactly this and nothing else: "kAIxU is live."' },
+        generationConfig: { temperature: 0, maxOutputTokens: 60 }
+      })
+    });
+    const elapsed = ms() - t0;
+    const j = await r.json().catch(() => ({ ok: false, error: "Non-JSON" }));
+    const reply = (j.text || "").trim();
+    $("resp-generate").textContent = reply || JSON.stringify(j, null, 2);
+    const checks = [
+      { label: "HTTP 200", ok: r.status === 200 },
+      { label: 'ok === true', ok: !!j.ok },
+      { label: 'Text reply received (non-empty)', ok: reply.length > 0 },
+      { label: 'Contains expected phrase "kAIxU"', ok: reply.toLowerCase().includes("kaixu") },
+    ];
+    renderChecks("generate", checks);
+    const passed = checks.every(c => c.ok);
+    setState("generate", passed ? "pass" : "fail", elapsed);
+    return { passed, elapsed, checks, reply };
+  } catch (e) {
+    const elapsed = ms() - t0;
+    $("resp-generate").textContent = "Error: " + e.message;
+    renderChecks("generate", [{ label: "Request succeeded", ok: false }]);
+    setState("generate", "fail", elapsed);
+    return { passed: false, elapsed, error: e.message };
+  }
+}
+
+async function testStream(token) {
+  const t0 = ms();
+  setState("stream", "running");
+  $("body-stream").classList.add("open");
+  if (!token) {
+    const elapsed = ms() - t0;
+    $("resp-stream").textContent = "⚠ Skipped — no token provided";
+    renderChecks("stream", [{ label: "Token provided", ok: false }]);
+    setState("stream", "fail", elapsed);
+    return { passed: false, elapsed, skipped: true };
+  }
+  try {
+    const r = await fetch(`${API_BASE}/v1/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders(token) },
+      body: JSON.stringify({
+        model: "gemini-2.5-flash",
+        input: { type: "text", content: "Count to 3, comma-separated." },
+        generationConfig: { temperature: 0, maxOutputTokens: 60 }
+      })
+    });
+
+    if (!r.ok || !r.body) {
+      const elapsed = ms() - t0;
+      const txt = await r.text().catch(() => "");
+      $("resp-stream").textContent = `HTTP ${r.status}\n${txt}`;
+      renderChecks("stream", [
+        { label: "HTTP 200", ok: false },
+        { label: "Stream body received", ok: false },
+      ]);
+      setState("stream", "fail", elapsed);
+      return { passed: false, elapsed };
+    }
+
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let chunks = 0, text = "", done = false;
+    const timeout = new Promise(res => setTimeout(() => res("timeout"), 15000));
+
+    while (!done) {
+      const race = await Promise.race([reader.read(), timeout]);
+      if (race === "timeout") break;
+      const { value, done: d } = race;
+      done = d;
+      if (value) {
+        const raw = decoder.decode(value);
+        // Parse SSE data lines
+        raw.split("\n").forEach(line => {
+          if (line.startsWith("data: ")) {
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") { done = true; return; }
+            try {
+              const obj = JSON.parse(payload);
+              if (obj.chunk) { text += obj.chunk; chunks++ }
+            } catch (_) {}
+          }
+        });
+        if (text.length > 400) done = true;
+      }
+    }
+
+    const elapsed = ms() - t0;
+    $("resp-stream").textContent = text.slice(0, 400) || "(no text chunks decoded)";
+    const checks = [
+      { label: "HTTP 200", ok: r.status === 200 },
+      { label: `SSE chunks received (got ${chunks})`, ok: chunks > 0 },
+      { label: "Text content streamed", ok: text.length > 0 },
+    ];
+    renderChecks("stream", checks);
+    const passed = checks.every(c => c.ok);
+    setState("stream", passed ? "pass" : "fail", elapsed);
+    return { passed, elapsed, checks, chunks, text };
+  } catch (e) {
+    const elapsed = ms() - t0;
+    $("resp-stream").textContent = "Error: " + e.message;
+    renderChecks("stream", [{ label: "Stream request succeeded", ok: false }]);
+    setState("stream", "fail", elapsed);
+    return { passed: false, elapsed, error: e.message };
+  }
+}
+
+// ── Main runner ──
+let lastReport = null;
+
+$("btn-run").addEventListener("click", async () => {
+  const token = $("token-input").value.trim();
+  const btn = $("btn-run");
+  btn.disabled = true;
+  btn.textContent = "⏳ Running…";
+  $("btn-export").disabled = true;
+  setBanner("running", "Running smoke tests…", "Please wait — this takes about 15–20 seconds", "");
+
+  const suiteStart = ms();
+  const results = {};
+
+  // Run sequentially to avoid rate limits
+  results.health   = await testHealth(token);
+  results.models   = await testModels(token);
+  results.cors     = await testCors();
+  results.generate = await testGenerate(token);
+  results.stream   = await testStream(token);
+
+  const totalElapsed = ms() - suiteStart;
+  const passed = Object.values(results).filter(r => r.passed).length;
+  const total  = Object.values(results).length;
+  const allPass = passed === total;
+
+  setBanner(
+    allPass ? "pass" : "fail",
+    allPass ? `All ${total} tests passed ✓` : `${total - passed} of ${total} tests failed`,
+    allPass
+      ? "The kAIxU gate is fully operational — AI is live and streaming."
+      : "One or more tests failed. Expand each card for details.",
+    `${totalElapsed} ms total`
+  );
+
+  lastReport = {
+    timestamp: new Date().toISOString(),
+    gateway: API_BASE,
+    duration_ms: totalElapsed,
+    passed, total,
+    all_passed: allPass,
+    tests: results
+  };
+
+  $("btn-export").disabled = false;
+  btn.disabled = false;
+  btn.textContent = "▶ Run All Tests";
+});
+
+$("btn-export").addEventListener("click", () => {
+  if (!lastReport) return;
+  const blob = new Blob([JSON.stringify(lastReport, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `kaixu-smoke-test-${new Date().toISOString().slice(0,19).replace(/:/g,"-")}.json`;
+  a.click();
+});
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
