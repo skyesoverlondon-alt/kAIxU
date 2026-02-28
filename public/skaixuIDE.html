@@ -151,6 +151,22 @@
     #previewResizer { grid-column: 1/-1; height: 4px; background: transparent; cursor: row-resize;
       flex-shrink: 0; transition: background .15s; }
     #previewResizer:hover { background: var(--violet); }
+
+    /* DROP OVERLAY */
+    #dropOverlay { position: fixed; inset: 0; z-index: 999; display: none;
+      background: rgba(7,6,13,.88); backdrop-filter: blur(4px);
+      border: 2px dashed var(--violet); border-radius: 12px; margin: 8px;
+      align-items: center; justify-content: center; flex-direction: column; gap: 12px;
+      pointer-events: none; }
+    #dropOverlay.active { display: flex; }
+    #dropOverlay .drop-icon { font-size: 48px; }
+    #dropOverlay .drop-text { font-size: 18px; font-weight: 700; color: var(--violet); }
+    #dropOverlay .drop-sub  { font-size: 13px; color: var(--muted); }
+
+    /* IDB BADGE */
+    #idbBadge { font-size: 10px; color: var(--muted); padding: 0 12px 8px;
+      display: flex; gap: 6px; align-items: center; }
+    #idbBadge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink:0; }
   </style>
 </head>
 <body>
@@ -177,14 +193,23 @@
     <button class="tb-btn" onclick="refreshPreview()">▶ Run</button>
   </header>
 
+  <!-- DROP OVERLAY -->
+  <div id="dropOverlay">
+    <div class="drop-icon">⬇</div>
+    <div class="drop-text">Drop files here</div>
+    <div class="drop-sub">Folders · ZIP archives · Any text or code file</div>
+  </div>
+
   <!-- FILE TREE -->
   <aside id="filetree">
     <div class="tree-header">
       <span>Files</span>
+      <button onclick="clearIDB()" title="Clear all stored files" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color=''">✕ clear</button>
     </div>
     <div id="fileList">
-      <div id="emptyTree">Open a folder<br>or file to start</div>
+      <div id="emptyTree">Drop a folder, ZIP, or file<br>— or click Open above</div>
     </div>
+    <div id="idbBadge"><span class="dot"></span><span id="idbInfo">IndexedDB ready</span></div>
   </aside>
 
   <!-- EDITOR -->
@@ -225,29 +250,112 @@
   </div>
 </div>
 
+<!-- JSZip for ZIP extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- Monaco Editor (CDN) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 <script>
 const API_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
+const IDB_NAME = 'kaixu-ide';
+const IDB_STORE = 'files';
+const IDB_VERSION = 1;
 
 // ── STATE ──
 let editor = null;
-let currentFileHandle = null;
 let currentFileName = '';
-let currentContent = '';
+let currentContent  = '';
 let pendingNewContent = null;
-let dirHandle = null;
-let allFileHandles = [];
+// path → FileSystemFileHandle (for files opened from disk, so we can write back)
+const handleMap = new Map();
+// in-memory file list: [{path, content}]
+let allFiles = [];
 
-// ── PERSISTENCE ──
+// ── PREFS ──
 function loadToken()  { return localStorage.getItem('kaixu_ide_token') || ''; }
 function saveToken(v) { localStorage.setItem('kaixu_ide_token', v); }
 function loadModel()  { return localStorage.getItem('kaixu_ide_model') || 'gemini-2.5-flash'; }
 function saveModel(v) { localStorage.setItem('kaixu_ide_model', v); }
 
+// ── INDEXED DB ──
+let db = null;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(IDB_STORE, { keyPath: 'path' });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+function idbTx(mode) {
+  return db.transaction(IDB_STORE, mode).objectStore(IDB_STORE);
+}
+function idbPut(path, content) {
+  return new Promise((res, rej) => {
+    const req = idbTx('readwrite').put({ path, content });
+    req.onsuccess = () => res();
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+function idbGet(path) {
+  return new Promise((res, rej) => {
+    const req = idbTx('readonly').get(path);
+    req.onsuccess = e => res(e.target.result ? e.target.result.content : null);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+function idbGetAll() {
+  return new Promise((res, rej) => {
+    const req = idbTx('readonly').getAll();
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+function idbDelete(path) {
+  return new Promise((res, rej) => {
+    const req = idbTx('readwrite').delete(path);
+    req.onsuccess = () => res();
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+function idbClear() {
+  return new Promise((res, rej) => {
+    const req = idbTx('readwrite').clear();
+    req.onsuccess = () => res();
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+async function updateIDBBadge() {
+  try {
+    const all = await idbGetAll();
+    const bytes = all.reduce((s, f) => s + (f.content || '').length, 0);
+    const kb = (bytes / 1024).toFixed(1);
+    document.getElementById('idbInfo').textContent =
+      `${all.length} file${all.length !== 1 ? 's' : ''} · ${kb} KB stored`;
+  } catch(_) {}
+}
+async function clearIDB() {
+  if (!confirm('Clear all stored files from IndexedDB?')) return;
+  await idbClear();
+  allFiles = [];
+  handleMap.clear();
+  renderFileTree();
+  await updateIDBBadge();
+}
+
 // ── INIT ──
 document.getElementById('tokenInput').value = loadToken();
 document.getElementById('modelSel').value   = loadModel();
+
+// Boot: open IDB, load all stored files, then init Monaco
+openDB().then(async d => {
+  db = d;
+  const stored = await idbGetAll();
+  allFiles = stored.map(r => ({ path: r.path, content: r.content }));
+  if (allFiles.length) renderFileTree();
+  await updateIDBBadge();
+}).catch(e => console.error('IDB open failed', e));
 
 require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' }});
 require(['vs/editor/editor.main'], () => {
@@ -292,11 +400,145 @@ require(['vs/editor/editor.main'], () => {
   editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => saveCurrentFile());
   editor.onDidChangeModelContent(() => {
     const isDirty = editor.getValue() !== currentContent;
-    document.getElementById('btnSave').style.display = (currentFileHandle && isDirty) ? '' : 'none';
+    // show save if we have a disk handle OR always (saves to IDB)
+    document.getElementById('btnSave').style.display = isDirty ? '' : 'none';
   });
 
   checkHealth();
   setInterval(checkHealth, 30000);
+});
+
+// ── DRAG & DROP ──
+const shell = document.getElementById('shell');
+const dropOverlay = document.getElementById('dropOverlay');
+let dragCounter = 0;
+
+shell.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dragCounter++;
+  dropOverlay.classList.add('active');
+});
+shell.addEventListener('dragleave', e => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter <= 0) { dragCounter = 0; dropOverlay.classList.remove('active'); }
+});
+shell.addEventListener('dragover', e => { e.preventDefault(); });
+shell.addEventListener('drop', async e => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropOverlay.classList.remove('active');
+  const items = Array.from(e.dataTransfer.items || []);
+  const files = Array.from(e.dataTransfer.files || []);
+  let imported = 0;
+
+  // Try File System Access API entries first (gives folders)
+  for (const item of items) {
+    if (item.kind !== 'file') continue;
+    const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+    if (entry && entry.isDirectory) {
+      imported += await importFSEntry(entry, '');
+    } else {
+      const file = item.getAsFile();
+      if (!file) continue;
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        imported += await importZip(file);
+      } else {
+        const text = await safeReadText(file);
+        if (text !== null) {
+          await storeFile(file.name, text);
+          imported++;
+        }
+      }
+    }
+  }
+
+  if (imported === 0 && files.length) {
+    for (const file of files) {
+      if (file.name.toLowerCase().endsWith('.zip')) {
+        imported += await importZip(file);
+      } else {
+        const text = await safeReadText(file);
+        if (text !== null) { await storeFile(file.name, text); imported++; }
+      }
+    }
+  }
+
+  if (imported > 0) {
+    renderFileTree();
+    await updateIDBBadge();
+    setStatus(`✓ Imported ${imported} file${imported !== 1 ? 's' : ''}`, 3000);
+  }
+});
+
+async function importFSEntry(entry, parentPath) {
+  let count = 0;
+  if (entry.isFile) {
+    const file = await new Promise((res, rej) => entry.file(res, rej));
+    const text = await safeReadText(file);
+    if (text !== null) {
+      const path = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+      await storeFile(path, text);
+      count++;
+    }
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    const entries = await new Promise((res, rej) => reader.readEntries(res, rej));
+    const dirPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+    for (const child of entries) {
+      if (child.name.startsWith('.') || child.name === 'node_modules' || child.name === '__pycache__') continue;
+      count += await importFSEntry(child, dirPath);
+    }
+  }
+  return count;
+}
+
+async function importZip(file) {
+  let count = 0;
+  try {
+    const zip = await JSZip.loadAsync(file);
+    const tasks = [];
+    zip.forEach((relPath, zipEntry) => {
+      if (!zipEntry.dir) tasks.push({ relPath, zipEntry });
+    });
+    for (const { relPath, zipEntry } of tasks) {
+      if (relPath.includes('__MACOSX') || relPath.startsWith('.')) continue;
+      try {
+        const text = await zipEntry.async('text');
+        await storeFile(relPath, text);
+        count++;
+      } catch(_) {/* skip binary files */}
+    }
+  } catch(e) { console.error('ZIP import failed', e); }
+  return count;
+}
+
+async function safeReadText(file) {
+  try { return await file.text(); }
+  catch(_) { return null; }
+}
+
+async function storeFile(path, content) {
+  // Update in-memory list
+  const existing = allFiles.findIndex(f => f.path === path);
+  if (existing >= 0) allFiles[existing].content = content;
+  else allFiles.push({ path, content });
+  // Persist to IDB
+  if (db) await idbPut(path, content);
+}
+
+// ── GLOBAL PASTE → EDITOR ──
+document.addEventListener('paste', e => {
+  if (!editor) return;
+  // Don't intercept if user is typing in a real input/textarea
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  const text = e.clipboardData && e.clipboardData.getData('text');
+  if (!text) return;
+  e.preventDefault();
+  // Insert at cursor in Monaco
+  editor.trigger('keyboard', 'type', { text });
+  editor.focus();
 });
 
 // ── HEALTH ──
@@ -327,30 +569,42 @@ function langFromExt(name) {
   return map[ext] || 'plaintext';
 }
 
-// ── FILE OPEN ──
+// ── FILE OPEN (File System Access API) ──
 async function openSingleFile() {
   try {
     const [handle] = await window.showOpenFilePicker({ multiple: false });
-    await loadFileHandle(handle);
+    const file = await handle.getFile();
+    const text = await file.text();
+    handleMap.set(file.name, handle);
+    await storeFile(file.name, text);
+    renderFileTree();
+    await updateIDBBadge();
+    openFileByPath(file.name);
   } catch(e) { if (e.name !== 'AbortError') console.error(e); }
 }
 
 async function openFolder() {
   try {
-    dirHandle = await window.showDirectoryPicker();
-    allFileHandles = [];
+    const dirHandle = await window.showDirectoryPicker();
     await walkDir(dirHandle, '');
     renderFileTree();
+    await updateIDBBadge();
   } catch(e) { if (e.name !== 'AbortError') console.error(e); }
 }
 
 async function walkDir(handle, path) {
   for await (const [name, entry] of handle.entries()) {
     if (name.startsWith('.') || name === 'node_modules' || name === '__pycache__') continue;
+    const entryPath = path ? `${path}/${name}` : name;
     if (entry.kind === 'file') {
-      allFileHandles.push({ handle: entry, path: path ? `${path}/${name}` : name });
+      try {
+        const file = await entry.getFile();
+        const text = await file.text();
+        handleMap.set(entryPath, entry);
+        await storeFile(entryPath, text);
+      } catch(_) {}
     } else if (entry.kind === 'directory') {
-      await walkDir(entry, path ? `${path}/${name}` : name);
+      await walkDir(entry, entryPath);
     }
   }
 }
@@ -358,17 +612,18 @@ async function walkDir(handle, path) {
 function renderFileTree() {
   const list = document.getElementById('fileList');
   list.innerHTML = '';
-  if (!allFileHandles.length) {
-    list.innerHTML = '<div id="emptyTree">Folder is empty</div>';
+  const sorted = [...allFiles].sort((a, b) => a.path.localeCompare(b.path));
+  if (!sorted.length) {
+    list.innerHTML = '<div id="emptyTree">Drop a folder, ZIP, or file<br>— or click Open above</div>';
     return;
   }
   // Group by folder
   const folders = {};
-  for (const { handle, path } of allFileHandles) {
+  for (const { path } of sorted) {
     const parts = path.split('/');
     const folder = parts.length > 1 ? parts.slice(0, -1).join('/') : '/';
     if (!folders[folder]) folders[folder] = [];
-    folders[folder].push({ handle, path, name: parts[parts.length - 1] });
+    folders[folder].push({ path, name: parts[parts.length - 1] });
   }
   for (const [folder, files] of Object.entries(folders)) {
     if (folder !== '/') {
@@ -377,12 +632,13 @@ function renderFileTree() {
       lbl.textContent = folder;
       list.appendChild(lbl);
     }
-    for (const { handle, path, name } of files) {
+    for (const { path, name } of files) {
       const item = document.createElement('div');
       item.className = 'file-item';
       item.dataset.path = path;
       item.innerHTML = `<span class="icon">${iconFor(name)}</span><span class="name">${name}</span>`;
-      item.onclick = () => loadFileHandle(handle, item);
+      item.onclick = () => openFileByPath(path, item);
+      if (path === currentFileName) item.classList.add('active');
       list.appendChild(item);
     }
   }
@@ -397,52 +653,61 @@ function iconFor(name) {
   return m[ext] || '📄';
 }
 
-async function loadFileHandle(handle, itemEl) {
-  try {
-    const file = await handle.getFile();
-    const text = await file.text();
-    currentFileHandle = handle;
-    currentFileName   = file.name;
-    currentContent    = text;
-    pendingNewContent = null;
+function openFileByPath(path, itemEl) {
+  const entry = allFiles.find(f => f.path === path);
+  if (!entry) return;
+  const { content } = entry;
+  currentFileName   = path;
+  currentContent    = content;
+  pendingNewContent = null;
 
-    document.getElementById('activeFileName').textContent = file.name;
-    document.getElementById('btnSave').style.display = 'none';
-    clearDiff();
+  document.getElementById('activeFileName').textContent = path;
+  document.getElementById('btnSave').style.display = 'none';
+  clearDiff();
 
-    const lang = langFromExt(file.name);
-    if (editor) {
-      const model = monaco.editor.createModel(text, lang);
-      editor.setModel(model);
-    }
+  const lang = langFromExt(path);
+  if (editor) {
+    const model = monaco.editor.createModel(content, lang);
+    editor.setModel(model);
+    editor.focus();
+  }
 
-    // highlight active
-    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
-    if (itemEl) itemEl.classList.add('active');
+  document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+  const target = itemEl || document.querySelector(`.file-item[data-path="${CSS.escape(path)}"]`);
+  if (target) target.classList.add('active');
 
-    // auto-preview HTML
-    if (['html','htm'].includes(file.name.split('.').pop().toLowerCase())) {
-      showPreview(text);
-    }
-  } catch(e) { console.error('load error', e); }
+  const ext = path.split('.').pop().toLowerCase();
+  if (['html','htm'].includes(ext)) showPreview(content);
 }
 
 // ── SAVE ──
 async function saveCurrentFile() {
-  if (!currentFileHandle || !editor) return;
-  try {
-    const writable = await currentFileHandle.createWritable();
-    const text = editor.getValue();
-    await writable.write(text);
-    await writable.close();
-    currentContent = text;
-    document.getElementById('btnSave').style.display = 'none';
-    setStatus('✓ Saved', 1500);
+  if (!editor || !currentFileName) return;
+  const text = editor.getValue();
+  currentContent = text;
 
-    // refresh preview if HTML
-    const ext = currentFileName.split('.').pop().toLowerCase();
-    if (['html','htm'].includes(ext)) showPreview(text);
-  } catch(e) { setStatus('⚠ Save failed: ' + e.message, 3000); }
+  // Always save to IDB
+  await storeFile(currentFileName, text);
+  await updateIDBBadge();
+
+  // Also write back to disk if we have a handle
+  const diskHandle = handleMap.get(currentFileName);
+  if (diskHandle) {
+    try {
+      const writable = await diskHandle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      setStatus('✓ Saved to disk + IndexedDB', 2000);
+    } catch(e) {
+      setStatus('✓ Saved to IndexedDB (disk write failed: ' + e.message + ')', 3000);
+    }
+  } else {
+    setStatus('✓ Saved to IndexedDB', 1500);
+  }
+
+  document.getElementById('btnSave').style.display = 'none';
+  const ext = currentFileName.split('.').pop().toLowerCase();
+  if (['html','htm'].includes(ext)) showPreview(text);
 }
 
 // ── PREVIEW ──
@@ -476,10 +741,13 @@ function detachPreview() {
   const frame = document.getElementById('previewFrame');
   const content = frame.srcdoc;
   if (!content) { alert('Nothing to preview — run an HTML file first'); return; }
-  const win = window.open('', '_blank', 'width=1024,height=720,menubar=no,toolbar=no');
-  win.document.open();
-  win.document.write(content);
-  win.document.close();
+  // Use Blob URL so the new tab gets a real document, not a 404
+  const blob = new Blob([content], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url, '_blank');
+  if (!win) { alert('Pop-up blocked. Allow pop-ups for this site.'); URL.revokeObjectURL(url); return; }
+  // Revoke after a short delay (browser has already loaded it)
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 // ── AI EDIT ──
@@ -558,7 +826,7 @@ function applyEdit() {
   document.getElementById('btnApply').style.display  = 'none';
   document.getElementById('btnReject').style.display = 'none';
   // Show save button
-  document.getElementById('btnSave').style.display = currentFileHandle ? '' : 'none';
+  document.getElementById('btnSave').style.display = currentFileName ? '' : 'none';
   // Auto-refresh HTML preview
   const ext = currentFileName.split('.').pop().toLowerCase();
   if (['html','htm'].includes(ext)) showPreview(editor.getValue());
