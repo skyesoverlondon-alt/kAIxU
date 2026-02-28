@@ -12,7 +12,6 @@ exports.handler = async (event) => {
   const models = [
     { id: "gemini-2.5-flash", label: "gemini-2.5-flash (fast)" },
     { id: "gemini-2.5-pro", label: "gemini-2.5-pro (best quality)" },
-    { id: "gemini-2.0-flash", label: "gemini-2.0-flash (legacy fast)" },
   ];
 
   const defaultModel = process.env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash";

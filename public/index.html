@@ -290,7 +290,7 @@ POST /v1/stream   (SSE)</code></pre>
       });
     }catch(e){
       // If models fails, fall back to a safe default list
-      const fallback = ["gemini-2.5-flash","gemini-2.5-pro","gemini-2.0-flash"];
+      const fallback = ["gemini-2.5-flash","gemini-2.5-pro"];
       const sel = $("model"); sel.innerHTML="";
       fallback.forEach(id=>{
         const opt=document.createElement("option");
