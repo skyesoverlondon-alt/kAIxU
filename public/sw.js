@@ -1,4 +1,4 @@
-const CACHE = 'kaixu-v4';
+const CACHE = 'kaixu-v5';
 const PRECACHE = [
   '/',
   '/index.html',

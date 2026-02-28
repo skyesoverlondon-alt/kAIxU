@@ -183,8 +183,22 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
   </div>
 
   <!-- GATEWAY BUTTON -->
-  <a href="/gateway.html" style="display:inline-block;margin-top:40px;padding:22px 56px;border-radius:16px;text-decoration:none;font-family:'Orbitron','Segoe UI',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:#ffd36a;background:rgba(255,211,106,.07);border:2px solid rgba(255,211,106,.6);box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12);text-shadow:0 0 20px rgba(255,211,106,.8),0 0 40px rgba(255,211,106,.4);transition:all .25s;animation:gold-pulse 2.5s ease-in-out infinite" onmouseover="this.style.boxShadow='0 0 70px rgba(255,211,106,.7),0 0 140px rgba(255,211,106,.3),inset 0 1px 0 rgba(255,255,255,.18)';this.style.borderColor='rgba(255,211,106,1)';this.style.color='#ffe899';this.style.textShadow='0 0 30px rgba(255,211,106,1),0 0 60px rgba(255,211,106,.7)'" onmouseout="this.style.boxShadow='0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12)';this.style.borderColor='rgba(255,211,106,.6)';this.style.color='#ffd36a';this.style.textShadow='0 0 20px rgba(255,211,106,.8),0 0 40px rgba(255,211,106,.4)'">⬡ Enter Gate Delta</a>
-  <style>@keyframes gold-pulse{0%,100%{box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 0 60px rgba(255,211,106,.55),0 0 120px rgba(255,211,106,.25),inset 0 1px 0 rgba(255,255,255,.12)}}</style>
+  <a id="gate-cta" href="/gateway.html">⬡ Enter Gate Delta</a>
+  <style>
+    #gate-cta{
+      display:inline-block;margin-top:40px;padding:22px 56px;border-radius:16px;text-decoration:none;
+      font-family:'Orbitron','Segoe UI',sans-serif;font-size:clamp(18px,3vw,26px);font-weight:900;letter-spacing:.18em;text-transform:uppercase;
+      color:#ffd36a !important;background:rgba(255,211,106,.07) !important;border:2px solid rgba(255,211,106,.6) !important;
+      box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12);
+      text-shadow:0 0 20px rgba(255,211,106,.8),0 0 40px rgba(255,211,106,.4);
+      transition:all .25s;animation:gold-pulse 2.5s ease-in-out infinite;
+    }
+    #gate-cta:hover{
+      box-shadow:0 0 70px rgba(255,211,106,.7),0 0 140px rgba(255,211,106,.3),inset 0 1px 0 rgba(255,255,255,.18);
+      border-color:rgba(255,211,106,1);color:#ffe899 !important;text-shadow:0 0 30px rgba(255,211,106,1),0 0 60px rgba(255,211,106,.7);
+    }
+    @keyframes gold-pulse{0%,100%{box-shadow:0 0 40px rgba(255,211,106,.35),0 0 80px rgba(255,211,106,.15),inset 0 1px 0 rgba(255,255,255,.12)}50%{box-shadow:0 0 60px rgba(255,211,106,.55),0 0 120px rgba(255,211,106,.25),inset 0 1px 0 rgba(255,255,255,.12)}}
+  </style>
 </section>
 
 <div class="divider"></div>
