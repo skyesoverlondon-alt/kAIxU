@@ -12,13 +12,15 @@
   const passKey='kaixuIntroPass';
   const introReturnKey='kaixuIntroReturn';
   const introUrl='/Intro.html';
+  const skip=localStorage.getItem('kaixuIntroSkip');
+  if(skip){ sessionStorage.setItem(passKey,'1'); }
   const pass=sessionStorage.getItem(passKey);
   if(!pass){
     sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
     window.location.replace(introUrl);
     return;
   }
-  sessionStorage.removeItem(passKey); // consume pass so intro plays every load
+  sessionStorage.removeItem(passKey); // consume pass so intro plays every load unless skip is set
 })();
 </script>
 <style>

@@ -159,6 +159,7 @@
       background: rgba(0,0,0,0.28);
       color: var(--muted);
     }
+    .pill-select{border:1px solid rgba(255,255,255,0.14);background:rgba(0,0,0,0.32);color:var(--fg);border-radius:14px;padding:8px 10px;font-size:12px}
     .dot{
       width:10px; height:10px; border-radius:999px;
       background: rgba(255,255,255,0.25);
@@ -224,7 +225,13 @@
           <h1>Kaixu Gate Delta <span class="k">—</span> kAIxu Core Gateway</h1>
           <p class="sub">Your AI home on Netlify. Apps call this gate; the API key stays server-side.</p>
         </div>
-        <div class="pill" id="healthPill"><span class="dot"></span><span id="healthText">Checking health…</span></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <select id="envSelect" class="pill-select" title="Environment">
+            <option value="prod">Prod</option>
+            <option value="stage">Stage</option>
+          </select>
+          <div class="pill" id="healthPill"><span class="dot"></span><span id="healthText">Checking health…</span></div>
+        </div>
       </div>
     </header>
 
@@ -348,7 +355,12 @@ POST /v1/stream   (SSE)</code></pre>
   </div>
 
 <script>
-  const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
+  const ENVS = {
+    prod: "https://kaixu67.skyesoverlondon.workers.dev",
+    stage: "https://kaixu67.skyesoverlondon.workers.dev" // set staging endpoint here if available
+  };
+  let API_BASE = ENVS[localStorage.getItem('kaixuEnv') || 'prod'] || ENVS.prod;
+  const envSelect = document.getElementById('envSelect');
   const $ = (id) => document.getElementById(id);
 
   function setHealth(ok, msg){
@@ -430,6 +442,17 @@ POST /v1/stream   (SSE)</code></pre>
 
   loadModels();
   health();
+
+  if(envSelect){
+    envSelect.value = (Object.keys(ENVS).find(k => ENVS[k] === API_BASE) || 'prod');
+    envSelect.addEventListener('change', () => {
+      const chosen = envSelect.value;
+      API_BASE = ENVS[chosen] || ENVS.prod;
+      localStorage.setItem('kaixuEnv', chosen);
+      health();
+      loadModels();
+    });
+  }
 </script>
 <script>
 if ('serviceWorker' in navigator) {

@@ -12,13 +12,15 @@
   const passKey='kaixuIntroPass';
   const introReturnKey='kaixuIntroReturn';
   const introUrl='/Intro.html';
+  const skip=localStorage.getItem('kaixuIntroSkip');
+  if(skip){ sessionStorage.setItem(passKey,'1'); }
   const pass=sessionStorage.getItem(passKey);
   if(!pass){
     sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
     window.location.replace(introUrl);
     return;
   }
-  sessionStorage.removeItem(passKey); // consume pass so next visit replays intro
+  sessionStorage.removeItem(passKey); // consume pass so next visit replays intro unless skip is set
 })();
 </script>
 <style>
@@ -50,6 +52,12 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
 .back-link{font-size:11px;padding:4px 12px;border-radius:20px;text-decoration:none;background:rgba(255,255,255,.06);color:#7a7a9a;border:1px solid var(--border);transition:color .15s;white-space:nowrap}
 .back-link:hover{color:#f2f0ff}
 .header-pill{font-size:10px;padding:3px 10px;border-radius:20px;background:rgba(0,243,255,.08);color:var(--cyan);border:1px solid rgba(0,243,255,.3);font-family:var(--mono);white-space:nowrap}
+.header-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.pill-btn{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#dcdcf2;border-radius:18px;padding:6px 12px;font-size:11px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.pill-btn:hover{color:#fff;border-color:rgba(255,255,255,.25);box-shadow:0 0 12px rgba(0,243,255,.25)}
+.pill-select{border:1px solid var(--border);background:rgba(255,255,255,.05);color:#dcdcf2;border-radius:18px;padding:6px 10px;font-size:11px}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;color:#c8c8df;border:1px solid var(--border);padding:5px 10px;border-radius:18px;background:rgba(255,255,255,.05)}
+.toggle input{accent-color:var(--gold)}
 
 /* ── HERO ── */
 .hero{position:relative;z-index:10;text-align:center;padding:80px 20px 60px;max-width:1000px;margin:0 auto}
@@ -122,6 +130,22 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
 .modal{background:#0a0a14;border:1px solid rgba(255,255,255,.15);border-radius:20px;max-width:640px;width:100%;max-height:90vh;overflow-y:auto;padding:32px;position:relative}
 .modal-close{position:absolute;top:16px;right:16px;background:rgba(255,255,255,.08);border:none;color:#f0f0f8;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
 .modal-close:hover{background:rgba(255,255,255,.16)}
+.palette{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:center;background:rgba(0,0,0,.45);backdrop-filter:blur(6px);z-index:120}
+.palette.active{display:flex}
+.palette-box{margin-top:80px;width:min(640px,90%);background:#0b0c14;border:1px solid var(--border);border-radius:16px;box-shadow:0 25px 70px rgba(0,0,0,.65);overflow:hidden}
+.palette-box input{width:100%;padding:14px 16px;border:none;outline:none;background:rgba(255,255,255,.04);color:#fff;font-size:14px}
+.palette-list{max-height:360px;overflow:auto}
+.palette-item{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:transparent;color:#e8e8f5;font-size:13px}
+.palette-item:hover,.palette-item.active{background:rgba(0,243,255,.08)}
+.palette-sub{color:#8a8ab3;font-size:12px}
+.watchdog{position:fixed;inset:0;display:none;align-items:flex-start;justify-content:flex-end;background:rgba(0,0,0,.4);backdrop-filter:blur(5px);z-index:130}
+.watchdog.active{display:flex}
+.watchdog-box{margin:20px;width:320px;background:#0d0f19;border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:16px;display:flex;flex-direction:column;gap:10px}
+.watchdog-head{display:flex;align-items:center;justify-content:space-between}
+.wd-title{font-weight:700;color:#fff}
+.wd-sub{font-size:12px;color:#8a8ab3}
+.wd-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:#cfcfe5;border:1px solid rgba(255,255,255,.06);padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.03)}
+.wd-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .modal-icon{font-size:48px;margin-bottom:12px}
 .modal-name{font-family:var(--orb);font-size:24px;font-weight:900;color:#fff;margin-bottom:6px}
 .modal-tagline{font-size:14px;color:#9090b8;margin-bottom:20px;line-height:1.6}
@@ -165,6 +189,19 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
   <a href="/gateway.html" class="back-link">⬡ Gateway Console</a>
   <a href="/kAIxUchat.html" class="back-link">✦ Chat</a>
   <span class="header-pill">INNER SANCTUM</span>
+  <div class="header-actions">
+    <label class="toggle" title="Skip intro on this device">
+      <input type="checkbox" id="skip-intro-toggle">
+      <span>Skip intro</span>
+    </label>
+    <select id="theme-select" class="pill-select" title="Theme">
+      <option value="default">Theme: Neon</option>
+      <option value="gold">Theme: Gold</option>
+      <option value="mono">Theme: Noir</option>
+    </select>
+    <button class="pill-btn" id="palette-btn" title="Cmd/Ctrl+K">⚡ Quick actions</button>
+    <button class="pill-btn" id="watchdog-btn" title="Health + cache">🩺 Watchdog</button>
+  </div>
 </header>
 
 <!-- HERO -->
@@ -230,6 +267,34 @@ body{background:var(--bg);color:#f0f0f8;font-family:'Segoe UI',system-ui,sans-se
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">✕</button>
     <div id="modal-content"></div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS PALETTE -->
+<div class="palette" id="palette" aria-hidden="true">
+  <div class="palette-box">
+    <input id="palette-input" placeholder="Jump to app or action (Cmd/Ctrl+K)" autofocus />
+    <div class="palette-list" id="palette-list"></div>
+  </div>
+</div>
+
+<!-- WATCHDOG PANEL -->
+<div class="watchdog" id="watchdog" aria-hidden="true">
+  <div class="watchdog-box">
+    <div class="watchdog-head">
+      <div>
+        <div class="wd-title">Gate Watchdog</div>
+        <div class="wd-sub">SW/cache + health</div>
+      </div>
+      <button class="pill-btn" id="watchdog-close">✕</button>
+    </div>
+    <div class="wd-row"><span>SW version</span><span id="wd-sw">…</span></div>
+    <div class="wd-row"><span>Cache keys</span><span id="wd-cache">…</span></div>
+    <div class="wd-row"><span>Gateway health</span><span id="wd-health">…</span></div>
+    <div class="wd-actions">
+      <button class="pill-btn" id="wd-refresh">Check now</button>
+      <button class="pill-btn" id="wd-purge">Purge cache</button>
+    </div>
   </div>
 </div>
 
@@ -812,18 +877,32 @@ function cardHTML(app) {
   `;
 }
 
+function fuzzyScore(app, q){
+  if(!q) return 1;
+  const hay = [app.name, app.tagline, app.description, ...(app.features||[]), ...(app.usecases||[])].join(' ').toLowerCase();
+  const tokens = q.split(/\s+/).filter(Boolean);
+  let score = 0;
+  for(const t of tokens){
+    if(hay.includes(t)) score += 2;
+    else {
+      const first = t[0];
+      if(first && hay.indexOf(first) !== -1) score += 0.5;
+    }
+  }
+  return score;
+}
+
 function render() {
-  const q = searchQuery.toLowerCase();
-  const filtered = APPS.filter(app => {
-    const matchCat = activeFilter === 'all' || app.cat === activeFilter;
-    const matchSearch = !q ||
-      app.name.toLowerCase().includes(q) ||
-      app.tagline.toLowerCase().includes(q) ||
-      app.description.toLowerCase().includes(q) ||
-      app.features.some(f => f.toLowerCase().includes(q)) ||
-      app.usecases.some(u => u.toLowerCase().includes(q));
-    return matchCat && matchSearch;
-  });
+  const q = searchQuery.toLowerCase().trim();
+  const filtered = APPS
+    .map(app => ({ app, score: fuzzyScore(app, q) }))
+    .filter(item => {
+      const matchCat = activeFilter === 'all' || item.app.cat === activeFilter;
+      const matchScore = q ? item.score > 0 : true;
+      return matchCat && matchScore;
+    })
+    .sort((a,b) => b.score - a.score || a.app.name.localeCompare(b.app.name))
+    .map(item => item.app);
   grid.innerHTML = filtered.length ? filtered.map(cardHTML).join('') : '<div style="grid-column:1/-1;text-align:center;color:#7a7a9a;padding:60px 0;font-size:14px">No apps match that search.</div>';
   document.getElementById('cnt-apps').textContent = filtered.length;
 }
@@ -860,13 +939,138 @@ document.getElementById('search').addEventListener('input', e => {
 });
 
 // Feature list color
-document.addEventListener('DOMContentLoaded', () => {});
+document.addEventListener('DOMContentLoaded', () => {
+  const SW_VERSION = 'kaixu-v6';
+  const skipToggle = document.getElementById('skip-intro-toggle');
+  const themeSelect = document.getElementById('theme-select');
+  const paletteEl = document.getElementById('palette');
+  const paletteInput = document.getElementById('palette-input');
+  const paletteList = document.getElementById('palette-list');
+  const watchdogEl = document.getElementById('watchdog');
+  const wdSw = document.getElementById('wd-sw');
+  const wdCache = document.getElementById('wd-cache');
+  const wdHealth = document.getElementById('wd-health');
 
-render();
+  // Intro skip toggle
+  if(skipToggle){
+    skipToggle.checked = !!localStorage.getItem('kaixuIntroSkip');
+    skipToggle.addEventListener('change', () => {
+      if(skipToggle.checked) localStorage.setItem('kaixuIntroSkip','1');
+      else localStorage.removeItem('kaixuIntroSkip');
+    });
+  }
 
-// Feature list bullet color
-document.querySelectorAll('.feature-list li').forEach(li => {
-  li.style.setProperty('color', '#b0b0c8');
+  // Theme switcher
+  const themes = {
+    default: {
+      '--cyan':'#00f3ff','--purple':'#a243ff','--gold':'#ffd36a','--bg':'#030307'
+    },
+    gold: {
+      '--cyan':'#ffd36a','--purple':'#ffb347','--gold':'#ffd36a','--bg':'#0c0a04'
+    },
+    mono: {
+      '--cyan':'#d8e4ff','--purple':'#b5b5c7','--gold':'#e6e6e6','--bg':'#0b0c10'
+    }
+  };
+  function applyTheme(name){
+    const cfg = themes[name] || themes.default;
+    Object.entries(cfg).forEach(([k,v]) => document.documentElement.style.setProperty(k,v));
+    localStorage.setItem('kaixuTheme', name);
+  }
+  if(themeSelect){
+    const saved = localStorage.getItem('kaixuTheme') || 'default';
+    themeSelect.value = saved;
+    applyTheme(saved);
+    themeSelect.addEventListener('change', () => applyTheme(themeSelect.value));
+  }
+
+  // Quick palette
+  const actions = [
+    ...APPS.map(app => ({label:`${app.icon} ${app.name}`, sub:app.tagline, href:app.url})),
+    {label:'⬡ Gateway', sub:'Open Gate Delta', href:'/gateway.html'},
+    {label:'✦ Chat', sub:'Open kAIxUchat', href:'/kAIxUchat.html'},
+    {label:'Skip intro toggle', sub:'Toggle intro skip flag', action:() => {
+      skipToggle.checked = !skipToggle.checked;
+      skipToggle.dispatchEvent(new Event('change'));
+    }}
+  ];
+  let paletteFiltered = actions;
+  function openPalette(){
+    paletteEl.classList.add('active');
+    paletteEl.setAttribute('aria-hidden','false');
+    paletteInput.value='';
+    renderPalette();
+    setTimeout(()=>paletteInput.focus(),10);
+  }
+  function closePalette(){
+    paletteEl.classList.remove('active');
+    paletteEl.setAttribute('aria-hidden','true');
+  }
+  function renderPalette(){
+    const q = paletteInput.value.toLowerCase();
+    paletteFiltered = actions.filter(a => !q || a.label.toLowerCase().includes(q) || (a.sub&&a.sub.toLowerCase().includes(q)));
+    paletteList.innerHTML = paletteFiltered.map((a,i)=>`
+      <div class="palette-item" data-idx="${i}">
+        <div>${a.label}</div>
+        <div class="palette-sub">${a.sub||''}</div>
+      </div>`).join('');
+  }
+  paletteInput.addEventListener('input', renderPalette);
+  paletteList.addEventListener('click', e => {
+    const item = e.target.closest('.palette-item');
+    if(!item) return;
+    const idx = Number(item.dataset.idx);
+    const act = paletteFiltered[idx];
+    if(!act) return;
+    if(act.action) act.action(); else if(act.href) window.location.href = act.href;
+    closePalette();
+  });
+  document.addEventListener('keydown', e => {
+    if((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); openPalette(); }
+    if(e.key === 'Escape') { closePalette(); closeWatchdog(); }
+  });
+  document.getElementById('palette-btn')?.addEventListener('click', openPalette);
+  paletteEl.addEventListener('click', e => { if(e.target === paletteEl) closePalette(); });
+
+  // Watchdog
+  const watchdogBtn = document.getElementById('watchdog-btn');
+  function closeWatchdog(){ watchdogEl.classList.remove('active'); watchdogEl.setAttribute('aria-hidden','true'); }
+  async function refreshWatchdog(){
+    wdSw.textContent = SW_VERSION;
+    try{
+      const keys = await caches.keys();
+      wdCache.textContent = keys.join(', ') || 'none';
+    }catch(e){ wdCache.textContent = 'n/a'; }
+    try{
+      const r = await fetch('/v1/health', {cache:'no-store'});
+      const j = await r.json();
+      wdHealth.textContent = j.ok ? 'Online' : 'Offline';
+    }catch(e){ wdHealth.textContent = 'Offline'; }
+  }
+  document.getElementById('watchdog-close')?.addEventListener('click', closeWatchdog);
+  document.getElementById('wd-refresh')?.addEventListener('click', refreshWatchdog);
+  document.getElementById('wd-purge')?.addEventListener('click', async () => {
+    try{
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }catch(e){}
+    location.reload();
+  });
+  watchdogEl.addEventListener('click', e => { if(e.target === watchdogEl) closeWatchdog(); });
+  watchdogBtn?.addEventListener('click', () => {
+    watchdogEl.classList.add('active');
+    watchdogEl.setAttribute('aria-hidden','false');
+    refreshWatchdog();
+  });
+
+  render();
+
+  // Feature list bullet color
+  document.querySelectorAll('.feature-list li').forEach(li => {
+    li.style.setProperty('color', '#b0b0c8');
+  });
 });
 </script>
 </body>

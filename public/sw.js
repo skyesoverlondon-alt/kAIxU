@@ -1,4 +1,4 @@
-const CACHE = 'kaixu-v5';
+const CACHE = 'kaixu-v6';
 const PRECACHE = [
   '/',
   '/index.html',
@@ -10,6 +10,8 @@ const PRECACHE = [
   '/icons/icon-192.png',
   '/icons/icon-512.png',
 ];
+
+const OFFLINE_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Offline — kAIxU</title><style>body{font-family:Arial,sans-serif;background:#05050a;color:#f0f0f8;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0} .card{padding:20px;border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(255,255,255,.04);box-shadow:0 20px 60px rgba(0,0,0,.45);max-width:360px;text-align:center} h1{margin:0 0 10px;font-size:20px} p{margin:0;color:#b8b8cc}</style></head><body><div class="card"><h1>Offline</h1><p>No network. Cached pages are still available.</p></div></body></html>`;
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -52,7 +54,7 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE).then(c => c.put(e.request, clone));
           return r;
         })
-        .catch(() => caches.match(e.request).then(r => r || caches.match('/kAIxUchat.html')))
+        .catch(() => caches.match(e.request).then(r => r || caches.match('/kAIxUchat.html') || new Response(OFFLINE_HTML,{headers:{'Content-Type':'text/html'}})))
     );
   } else {
     e.respondWith(
