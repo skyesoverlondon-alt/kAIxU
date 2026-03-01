@@ -3,10 +3,11 @@
  * Skyes Over London LC
  *
  * Routes:
- *   GET  /v1/health    → gateway status
- *   GET  /v1/models    → available models
- *   POST /v1/generate  → non-streaming Gemini proxy
- *   POST /v1/stream    → true SSE streaming Gemini proxy (no timeout)
+ *   GET  /v1/health      → gateway status
+ *   GET  /v1/models      → available models
+ *   POST /v1/generate    → non-streaming Gemini proxy
+ *   POST /v1/stream      → true SSE streaming Gemini proxy (no timeout)
+ *   POST /v1/embeddings  → Gemini text embeddings (single + batch)
  *
  * Env vars (set via wrangler.toml [vars] or `wrangler secret put`):
  *   KAIXU_GEMINI_API_KEY   (secret)
@@ -110,11 +111,23 @@ END OF SYSTEM CONTEXT`;
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
 // Models callers are allowed to request. Anything else is rejected.
+// kAIxU-branded names are customer-facing. Gemini names kept for admin/internal backward compat.
 const ALLOWED_MODELS = new Set([
-  "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.0-flash",
-  "gemini-2.0-pro",
+  "kAIxU-flash", "kAIxU-pro",                              // customer-facing branded names
+  "gemini-2.5-flash", "gemini-2.5-pro",                   // internal / backward compat
+  "gemini-2.0-flash", "gemini-2.0-pro",
+]);
+
+// Customer-facing alias → real Gemini model. Real name never leaves the worker.
+const MODEL_ALIASES = {
+  "kAIxU-flash": "gemini-2.5-flash",
+  "kAIxU-pro":   "gemini-2.5-pro",
+};
+
+// Embedding models (separate allowlist — different API surface from generate)
+const ALLOWED_EMBED_MODELS = new Set([
+  "text-embedding-004",
+  "embedding-001",
 ]);
 
 function csvToSet(v) {
@@ -129,32 +142,37 @@ function reqId() {
     .map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
+const CORS_COMMON = {
+  "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-KAIXU-TOKEN",
+  "Access-Control-Expose-Headers": "X-Request-ID, X-kAIxU-Version",
+  "Access-Control-Allow-Credentials": "false",
+  "Access-Control-Max-Age": "86400",
+};
+
 function corsHeaders(request, env) {
   const allow = env.KAIXU_ALLOWED_ORIGINS || "";
-  const origin = request.headers.get("Origin") || "";
+  const origin = (request && request.headers && request.headers.get("Origin")) || "";
 
   if (allow.trim()) {
     const set = csvToSet(allow);
     if (set.has(origin)) {
-      return {
-        "Access-Control-Allow-Origin": origin,
-        "Vary": "Origin",
-        "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-KAIXU-TOKEN",
-        "Access-Control-Max-Age": "86400",
-      };
+      // Exact-match origin — reflect it back. Vary so caches don't collapse per-origin responses.
+      return { ...CORS_COMMON, "Access-Control-Allow-Origin": origin, "Vary": "Origin" };
     }
     // Origin not in explicit allowlist — fall back to wildcard.
     // Real security is KAIXU_APP_TOKENS (CORS only stops browsers, not curl/server calls).
   }
 
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-KAIXU-TOKEN",
-    "Access-Control-Max-Age": "86400",
-  };
+  return { ...CORS_COMMON, "Access-Control-Allow-Origin": "*" };
 }
+
+// Wildcard CORS fallback used when the handler crashes before corsHeaders() is called.
+// Guarantees the browser ALWAYS gets a readable error instead of a phantom CORS failure.
+const CORS_WILDCARD_FALLBACK = {
+  ...CORS_COMMON,
+  "Access-Control-Allow-Origin": "*",
+};
 
 function jsonResp(status, obj, extraHeaders = {}) {
   return new Response(JSON.stringify(obj), {
@@ -340,6 +358,132 @@ function extractUsage(respJson) {
   };
 }
 
+// ─── Embeddings handler ──────────────────────────────────────────────────────
+// POST /v1/embeddings
+// Body: { content: string | string[], model?: string, taskType?: string }
+//   content       — one string or array of strings to embed
+//   model         — optional, defaults to text-embedding-004
+//   taskType      — optional Gemini taskType (RETRIEVAL_DOCUMENT, RETRIEVAL_QUERY,
+//                   SEMANTIC_SIMILARITY, CLASSIFICATION, CLUSTERING, QUESTION_ANSWERING,
+//                   FACT_VERIFICATION). Omit to let Gemini pick.
+// Returns: { ok, model, embeddings: [ { index, values: float[] } ], usage: { totalTokens } }
+
+async function handleEmbed(request, env, rid, ctx) {
+  const t0 = Date.now();
+  const cors = corsHeaders(request, env);
+  const hdrs = { ...cors, "X-Request-ID": rid };
+
+  const auth = await enforceAuth(request, env);
+  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
+  const logBase = { requestId: rid, tokenId: auth.tokenId, tokenPrefix: auth.tokenPrefix, endpoint: "/v1/embeddings" };
+
+  const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
+  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
+
+  const maxBytes = clampInt(env.KAIXU_MAX_BODY_BYTES, 1024, 16_000_000, 5_242_880);
+  const rawBody = await request.text();
+  if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, hdrs);
+
+  let body;
+  try { body = JSON.parse(rawBody); }
+  catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
+
+  const requestedModel = String(body.model || "text-embedding-004").trim();
+  if (!ALLOWED_EMBED_MODELS.has(requestedModel)) {
+    return jsonResp(400, { ok: false, error: `Embedding model "${requestedModel}" is not available. Use: ${[...ALLOWED_EMBED_MODELS].join(", ")}.` }, hdrs);
+  }
+  const model = requestedModel;
+
+  // Normalize content → always an array of strings
+  const rawContent = body.content;
+  if (rawContent == null) {
+    return jsonResp(400, { ok: false, error: "Missing required field: content (string or string[])." }, hdrs);
+  }
+  const inputs = Array.isArray(rawContent)
+    ? rawContent.map(String)
+    : [String(rawContent)];
+
+  if (!inputs.length || inputs.every(s => !s.trim())) {
+    return jsonResp(400, { ok: false, error: "content must not be empty." }, hdrs);
+  }
+
+  const taskType = body.taskType || null;
+
+  // Gemini supports batchEmbedContents for multiple inputs in one call.
+  // For a single input use embedContent (slightly faster path).
+  let upstream, upstreamJson;
+
+  try {
+    if (inputs.length === 1) {
+      // Single embed
+      const geminiBody = {
+        model: `models/${model}`,
+        content: { role: "user", parts: [{ text: inputs[0] }] },
+        ...(taskType ? { taskType } : {}),
+      };
+      upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:embedContent`,
+        { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(geminiBody) }
+      );
+      const text = await upstream.text();
+      try { upstreamJson = JSON.parse(text); } catch (_) {}
+
+      if (!upstream.ok) {
+        const r = jsonResp(upstream.status, { ok: false, error: "Upstream embed error.", details: upstreamJson || { raw: text.slice(0, 4000) } }, hdrs);
+        ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream embed error" }));
+        return r;
+      }
+
+      const values = upstreamJson?.embedding?.values || [];
+      const totalTokens = upstreamJson?.usageMetadata?.totalTokenCount || 0;
+      const r = jsonResp(200, {
+        ok: true, model: "kAIxU-embed",
+        embeddings: [{ index: 0, values }],
+        usage: { totalTokens },
+      }, hdrs);
+      ctx.waitUntil(fireLog(env, { ...logBase, model, totalTokens, statusCode: 200, durationMs: Date.now() - t0 }));
+      return r;
+
+    } else {
+      // Batch embed
+      const geminiBody = {
+        requests: inputs.map(text => ({
+          model: `models/${model}`,
+          content: { role: "user", parts: [{ text }] },
+          ...(taskType ? { taskType } : {}),
+        })),
+      };
+      upstream = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:batchEmbedContents`,
+        { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(geminiBody) }
+      );
+      const text = await upstream.text();
+      try { upstreamJson = JSON.parse(text); } catch (_) {}
+
+      if (!upstream.ok) {
+        const r = jsonResp(upstream.status, { ok: false, error: "Upstream batch embed error.", details: upstreamJson || { raw: text.slice(0, 4000) } }, hdrs);
+        ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream batch embed error" }));
+        return r;
+      }
+
+      const embeddings = (upstreamJson?.embeddings || []).map((e, i) => ({ index: i, values: e.values || [] }));
+      const totalTokens = upstreamJson?.usageMetadata?.totalTokenCount || 0;
+      const r = jsonResp(200, {
+        ok: true, model: "kAIxU-embed",
+        embeddings,
+        usage: { totalTokens },
+      }, hdrs);
+      ctx.waitUntil(fireLog(env, { ...logBase, model, totalTokens, statusCode: 200, durationMs: Date.now() - t0 }));
+      return r;
+    }
+  } catch (e) {
+    const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    return r;
+  }
+}
+
 // ─── Route handlers ───────────────────────────────────────────────────────────
 
 async function handleHealth(request, env, rid) {
@@ -369,12 +513,12 @@ async function handleModels(request, env, rid) {
   const cors = corsHeaders(request, env);
   const hdrs = { ...cors, "X-Request-ID": rid };
   const models = [
-    { id: "gemini-2.5-flash", label: "gemini-2.5-flash (fast)" },
-    { id: "gemini-2.5-pro",   label: "gemini-2.5-pro (best quality)" },
+    { id: "kAIxU-flash", label: "kAIxU Flash (fast, recommended)" },
+    { id: "kAIxU-pro",   label: "kAIxU Pro (advanced reasoning, best quality)" },
   ];
   return jsonResp(200, {
     ok: true,
-    defaultModel: env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash",
+    defaultModel: "kAIxU-flash",
     models,
   }, hdrs);
 }
@@ -408,12 +552,13 @@ async function handleGenerate(request, env, rid, ctx) {
   try { body = JSON.parse(rawBody); }
   catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU-flash").trim();
   // Model allowlist — callers cannot request arbitrary models
   if (!ALLOWED_MODELS.has(requestedModel)) {
     return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
   }
-  const model = requestedModel;
+  const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
+  const clientModel = MODEL_ALIASES[requestedModel] ? requestedModel : "kAIxU"; // branded name returned to callers
 
   const built = buildRequestBody(body, env);
   if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
@@ -454,8 +599,8 @@ async function handleGenerate(request, env, rid, ctx) {
   if (finishReason === "MAX_TOKENS" && !outText) {
     const r = jsonResp(200, {
       ok: false,
-      error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like gemini-2.5-pro require a larger budget).",
-      model, finishReason, usage,
+      error: "Model hit token limit before producing output. Increase maxOutputTokens (kAIxU Pro requires a larger budget).",
+      model: clientModel, finishReason, usage,
     }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0, error: "MAX_TOKENS" }));
     return r;
@@ -464,7 +609,7 @@ async function handleGenerate(request, env, rid, ctx) {
   const includeRaw = !!body.includeRaw;
   const r = jsonResp(200, {
     ok: true,
-    model,
+    model: clientModel,
     text: outText,
     finishReason,
     usage,
@@ -503,12 +648,13 @@ async function handleStream(request, env, rid, ctx) {
   try { body = JSON.parse(rawBody); }
   catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU-flash").trim();
   // Model allowlist
   if (!ALLOWED_MODELS.has(requestedModel)) {
     return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
   }
-  const model = requestedModel;
+  const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
+  // Stream: SSE chunks are piped raw. Build customer UIs to display only .text content, not raw chunk JSON.
 
   // Always build through buildRequestBody — no raw passthrough.
   // body.request bypass was removed: it allowed KAIXU_CANON to be skipped entirely.
@@ -562,26 +708,54 @@ async function handleStream(request, env, rid, ctx) {
 
 export default {
   async fetch(request, env, ctx) {
-    const { method } = request;
-    const url = new URL(request.url);
-    const path = url.pathname.replace(/\/$/, "") || "/";
-    const cors = corsHeaders(request, env);
-    const rid = reqId(); // unique request ID for every request
+    const rid = reqId(); // generate first — needed even on crash
 
-    // CORS preflight
-    if (method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: { ...cors, "X-Request-ID": rid } });
+    try {
+      const { method } = request;
+      const url = new URL(request.url);
+      const path = url.pathname.replace(/\/$/, "") || "/";
+      const cors = corsHeaders(request, env);
+
+      // CORS preflight — handle all OPTIONS immediately, no auth needed.
+      // Browsers send this before every cross-origin POST. Must be instant.
+      if (method === "OPTIONS") {
+        return new Response(null, { status: 204, headers: { ...cors, "X-Request-ID": rid } });
+      }
+
+      // Router
+      if (method === "GET"  && path === "/v1/health")      return handleHealth(request, env, rid);
+      if (method === "GET"  && path === "/v1/models")      return handleModels(request, env, rid);
+      if (method === "POST" && path === "/v1/generate")    return handleGenerate(request, env, rid, ctx);
+      if (method === "POST" && path === "/v1/stream")      return handleStream(request, env, rid, ctx);
+      if (method === "POST" && path === "/v1/embeddings")  return handleEmbed(request, env, rid, ctx);
+
+      // Health also on root GET for browser / uptime monitors
+      if (method === "GET" && (path === "/" || path === "")) return handleHealth(request, env, rid);
+
+      return jsonResp(404, { ok: false, error: `No route for ${method} ${path}` }, { ...cors, "X-Request-ID": rid });
+
+    } catch (err) {
+      // ── Top-level error boundary ─────────────────────────────────────────
+      // If ANY unhandled exception reaches here, we still return CORS headers.
+      // Without this, the browser sees a CORS failure instead of the real error,
+      // making it appear the AI is unreachable when it's actually a worker crash.
+      console.error("[kAIxU] Unhandled worker error:", err?.message || String(err));
+      return new Response(
+        JSON.stringify({
+          ok: false,
+          error: "kAIxU encountered an unexpected error. Please try again.",
+          requestId: rid,
+        }),
+        {
+          status: 500,
+          headers: {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+            "X-Request-ID": rid,
+            ...CORS_WILDCARD_FALLBACK,
+          },
+        }
+      );
     }
-
-    // Router
-    if (method === "GET"  && path === "/v1/health")   return handleHealth(request, env, rid);
-    if (method === "GET"  && path === "/v1/models")   return handleModels(request, env, rid);
-    if (method === "POST" && path === "/v1/generate") return handleGenerate(request, env, rid, ctx);
-    if (method === "POST" && path === "/v1/stream")   return handleStream(request, env, rid, ctx);
-
-    // Health also on root GET for browser
-    if (method === "GET" && (path === "/" || path === "")) return handleHealth(request, env, rid);
-
-    return jsonResp(404, { ok: false, error: `No route for ${method} ${path}` }, { ...cors, "X-Request-ID": rid });
   },
 };
