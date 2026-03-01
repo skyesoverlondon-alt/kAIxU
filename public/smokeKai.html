@@ -480,30 +480,37 @@ async function testCors() {
   const t0 = ms();
   setState("cors", "running");
   $("body-cors").classList.add("open");
+  // NOTE: Browsers forbid setting Origin / Access-Control-Request-* headers from JS.
+  // Manually firing OPTIONS is unreliable. The correct test: send a real cross-origin
+  // POST with Content-Type: application/json (no auth). The browser auto-sends the
+  // OPTIONS preflight internally. If CORS is broken the fetch throws a TypeError.
+  // If CORS is fine we get a 401 (no token) with CORS headers on the actual response.
   try {
     const r = await fetch(`${API_BASE}/v1/generate`, {
-      method: "OPTIONS",
-      headers: {
-        "Origin": window.location.origin,
-        "Access-Control-Request-Method": "POST",
-        "Access-Control-Request-Headers": "Content-Type, Authorization"
-      }
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: "kAIxU-flash", input: { type: "text", content: "cors-probe" } })
     });
     const elapsed = ms() - t0;
-    const allowOrigin  = r.headers.get("access-control-allow-origin");
-    const allowMethods = r.headers.get("access-control-allow-methods");
-    const allowHeaders = r.headers.get("access-control-allow-headers");
+    const allowOrigin = r.headers.get("access-control-allow-origin");
+    const vary        = r.headers.get("vary") || "";
+    const j = await r.json().catch(() => ({}));
     $("resp-cors").textContent = [
-      `HTTP status:                      ${r.status}`,
-      `access-control-allow-origin:      ${allowOrigin || "(missing)"}`,
-      `access-control-allow-methods:     ${allowMethods || "(missing)"}`,
-      `access-control-allow-headers:     ${allowHeaders || "(missing)"}`,
+      `HTTP status:                  ${r.status}`,
+      `access-control-allow-origin: ${allowOrigin || "(missing — check worker CF env)"}`,
+      `vary:                         ${vary || "(none)"}`,
+      `body:                         ${JSON.stringify(j)}`,
+      ``,
+      `Preflight passed — browser received a response (not a network error).`,
+      `If CORS headers were missing the browser would have thrown TypeError.`,
     ].join("\n");
+    const preflightOk  = true; // reaching here means preflight succeeded
+    const statusIs401  = r.status === 401;
+    const hasAoHeader  = !!allowOrigin;
     const checks = [
-      { label: "HTTP 204 (no-content preflight)", ok: r.status === 204 },
-      { label: "Access-Control-Allow-Origin present", ok: !!allowOrigin },
-      { label: "POST method allowed", ok: !!(allowMethods && allowMethods.includes("POST")) },
-      { label: "Authorization header allowed", ok: !!(allowHeaders && allowHeaders.toLowerCase().includes("authorization")) },
+      { label: "Preflight succeeded (no TypeError thrown)", ok: preflightOk },
+      { label: "Server reached — HTTP 401 (no token, expected)", ok: statusIs401 },
+      { label: "access-control-allow-origin present on response", ok: hasAoHeader },
     ];
     renderChecks("cors", checks);
     const passed = checks.every(c => c.ok);
@@ -511,8 +518,13 @@ async function testCors() {
     return { passed, elapsed, checks };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-cors").textContent = "Error: " + e.message;
-    renderChecks("cors", [{ label: "Preflight request reachable", ok: false }]);
+    $("resp-cors").textContent = [
+      `TypeError: ${e.message}`,
+      ``,
+      `This means the browser blocked the request at the CORS preflight stage.`,
+      `Check: worker is deployed and Access-Control-Allow-Origin header is set.`,
+    ].join("\n");
+    renderChecks("cors", [{ label: "Preflight succeeded (no TypeError thrown)", ok: false }]);
     setState("cors", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
@@ -534,7 +546,7 @@ async function testGenerate(token) {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders(token) },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "kAIxU-flash",
         input: { type: "text", content: 'Say exactly this and nothing else: "kAIxU is live."' },
         generationConfig: { temperature: 0, maxOutputTokens: 60 }
       })
@@ -578,7 +590,7 @@ async function testStream(token) {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders(token) },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "kAIxU-flash",
         input: { type: "text", content: "Count to 3, comma-separated." },
         generationConfig: { temperature: 0, maxOutputTokens: 60 }
       })
