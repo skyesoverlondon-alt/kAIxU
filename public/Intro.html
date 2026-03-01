@@ -542,6 +542,9 @@
         flash.classList.add('active');
         await sleep(120); // White out screen
         
+        // Mark intro as permanently seen — skips it on all future sessions
+        localStorage.setItem('kaixuIntroSkip', '1');
+
         // Hide boot screen & show app while screen is white
         bootSequence.classList.add('hidden');
         if (returnTarget && returnTarget !== window.location.pathname) {
