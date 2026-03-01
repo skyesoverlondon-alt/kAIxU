@@ -9,18 +9,19 @@
 <title>Inner Sanctum — kAIxU Complete Guide</title>
 <script>
 (function(){
-  const passKey='kaixuIntroPass';
+  const seenKey='kaixuIntroSeenV2';
   const introReturnKey='kaixuIntroReturn';
   const introUrl='/Intro.html';
   const skip=localStorage.getItem('kaixuIntroSkip');
-  if(skip){ sessionStorage.setItem(passKey,'1'); }
-  const pass=sessionStorage.getItem(passKey);
-  if(!pass){
-    sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
-    window.location.replace(introUrl);
+  if(skip || sessionStorage.getItem(seenKey)){
+    // Already seen intro this session (or skip is set) — let the page load
+    sessionStorage.setItem(seenKey,'1');
     return;
   }
-  sessionStorage.removeItem(passKey); // consume pass so intro plays every load unless skip is set
+  // First visit this session — send to intro and come back
+  sessionStorage.setItem(seenKey,'1');
+  sessionStorage.setItem(introReturnKey,window.location.pathname+window.location.search+window.location.hash);
+  window.location.replace(introUrl);
 })();
 </script>
 <style>
