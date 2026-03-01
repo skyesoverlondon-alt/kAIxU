@@ -2,6 +2,11 @@ name = "kaixu67"
 main = "src/index.js"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
 account_id = "994dcbdf4404db05122940396a622102"
 workers_dev = true
 
