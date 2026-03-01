@@ -52,25 +52,32 @@ exports.handler = async function (event, context) {
     }
 
     // ── Monthly quota enforcement ─────────────────────────────────────────────
+    // Wrapped in its own try/catch — if daily_usage table doesn't exist yet
+    // or has any DB error, we skip the quota check rather than killing auth.
     if (row.monthly_limit != null) {
-      const now = new Date();
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-      const { rows: usageRows } = await db.query(
-        `SELECT COALESCE(SUM(requests), 0)::int AS month_requests
-           FROM daily_usage
-          WHERE token_id = $1 AND date >= $2`,
-        [row.id, monthStart]
-      );
-      const monthRequests = usageRows[0]?.month_requests ?? 0;
-      if (monthRequests >= row.monthly_limit) {
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        return resp(200, {
-          valid: false,
-          reason: "quota_exceeded",
-          resetDate: nextMonth.toISOString().slice(0, 10),
-          monthlyLimit: row.monthly_limit,
-          monthRequests,
-        });
+      try {
+        const now = new Date();
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+        const { rows: usageRows } = await db.query(
+          `SELECT COALESCE(SUM(requests), 0)::int AS month_requests
+             FROM daily_usage
+            WHERE token_id = $1 AND date >= $2`,
+          [row.id, monthStart]
+        );
+        const monthRequests = usageRows[0]?.month_requests ?? 0;
+        if (monthRequests >= row.monthly_limit) {
+          const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+          return resp(200, {
+            valid: false,
+            reason: "quota_exceeded",
+            resetDate: nextMonth.toISOString().slice(0, 10),
+            monthlyLimit: row.monthly_limit,
+            monthRequests,
+          });
+        }
+      } catch (quotaErr) {
+        // daily_usage table may not exist yet — skip quota check, do not fail auth
+        console.warn("[admin-token-verify] quota check skipped (table may not exist):", quotaErr?.message);
       }
     }
 
