@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kAIxU — Customer Portal</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #1f2937;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #0ea5e9;
+      --accent2: #7c3aed;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+    }
+
+    /* ── Shared components ──────────────────────────────────── */
+    .logo {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 8px;
+    }
+    .tagline { color: var(--muted); font-size: 0.85rem; margin-bottom: 36px; }
+
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .card h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+
+    label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; margin-top: 14px; }
+
+    input[type="email"], input[type="text"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus { border-color: var(--accent); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      text-decoration: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary  { background: var(--accent);  color: #fff; }
+    .btn-purple   { background: var(--accent2); color: #fff; }
+    .btn-ghost    { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-danger   { background: var(--danger);  color: #fff; }
+    .btn-success  { background: var(--success); color: #fff; }
+    .btn-full     { width: 100%; margin-top: 16px; }
+
+    .msg {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-top: 14px;
+    }
+    .msg-info    { background: rgba(14,165,233,0.12); color: var(--accent);  border: 1px solid rgba(14,165,233,0.3); }
+    .msg-success { background: rgba(34,197,94,0.12);  color: var(--success); border: 1px solid rgba(34,197,94,0.3); }
+    .msg-error   { background: rgba(239,68,68,0.12);  color: var(--danger);  border: 1px solid rgba(239,68,68,0.3); }
+    .msg-warn    { background: rgba(245,158,11,0.12); color: var(--warn);    border: 1px solid rgba(245,158,11,0.3); }
+
+    .hidden { display: none !important; }
+
+    /* ── Loading spinner ────────────────────────────────────── */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Dashboard ──────────────────────────────────────────── */
+    #dashboard { width: 100%; max-width: 560px; display: flex; flex-direction: column; gap: 20px; }
+
+    .dash-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 20px;
+    }
+    .dash-email   { font-weight: 600; }
+    .dash-tier-badge {
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
+      text-transform: uppercase; padding: 3px 8px; border-radius: 20px;
+    }
+    .tier-lite       { background: rgba(139,148,158,0.2); color: var(--muted); }
+    .tier-starter    { background: rgba(14,165,233,0.2);  color: var(--accent); }
+    .tier-pro        { background: rgba(124,58,237,0.2);  color: var(--accent2); }
+    .tier-enterprise { background: rgba(34,197,94,0.2);   color: var(--success); }
+
+    .section-title {
+      font-size: 0.75rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+
+    /* Token card */
+    .token-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .token-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+    }
+    .token-label  { font-size: 0.85rem; color: var(--muted); margin-bottom: 6px; }
+    .token-value  {
+      font-family: "SFMono-Regular", Consolas, monospace;
+      font-size: 0.95rem; color: var(--text);
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 12px;
+      flex: 1; min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .token-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .token-meta { font-size: 0.78rem; color: var(--muted); margin-top: 8px; }
+    .badge-active   { color: var(--success); font-weight: 600; }
+    .badge-expired  { color: var(--danger);  font-weight: 600; }
+    .badge-inactive { color: var(--muted);   font-weight: 600; }
+
+    /* Usage bar */
+    .usage-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+    }
+    .usage-numbers {
+      display: flex; align-items: baseline; gap: 6px; margin-bottom: 8px;
+    }
+    .usage-big { font-size: 1.5rem; font-weight: 700; }
+    .usage-limit { font-size: 0.85rem; color: var(--muted); }
+    .usage-bar-bg {
+      height: 6px; border-radius: 3px; background: var(--bg3);
+      overflow: hidden;
+    }
+    .usage-bar-fill {
+      height: 100%; border-radius: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.6s ease;
+    }
+    .usage-bar-fill.warn  { background: linear-gradient(90deg, var(--warn), var(--danger)); }
+    .usage-sub { font-size: 0.78rem; color: var(--muted); margin-top: 6px; }
+
+    /* Upgrade / billing buttons */
+    .actions-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 20px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .actions-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    /* Divider */
+    hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+  </style>
+</head>
+<body>
+
+  <a class="logo" href="/">kAIxU</a>
+  <p class="tagline">AI API Gateway — Customer Portal</p>
+
+  <!-- Loading state -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Loading…</span>
+  </div>
+
+  <!-- Sign-in / auth section (shown when not authenticated) -->
+  <div id="auth-section" class="card hidden">
+    <h2>Sign in to kAIxU</h2>
+
+    <div id="signin-form">
+      <label for="email-input">Email address</label>
+      <input id="email-input" type="email" placeholder="you@example.com" autocomplete="email" />
+      <button class="btn btn-primary btn-full" onclick="handleSignup()">Send sign-in link →</button>
+    </div>
+
+    <div id="signin-sent" class="hidden">
+      <div class="msg msg-success" style="margin-top:0">
+        ✔ Check your inbox — a sign-in link is on its way.<br>
+        <span style="font-size:0.8em;opacity:0.8">Link expires in 15 minutes.</span>
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="resetSigninForm()" style="margin-top:12px">
+        ← Try a different email
+      </button>
+    </div>
+
+    <div id="auth-msg"></div>
+  </div>
+
+  <!-- Dashboard (shown when authenticated) -->
+  <div id="dashboard" class="hidden">
+
+    <!-- Header: email + tier badge -->
+    <div class="dash-header">
+      <div>
+        <div class="dash-email" id="d-email">—</div>
+        <div style="font-size:0.78rem;color:var(--muted);margin-top:2px" id="d-member-since"></div>
+      </div>
+      <div id="d-tier-badge" class="dash-tier-badge tier-lite">Lite</div>
+    </div>
+
+    <!-- API Token(s) -->
+    <div>
+      <div class="section-title">API Token</div>
+      <div id="tokens-container">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+
+    <!-- Usage this month -->
+    <div>
+      <div class="section-title">Usage — this month</div>
+      <div class="usage-card">
+        <div class="usage-numbers">
+          <div class="usage-big" id="d-requests">—</div>
+          <div class="usage-limit" id="d-month-limit"></div>
+        </div>
+        <div class="usage-bar-bg">
+          <div class="usage-bar-fill" id="d-usage-bar" style="width:0%"></div>
+        </div>
+        <div class="usage-sub" id="d-usage-sub">requests this calendar month</div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div>
+      <div class="section-title">Account</div>
+      <div class="actions-card">
+        <div class="actions-row" id="d-upgrade-row">
+          <button class="btn btn-purple" id="btn-upgrade" onclick="handleUpgrade()">
+            ⚡ Upgrade Plan
+          </button>
+          <button class="btn btn-ghost" id="btn-billing" onclick="handleBilling()">
+            💳 Manage Billing
+          </button>
+        </div>
+        <hr/>
+        <div class="actions-row">
+          <button class="btn btn-ghost" onclick="handleLogout()">Sign out</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="dash-msg"></div>
+  </div>
+
+<script>
+// ── URL param helpers ──────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+
+const ERROR_MSGS = {
+  invalid_link:  "That sign-in link is invalid.",
+  link_used:     "That sign-in link has already been used. Please request a new one.",
+  link_expired:  "That sign-in link has expired. Please request a new one.",
+  server_error:  "Something went wrong. Please try again.",
+};
+
+// ── Boot ───────────────────────────────────────────────────────────────────────
+(async function boot() {
+  if (params.get("upgraded") === "1") showDashMsg("✔ Plan upgraded! Your new limits are active.", "success");
+  if (params.get("checkout") === "cancelled") showDashMsg("Checkout cancelled — no charge was made.", "warn");
+
+  const errorKey = params.get("error");
+  const authMsg  = document.getElementById("auth-msg");
+
+  try {
+    const res  = await fetch("/api/customer/me", { credentials: "include" });
+    const data = await res.json();
+
+    if (res.status === 401 || !data.ok) {
+      showAuth(errorKey, authMsg);
+      return;
+    }
+
+    renderDashboard(data);
+  } catch {
+    showAuth(errorKey, authMsg);
+  }
+})();
+
+// ── Auth section ───────────────────────────────────────────────────────────────
+function showAuth(errorKey, msgEl) {
+  hide("loading");
+  show("auth-section");
+
+  if (errorKey && ERROR_MSGS[errorKey]) {
+    msgEl.innerHTML = `<div class="msg msg-error">${ERROR_MSGS[errorKey]}</div>`;
+  }
+}
+
+async function handleSignup() {
+  const email = document.getElementById("email-input").value.trim();
+  const msgEl = document.getElementById("auth-msg");
+  msgEl.innerHTML = "";
+
+  if (!email) {
+    msgEl.innerHTML = `<div class="msg msg-error">Please enter your email address.</div>`;
+    return;
+  }
+
+  try {
+    const res  = await fetch("/api/customer/signup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    const data = await res.json();
+
+    if (!data.ok) {
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || "Failed")}</div>`;
+      return;
+    }
+
+    hide("signin-form");
+    show("signin-sent");
+  } catch {
+    msgEl.innerHTML = `<div class="msg msg-error">Network error. Please try again.</div>`;
+  }
+}
+
+function resetSigninForm() {
+  hide("signin-sent");
+  show("signin-form");
+  document.getElementById("auth-msg").innerHTML = "";
+}
+
+// Pressing Enter triggers signup
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && document.getElementById("auth-section") && !document.getElementById("auth-section").classList.contains("hidden")) {
+    handleSignup();
+  }
+});
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
+function renderDashboard(data) {
+  hide("loading");
+  show("dashboard");
+
+  const { customer, tokens, usage } = data;
+
+  // Header
+  setText("d-email", customer.email);
+  setText("d-member-since", "Member since " + fmtDate(customer.createdAt));
+
+  const tierEl    = document.getElementById("d-tier-badge");
+  const tier      = customer.tier || "lite";
+  tierEl.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
+  tierEl.className = `dash-tier-badge tier-${tier}`;
+
+  // Tokens
+  const container = document.getElementById("tokens-container");
+  if (!tokens.length) {
+    container.innerHTML = `<div class="msg msg-warn">No API token found. Sign in again to get your free Lite token.</div>`;
+  } else {
+    container.innerHTML = tokens.map(t => tokenCardHTML(t)).join("");
+  }
+
+  // Usage
+  const activeToken  = tokens.find(t => t.isActive) || tokens[0];
+  const limit        = activeToken?.monthlyLimit || null;
+  const used         = usage.requestsThisMonth || 0;
+  const pct          = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+
+  setText("d-requests", used.toLocaleString());
+  setText("d-month-limit", limit ? `/ ${limit.toLocaleString()} requests` : "/ Unlimited");
+
+  const bar = document.getElementById("d-usage-bar");
+  bar.style.width = limit ? pct + "%" : "0%";
+  if (pct >= 80) bar.classList.add("warn");
+
+  // Upgrade / billing visibility
+  if (customer.hasSubscription) {
+    document.getElementById("btn-upgrade").classList.add("hidden");
+  }
+  if (!customer.hasStripe) {
+    document.getElementById("btn-billing").classList.add("hidden");
+  }
+}
+
+function tokenCardHTML(t) {
+  const isExpired   = t.expiresAt && new Date(t.expiresAt) < new Date();
+  const statusLabel = !t.isActive ? "Inactive" : isExpired ? "Expired" : "Active";
+  const statusClass = !t.isActive ? "badge-inactive" : isExpired ? "badge-expired" : "badge-active";
+
+  const expiryNote = t.expiresAt
+    ? isExpired
+      ? `Expired ${fmtDate(t.expiresAt)}`
+      : `Expires ${fmtDate(t.expiresAt)}`
+    : "No expiry";
+
+  return `
+    <div class="token-card" style="margin-bottom:10px">
+      <div class="token-label">${esc(t.label)}</div>
+      <div class="token-row">
+        <div class="token-value" id="tv-${t.id}">${esc(t.prefix)}••••••••••••</div>
+        <button class="btn btn-ghost" style="white-space:nowrap" onclick="copyPrefix('${esc(t.prefix)}','${t.id}')">
+          📋 Copy prefix
+        </button>
+      </div>
+      <div class="token-actions">
+        <!-- User must have saved their token at issue time — show prefix only -->
+      </div>
+      <div class="token-meta">
+        <span class="${statusClass}">● ${statusLabel}</span>
+        &nbsp;·&nbsp; ${esc(expiryNote)}
+        &nbsp;·&nbsp; Models: ${(t.allowedModels || ["All"]).join(", ")}
+      </div>
+    </div>
+  `;
+}
+
+// ── Actions ────────────────────────────────────────────────────────────────────
+async function handleUpgrade() {
+  const btn = document.getElementById("btn-upgrade");
+  btn.disabled = true;
+  btn.textContent = "Opening checkout…";
+  clearDashMsg();
+
+  try {
+    const res  = await fetch("/api/customer/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({}),
+    });
+    const data = await res.json();
+
+    if (!data.ok || !data.url) {
+      showDashMsg(data.error || "Failed to open checkout.", "error");
+      btn.disabled = false;
+      btn.textContent = "⚡ Upgrade Plan";
+      return;
+    }
+
+    window.location.href = data.url;
+  } catch {
+    showDashMsg("Network error. Please try again.", "error");
+    btn.disabled = false;
+    btn.textContent = "⚡ Upgrade Plan";
+  }
+}
+
+async function handleBilling() {
+  const btn = document.getElementById("btn-billing");
+  btn.disabled = true;
+  btn.textContent = "Opening portal…";
+  clearDashMsg();
+
+  try {
+    const res  = await fetch("/api/customer/billing", {
+      method: "POST",
+      credentials: "include",
+    });
+    const data = await res.json();
+
+    if (!data.ok || !data.url) {
+      showDashMsg(data.error || "Failed to open billing portal.", "error");
+      btn.disabled = false;
+      btn.textContent = "💳 Manage Billing";
+      return;
+    }
+
+    window.location.href = data.url;
+  } catch {
+    showDashMsg("Network error. Please try again.", "error");
+    btn.disabled = false;
+    btn.textContent = "💳 Manage Billing";
+  }
+}
+
+async function handleLogout() {
+  await fetch("/api/customer/logout", { method: "POST", credentials: "include" }).catch(() => {});
+  location.href = "/portal.html";
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function copyPrefix(prefix, id) {
+  navigator.clipboard?.writeText(prefix).then(() => {
+    const el = document.getElementById("tv-" + id);
+    if (el) { el.style.color = "var(--success)"; setTimeout(() => (el.style.color = ""), 1200); }
+  });
+}
+
+function showDashMsg(text, type = "info") {
+  document.getElementById("dash-msg").innerHTML =
+    `<div class="msg msg-${type}">${esc(text)}</div>`;
+}
+function clearDashMsg() { document.getElementById("dash-msg").innerHTML = ""; }
+
+function show(id) { document.getElementById(id)?.classList.remove("hidden"); }
+function hide(id) { document.getElementById(id)?.classList.add("hidden"); }
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function esc(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+function fmtDate(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+</script>
+</body>
+</html>

@@ -78,3 +78,41 @@ package = "@netlify/plugin-functions-install-core"
   from = "/api/admin/events"
   to = "/.netlify/functions/admin-events"
   status = 200
+# ── Customer self-serve API ────────────────────────────────────────────────────
+# Public (no auth required)
+[[redirects]]
+  from = "/api/customer/signup"
+  to = "/.netlify/functions/customer-signup"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer/verify"
+  to = "/.netlify/functions/customer-verify"
+  status = 200
+
+# Stripe webhook (no session auth — uses Stripe signature)
+[[redirects]]
+  from = "/api/customer/stripe-webhook"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
+
+# Session-authenticated customer routes
+[[redirects]]
+  from = "/api/customer/me"
+  to = "/.netlify/functions/customer-me"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer/checkout"
+  to = "/.netlify/functions/customer-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer/billing"
+  to = "/.netlify/functions/customer-billing"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer/logout"
+  to = "/.netlify/functions/customer-logout"
+  status = 200
