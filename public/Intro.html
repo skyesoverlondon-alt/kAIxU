@@ -396,6 +396,15 @@
         >
       </div>
 
+      <!-- Skip Button -->
+      <button id="skip-btn" onclick="skipIntro()" style="
+        position:absolute;top:20px;right:24px;z-index:9999;
+        background:transparent;border:1px solid rgba(0,243,255,0.35);
+        color:rgba(0,243,255,0.6);font-family:var(--mono);font-size:11px;
+        letter-spacing:.15em;padding:6px 14px;border-radius:4px;cursor:pointer;
+        text-transform:uppercase;transition:color .15s,border-color .15s;
+      " onmouseover="this.style.color='#00f3ff';this.style.borderColor='rgba(0,243,255,0.8)'" onmouseout="this.style.color='rgba(0,243,255,0.6)';this.style.borderColor='rgba(0,243,255,0.35)'">Skip →</button>
+
       <!-- Terminal Output -->
       <div class="terminal-output" id="terminal"></div>
 
@@ -542,9 +551,6 @@
         flash.classList.add('active');
         await sleep(120); // White out screen
         
-        // Mark intro as permanently seen — skips it on all future sessions
-        localStorage.setItem('kaixuIntroSkip', '1');
-
         // Hide boot screen & show app while screen is white
         bootSequence.classList.add('hidden');
         if (returnTarget && returnTarget !== window.location.pathname) {
@@ -598,6 +604,19 @@
 
         // Sequence is finished -> Trigger App transition
         triggerUnlock();
+      }
+
+      function skipIntro() {
+        const target = returnTarget && returnTarget !== window.location.pathname ? returnTarget : null;
+        bootSequence.classList.add('hidden');
+        if (target) {
+          sessionStorage.setItem('kaixuIntroPass','1');
+          sessionStorage.removeItem(introReturnKey);
+          window.location.href = target;
+        } else {
+          appContainer.classList.add('active');
+          document.body.style.overflow = 'auto';
+        }
       }
 
       setTimeout(() => {
