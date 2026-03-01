@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "kaixu"
+version = "1.0.0"
+description = "Official Python client for the kAIxU AI gateway"
+readme = "README.md"
+license = { text = "UNLICENSED" }
+requires-python = ">=3.9"
+dependencies = []  # httpx or requests chosen at runtime — install either one
+
+[project.optional-dependencies]
+httpx     = ["httpx>=0.27"]
+requests  = ["requests>=2.31"]
+all       = ["httpx>=0.27"]
+
+[project.urls]
+Homepage = "https://kaixu67.skyesoverlondon.workers.dev"
+Repository = "https://github.com/skyesoverlondon-alt/kAIxU"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kaixu*"]

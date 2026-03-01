@@ -1,0 +1,18 @@
+{
+  "name": "@kaixu/client",
+  "version": "1.0.0",
+  "description": "Official JavaScript/TypeScript client for the kAIxU AI gateway",
+  "main": "src/index.js",
+  "module": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "type": "module",
+  "files": ["src"],
+  "keywords": ["kaixu", "ai", "gateway", "llm", "embeddings"],
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/skyesoverlondon-alt/kAIxU"
+  }
+}
