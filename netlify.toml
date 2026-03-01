@@ -30,6 +30,12 @@ package = "@netlify/plugin-functions-install-core"
   to = "/.netlify/functions/kaixu-stream"
   status = 200
 
+# Client beacon / telemetry sink
+[[redirects]]
+  from = "/v1/telemetry"
+  to = "/.netlify/functions/kaixu-telemetry"
+  status = 200
+
 # ── Admin API routes ───────────────────────────────────────────────────────────
 # Service-secret auth (called by Cloudflare Worker)
 [[redirects]]
