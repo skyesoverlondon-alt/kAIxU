@@ -423,7 +423,7 @@ async function handleEmbed(request, env, rid, ctx) {
         ...(taskType ? { taskType } : {}),
       };
       upstream = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:embedContent`,
+        `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(model)}:embedContent`,
         { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(geminiBody) }
       );
       const text = await upstream.text();
@@ -455,7 +455,7 @@ async function handleEmbed(request, env, rid, ctx) {
         })),
       };
       upstream = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:batchEmbedContents`,
+        `https://generativelanguage.googleapis.com/v1/models/${encodeURIComponent(model)}:batchEmbedContents`,
         { method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": key }, body: JSON.stringify(geminiBody) }
       );
       const text = await upstream.text();
