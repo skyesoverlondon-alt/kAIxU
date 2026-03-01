@@ -75,6 +75,20 @@
       text-transform: uppercase; letter-spacing: .7px; font-weight: 600; }
     #emptyTree { padding: 20px 12px; font-size: 12px; color: var(--muted); text-align: center;
       line-height: 1.8; }
+    .panel-box { padding: 8px 12px; border-top: 1px solid var(--border); display: flex;
+      flex-direction: column; gap: 8px; }
+    .panel-box input, .panel-box select, .panel-box button, .panel-box textarea {
+      font-size: 12px; }
+    #gitChanges { max-height: 120px; overflow: auto; border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 8px; font-size: 12px; background: rgba(255,255,255,0.02); }
+    #gitChanges div { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    #gitChanges div:last-child { border-bottom: none; }
+    #taskLog { min-height: 80px; max-height: 160px; overflow: auto; border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 8px; font-family: 'SF Mono','Fira Code',monospace;
+      font-size: 11px; background: rgba(0,0,0,0.2); color: var(--fg); white-space: pre-wrap; }
+    .small-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; }
+    .hint-box { padding: 8px 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 8px; font-size: 12px; color: var(--muted); }
 
     /* EDITOR */
     #editorPane { grid-row: 2; grid-column: 2;
@@ -167,6 +181,19 @@
     #idbBadge { font-size: 10px; color: var(--muted); padding: 0 12px 8px;
       display: flex; gap: 6px; align-items: center; }
     #idbBadge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink:0; }
+    /* Tutorial overlay */
+    #tutorialBackdrop { position: fixed; inset: 0; background: rgba(7,6,13,0.9); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 20px; }
+    #tutorialBackdrop.active { display: flex; }
+    #tutorialCard { max-width: 820px; width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 18px 18px 14px; color: var(--fg); box-shadow: 0 15px 40px rgba(0,0,0,0.45);
+      overflow-y: auto; max-height: 90vh; }
+    #tutorialCard h2 { margin-bottom: 8px; font-size: 18px; }
+    #tutorialCard h3 { margin: 14px 0 6px; font-size: 13px; letter-spacing: .2px; color: var(--muted); text-transform: uppercase; }
+    #tutorialCard ul { margin-left: 16px; margin-top: 4px; margin-bottom: 6px; line-height: 1.5; color: #d9d7f5; }
+    #tutorialCard li { margin-bottom: 4px; }
+    #tutorialClose { float: right; background: rgba(255,255,255,0.06); border: 1px solid var(--border);
+      color: var(--muted); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -205,9 +232,24 @@
       <option value="gemini-2.5-flash">gemini-2.5-flash</option>
       <option value="gemini-2.5-pro">gemini-2.5-pro</option>
     </select>
+    <div style="display:flex;gap:6px;align-items:center;padding-left:8px;border-left:1px solid var(--border);margin-left:8px">
+      <input id="ghRepo" placeholder="owner/repo" style="width:140px" oninput="saveGitPref('repo',this.value)" />
+      <input id="ghBranch" placeholder="branch" value="main" style="width:80px" oninput="saveGitPref('branch',this.value)" />
+      <input id="ghPath" placeholder="path/in/repo" style="width:140px" oninput="saveGitPref('path',this.value)" />
+      <input id="ghToken" type="password" placeholder="GitHub PAT" style="width:120px" oninput="saveGitPref('token',this.value)" />
+      <button class="tb-btn primary" onclick="pushCurrentFileToGitHub()">⬆ Push</button>
+      <span id="pushStatus" style="font-size:11px;color:var(--muted);"></span>
+    </div>
     <button class="tb-btn" onclick="openFolder()">📂 Open Folder</button>
     <button class="tb-btn" onclick="openSingleFile()">📄 Open File</button>
     <button class="tb-btn primary" onclick="saveCurrentFile()" id="btnSave" style="display:none">💾 Save</button>
+    <button class="tb-btn" onclick="formatCurrentFile()">✨ Format</button>
+    <button class="tb-btn" onclick="lintCurrentFile()">🔍 Lint</button>
+    <label style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted);padding:0 6px;border-left:1px solid var(--border);">
+      <input type="checkbox" id="autoFormatToggle" onchange="toggleAutoFormat(this.checked)" />
+      auto-format
+    </label>
+    <button class="tb-btn" onclick="showTutorial()">❔ Tutorial</button>
     <button class="tb-btn" onclick="refreshPreview()">▶ Run</button>
   </header>
 
@@ -218,14 +260,100 @@
     <div class="drop-sub">Folders · ZIP archives · Any text or code file</div>
   </div>
 
+  <!-- TUTORIAL OVERLAY -->
+  <div id="tutorialBackdrop" onclick="closeTutorial(event)">
+    <div id="tutorialCard" onclick="event.stopPropagation()">
+      <button id="tutorialClose" onclick="closeTutorial(event)">✕ Close</button>
+      <h2>skAIxu IDE — Quick Tutorial</h2>
+      <div style="color:var(--muted);margin-bottom:8px">Everything runs in your browser — no server-side secrets.</div>
+
+      <h3>Open & Save</h3>
+      <ul>
+        <li>📂 Open Folder / 📄 Open File imports into IndexedDB (auto-saves here).</li>
+        <li>💾 Save writes to IndexedDB; if opened via File Picker it also writes back to disk.</li>
+        <li>Drag & drop folders, files, or ZIPs into the app to load them.</li>
+      </ul>
+
+      <h3>Edit & Preview</h3>
+      <ul>
+        <li>Monaco editor with word wrap, Ctrl/Cmd+S to save, Run to preview HTML in the right pane.</li>
+        <li>Auto-format toggle applies Prettier on save; use ✨ Format / 🔍 Lint manually.</li>
+        <li>Language hints appear in the AI panel; preview updates for HTML after save/run.</li>
+      </ul>
+
+      <h3>AI Assist</h3>
+      <ul>
+        <li>Enter an instruction, click ✦ Ask AI; suggested diff shows below. Apply/Reject to control changes.</li>
+        <li>Requires your Gateway token (top bar) and chosen model.</li>
+      </ul>
+
+      <h3>Search & Replace</h3>
+      <ul>
+        <li>Search workspace field filters across all loaded files; click a hit to jump.</li>
+        <li>Replace prompts for find/replace and applies across loaded files (current editor included).</li>
+      </ul>
+
+      <h3>Git (GitHub API)</h3>
+      <ul>
+        <li>Set owner/repo, branch, path (optional), PAT. Pull loads tree into the IDE.</li>
+        <li>Diff shows workspace vs pulled base. Commit+Push creates blobs/tree/commit and updates the branch ref.</li>
+        <li>Use ⬆ Push (top bar) for single-file updates without the full commit flow.</li>
+      </ul>
+
+      <h3>Tasks (WebContainer)</h3>
+      <ul>
+        <li>Select a package.json script to prefill, or type any command (e.g., npm install).</li>
+        <li>Runs in an in-browser WebContainer; stop with ■ Stop. Install deps before running builds.</li>
+      </ul>
+
+      <h3>Tips</h3>
+      <ul>
+        <li>State persists in IndexedDB. Clear with ✕ clear under Files.</li>
+        <li>Large repos: pull caps at 500 blobs, skips files &gt;200 KB to stay responsive.</li>
+        <li>Keep PAT scoped minimally (repo/write). No secrets are stored server-side.</li>
+      </ul>
+    </div>
+  </div>
+
   <!-- FILE TREE -->
   <aside id="filetree">
     <div class="tree-header">
       <span>Files</span>
       <button onclick="clearIDB()" title="Clear all stored files" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:0" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color=''">✕ clear</button>
     </div>
+    <div style="padding:8px 12px;display:flex;gap:6px;align-items:center;border-bottom:1px solid var(--border)">
+      <input id="wsSearch" placeholder="Search workspace" style="flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--fg);font-size:12px" oninput="debouncedSearchWorkspace()" />
+      <button class="tb-btn" style="padding:5px 8px;font-size:11px" onclick="runWorkspaceReplace()">Replace</button>
+    </div>
     <div id="fileList">
       <div id="emptyTree">Drop a folder, ZIP, or file<br>— or click Open above</div>
+    </div>
+    <div id="searchResults" style="max-height:180px;overflow:auto;border-top:1px solid var(--border);display:none"></div>
+    <div class="tree-header"><span>Git</span></div>
+    <div class="panel-box" id="gitPanel">
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button class="tb-btn" style="padding:5px 8px" onclick="pullRepo()">⬇ Pull</button>
+        <button class="tb-btn" style="padding:5px 8px" onclick="renderGitDiff()">📄 Diff</button>
+        <button class="tb-btn primary" style="padding:5px 10px" onclick="commitAndPushRepo()">⬆ Commit+Push</button>
+      </div>
+      <input id="gitCommitMsg" placeholder="Commit message" value="Update via skAIxu IDE" style="padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--fg)" />
+      <div id="gitStatus" style="font-size:12px;color:var(--muted)">Pull to load repo state</div>
+      <div class="small-label">Changes</div>
+      <div id="gitChanges">No changes yet.</div>
+    </div>
+    <div class="tree-header"><span>Tasks</span></div>
+    <div class="panel-box" id="taskPanel">
+      <div style="display:flex;gap:6px;align-items:center">
+        <span class="small-label">Script</span>
+        <select id="taskScript" onchange="prefillTaskCommand()" style="flex:1;padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--fg)"></select>
+      </div>
+      <input id="taskCommand" placeholder="npm run build" style="padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--fg)" />
+      <div style="display:flex;gap:6px">
+        <button class="tb-btn" style="flex:1;padding:6px 10px" onclick="runTaskCommand()">▶ Run</button>
+        <button class="tb-btn" style="padding:6px 10px" onclick="stopTask()">■ Stop</button>
+      </div>
+      <div class="small-label">Log</div>
+      <pre id="taskLog"></pre>
     </div>
     <div id="idbBadge"><span class="dot"></span><span id="idbInfo">IndexedDB ready</span></div>
   </aside>
@@ -248,6 +376,10 @@
       <button id="btnReject" onclick="rejectEdit()">✗ Reject</button>
     </div>
     <div id="aiStatus"></div>
+    <div class="panel-section" style="margin-top:-4px">
+      <div class="panel-label">Language Hints</div>
+      <div id="langHints" class="hint-box">Open a file to see quick tips.</div>
+    </div>
     <div class="panel-section" style="margin-bottom:8px">
       <div class="panel-label">Changes</div>
     </div>
@@ -272,11 +404,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <!-- Monaco Editor (CDN) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+<!-- Prettier (standalone) + parsers -->
+<script src="https://unpkg.com/prettier@2.8.8/standalone.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-babel.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-html.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-postcss.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-typescript.js"></script>
+<script src="https://unpkg.com/prettier@2.8.8/parser-markdown.js"></script>
+<!-- ESLint in the browser -->
+<script src="https://unpkg.com/eslint4b@8.57.0/dist/eslint4b.min.js"></script>
 <script>
 const API_BASE = 'https://kaixu67.skyesoverlondon.workers.dev';
 const IDB_NAME = 'kaixu-ide';
 const IDB_STORE = 'files';
 const IDB_VERSION = 1;
+const GH_PREF_KEY = 'kaixu_ide_gh';
 
 // ── STATE ──
 let editor = null;
@@ -288,12 +430,31 @@ let previewBlobUrl = null;
 const handleMap = new Map();
 // in-memory file list: [{path, content}]
 let allFiles = [];
+let latestSearchTerm = '';
+let searchTimeout = null;
+let gitBase = { headSha:'', treeSha:'', files:{} };
+let gitDiff = [];
+let autoFormatEnabled = false;
+let packageScripts = [];
+let webcontainer = null;
+let runningTask = null;
 
 // ── PREFS ──
 function loadToken()  { return localStorage.getItem('kaixu_ide_token') || ''; }
 function saveToken(v) { localStorage.setItem('kaixu_ide_token', v); }
 function loadModel()  { return localStorage.getItem('kaixu_ide_model') || 'gemini-2.5-flash'; }
 function saveModel(v) { localStorage.setItem('kaixu_ide_model', v); }
+
+// ── GIT PREFS ──
+function loadGitPrefs(){
+  try { return JSON.parse(localStorage.getItem(GH_PREF_KEY) || '{}'); }
+  catch(_){ return {}; }
+}
+function saveGitPref(key, val){
+  const prefs = loadGitPrefs();
+  prefs[key] = val;
+  localStorage.setItem(GH_PREF_KEY, JSON.stringify(prefs));
+}
 
 // ── INDEXED DB ──
 let db = null;
@@ -345,6 +506,121 @@ function idbClear() {
     req.onerror   = e => rej(e.target.error);
   });
 }
+
+function renderSearchResults(results){
+  const box = document.getElementById('searchResults');
+  if(!results.length){ box.style.display='none'; box.innerHTML=''; return; }
+  box.style.display='block';
+  box.innerHTML = results.slice(0,200).map(r=>`
+    <div style="padding:6px 10px;border-bottom:1px solid var(--border);cursor:pointer;font-size:12px;color:${r.path===currentFileName?'var(--violet)':'var(--fg)'}" onclick="openSearchHit('${encodeURIComponent(r.path)}', ${r.line})">
+      <div style="font-weight:600">${r.path}</div>
+      <div style="color:var(--muted)">L${r.line+1}: ${r.snippet}</div>
+    </div>`).join('');
+}
+
+function searchWorkspace(term){
+  latestSearchTerm = term;
+  if(!term){ renderSearchResults([]); return; }
+  const needle = term.toLowerCase();
+  const results = [];
+  const files = allFiles.slice();
+  if(currentFileName && editor){
+    const idx = files.findIndex(f=>f.path===currentFileName);
+    const content = editor.getValue();
+    if(idx>=0) files[idx].content = content; else files.push({path:currentFileName, content});
+  }
+  for(const f of files){
+    const lines = (f.content||'').split(/\n/);
+    lines.forEach((line, i)=>{
+      const pos = line.toLowerCase().indexOf(needle);
+      if(pos!==-1){
+        const snippet = line.trim().slice(0,180);
+        results.push({path:f.path,line:i,snippet});
+      }
+    });
+  }
+  renderSearchResults(results);
+}
+
+function debouncedSearchWorkspace(){
+  const term = document.getElementById('wsSearch').value;
+  if(searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(()=>searchWorkspace(term), 150);
+}
+
+function openSearchHit(pathEnc, line){
+  const path = decodeURIComponent(pathEnc);
+  const file = allFiles.find(f=>f.path===path);
+  if(file){
+    openFileFromMemory(file);
+    setTimeout(()=>{
+      const model = editor.getModel();
+      if(model){ editor.revealLineInCenter(line+1); editor.setPosition({lineNumber:line+1,column:1}); editor.focus(); }
+    }, 50);
+  }
+}
+
+function runWorkspaceReplace(){
+  const term = prompt('Find text to replace (workspace)');
+  if(!term) return;
+  const replace = prompt('Replace with');
+  if(replace===null) return;
+  let count = 0;
+  const files = allFiles.slice();
+  if(currentFileName && editor){
+    const idx = files.findIndex(f=>f.path===currentFileName);
+    const content = editor.getValue();
+    if(idx>=0) files[idx].content = content; else files.push({path:currentFileName, content});
+  }
+  files.forEach(f=>{
+    if(!f.content) return;
+    const newContent = f.content.split(term).join(replace);
+    if(newContent !== f.content){
+      const delta = (f.content.match(new RegExp(term, 'g'))||[]).length;
+      count += delta;
+      f.content = newContent;
+      if(f.path === currentFileName && editor){ editor.setValue(newContent); }
+      const idx = allFiles.findIndex(ff=>ff.path===f.path);
+      if(idx>=0) allFiles[idx].content = newContent; else allFiles.push({path:f.path, content:newContent});
+    }
+  });
+  renderFileTree();
+  searchWorkspace(latestSearchTerm);
+  alert(`Replaced ${count} occurrence(s)`);
+}
+function toBase64(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => bin += String.fromCharCode(b));
+  return btoa(bin);
+}
+function fromBase64(b64){
+  try {
+    const bin = atob(b64.replace(/\n/g, ''));
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  } catch(_) { return ''; }
+}
+function ghHeaders(token){
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Accept': 'application/vnd.github+json'
+  };
+}
+function collectWorkspaceFiles(){
+  const files = allFiles.slice();
+  if(currentFileName && editor){
+    const idx = files.findIndex(f=>f.path===currentFileName);
+    const content = editor.getValue();
+    if(idx>=0) files[idx].content = content; else files.push({path:currentFileName, content});
+  }
+  return files;
+}
+function updateLangHints(text){
+  const box = document.getElementById('langHints');
+  box.textContent = text;
+}
 async function updateIDBBadge() {
   try {
     const all = await idbGetAll();
@@ -366,6 +642,16 @@ async function clearIDB() {
 // ── INIT ──
 document.getElementById('tokenInput').value = loadToken();
 document.getElementById('modelSel').value   = loadModel();
+const ghPrefs = loadGitPrefs();
+document.getElementById('ghRepo').value   = ghPrefs.repo   || '';
+document.getElementById('ghBranch').value = ghPrefs.branch || 'main';
+document.getElementById('ghPath').value   = ghPrefs.path   || '';
+document.getElementById('ghToken').value  = ghPrefs.token  || '';
+autoFormatEnabled = localStorage.getItem('kaixu_auto_format') === '1';
+document.getElementById('autoFormatToggle').checked = autoFormatEnabled;
+document.getElementById('taskLog').textContent = 'Waiting for command…';
+refreshPackageScripts();
+renderGitChangesList([]);
 
 // Boot: open IDB, load all stored files, then init Monaco
 openDB().then(async d => {
@@ -421,7 +707,10 @@ require(['vs/editor/editor.main'], () => {
     const isDirty = editor.getValue() !== currentContent;
     // show save if we have a disk handle OR always (saves to IDB)
     document.getElementById('btnSave').style.display = isDirty ? '' : 'none';
+    refreshLanguageHints();
   });
+  editor.onDidChangeCursorPosition(() => refreshLanguageHints());
+  refreshLanguageHints();
 
   checkHealth();
   setInterval(checkHealth, 30000);
@@ -544,6 +833,108 @@ async function storeFile(path, content) {
   else allFiles.push({ path, content });
   // Persist to IDB
   if (db) await idbPut(path, content);
+  if (path.endsWith('package.json')) refreshPackageScripts();
+  refreshGitDiff();
+}
+
+function refreshPackageScripts(){
+  const pkg = allFiles.find(f=>f.path.endsWith('package.json'));
+  const sel = document.getElementById('taskScript');
+  packageScripts = [];
+  if(!sel) return;
+  sel.innerHTML = '';
+  if(pkg){
+    try {
+      const j = JSON.parse(pkg.content || '{}');
+      const scripts = j.scripts || {};
+      packageScripts = Object.entries(scripts).map(([name, cmd]) => ({ name, cmd }));
+    } catch(_) {}
+  }
+  if(!packageScripts.length){
+    sel.innerHTML = '<option value="">No scripts found</option>';
+  } else {
+    sel.innerHTML = '<option value="">Select script</option>' + packageScripts.map(s=>`<option value="${s.name}">${s.name} — ${s.cmd}</option>`).join('');
+  }
+}
+
+function prefillTaskCommand(){
+  const sel = document.getElementById('taskScript');
+  const cmdInput = document.getElementById('taskCommand');
+  if(!sel || !cmdInput) return;
+  const script = packageScripts.find(s=>s.name === sel.value);
+  if(script) cmdInput.value = `npm run ${script.name}`;
+}
+
+function appendTaskLog(text){
+  const logEl = document.getElementById('taskLog');
+  if(!logEl) return;
+  logEl.textContent = `${logEl.textContent || ''}${text}\n`;
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function ensureWebcontainer(){
+  if(webcontainer) return webcontainer;
+  appendTaskLog('Booting WebContainer…');
+  try {
+    const mod = await import('https://unpkg.com/@webcontainer/api@1.2.3/dist/index.js');
+    webcontainer = await mod.WebContainer.boot();
+    appendTaskLog('WebContainer ready.');
+    return webcontainer;
+  } catch(e){
+    appendTaskLog('WebContainer failed: ' + (e.message || e));
+    throw e;
+  }
+}
+
+async function syncWebcontainerFS(){
+  if(!webcontainer) return;
+  const files = collectWorkspaceFiles();
+  for(const f of files){
+    const parts = f.path.split('/');
+    let cur = '';
+    for(let i=0;i<parts.length-1;i++){
+      cur = cur ? `${cur}/${parts[i]}` : parts[i];
+      try { await webcontainer.fs.mkdir('/'+cur); } catch(_) {}
+    }
+    await webcontainer.fs.writeFile('/'+f.path, f.content || '');
+  }
+}
+
+async function runTaskCommand(){
+  const cmdInput = document.getElementById('taskCommand');
+  const cmd = cmdInput ? cmdInput.value.trim() : '';
+  if(!cmd){ appendTaskLog('No command provided'); return; }
+  const logEl = document.getElementById('taskLog');
+  if(logEl) logEl.textContent = '';
+  try {
+    await ensureWebcontainer();
+  } catch(_) { return; }
+  await syncWebcontainerFS();
+  appendTaskLog(`$ ${cmd}`);
+  if(runningTask) { try { await runningTask.kill(); } catch(_) {} }
+  try {
+    const proc = await webcontainer.spawn('bash', { args:['-lc', cmd] });
+    runningTask = proc;
+    const reader = proc.output.getReader();
+    const decoder = new TextDecoder();
+    (async()=>{
+      while(true){
+        const { value, done } = await reader.read();
+        if(done) break;
+        appendTaskLog(decoder.decode(value));
+      }
+    })();
+    const exitCode = await proc.exit;
+    appendTaskLog(`exit ${exitCode}`);
+  } catch(e){
+    appendTaskLog('Task failed: ' + (e.message || e));
+  } finally {
+    runningTask = null;
+  }
+}
+
+async function stopTask(){
+  if(runningTask){ try { await runningTask.kill(); appendTaskLog('Task stopped.'); } catch(_){} }
 }
 
 // ── GLOBAL PASTE → EDITOR ──
@@ -661,6 +1052,8 @@ function renderFileTree() {
       list.appendChild(item);
     }
   }
+  refreshPackageScripts();
+  refreshGitDiff();
 }
 
 function iconFor(name) {
@@ -689,6 +1082,7 @@ function openFileByPath(path, itemEl) {
     const model = monaco.editor.createModel(content, lang);
     editor.setModel(model);
     editor.focus();
+    refreshLanguageHints();
   }
 
   document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
@@ -702,6 +1096,7 @@ function openFileByPath(path, itemEl) {
 // ── SAVE ──
 async function saveCurrentFile() {
   if (!editor || !currentFileName) return;
+  if (autoFormatEnabled) await formatCurrentFile(true);
   const text = editor.getValue();
   currentContent = text;
 
@@ -733,6 +1128,322 @@ async function saveCurrentFile() {
 function refreshPreview() {
   if (!editor) return;
   showPreview(editor.getValue());
+}
+
+// ── GITHUB PUSH (current file) ──
+async function pushCurrentFileToGitHub(){
+  const statusEl = document.getElementById('pushStatus');
+  const setStatus = (msg, color) => { statusEl.textContent = msg; statusEl.style.color = color || 'var(--muted)'; };
+  if (!currentFileName) { setStatus('No file open', 'var(--red)'); return; }
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const pathInRepo = (document.getElementById('ghPath').value.trim() || currentFileName).replace(/^\/+/, '');
+  const token = document.getElementById('ghToken').value.trim();
+  if (!repo || !token) { setStatus('Repo and PAT required', 'var(--red)'); return; }
+
+  const apiBase = `https://api.github.com/repos/${repo}/contents/${pathInRepo}`;
+  const message = `Update ${pathInRepo} via skAIxu IDE`;
+  let sha;
+
+  setStatus('Checking file…');
+  try {
+    const meta = await fetch(`${apiBase}?ref=${encodeURIComponent(branch)}`, {
+      headers:{ Authorization:`Bearer ${token}`, Accept:'application/vnd.github+json' }
+    });
+    if (meta.ok) { const j = await meta.json(); sha = j.sha; }
+  } catch(_) {}
+
+  setStatus('Pushing…');
+  try {
+    const body = {
+      message,
+      branch,
+      content: toBase64(editor ? editor.getValue() : currentContent),
+      ...(sha ? { sha } : {})
+    };
+    const r = await fetch(apiBase, {
+      method:'PUT',
+      headers:{
+        Authorization:`Bearer ${token}`,
+        Accept:'application/vnd.github+json'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) {
+      const txt = await r.text();
+      setStatus(`Push failed ${r.status}: ${txt.slice(0,120)}`, 'var(--red)');
+      return;
+    }
+    setStatus('Pushed ✅', 'var(--green)');
+  } catch(e) {
+    setStatus(`Error: ${e}`, 'var(--red)');
+  }
+}
+
+function setGitStatus(msg, color){
+  const el = document.getElementById('gitStatus');
+  if(el){ el.textContent = msg; el.style.color = color || 'var(--muted)'; }
+}
+
+function renderGitChangesList(changes){
+  gitDiff = changes;
+  const box = document.getElementById('gitChanges');
+  if(!box) return;
+  if(!changes.length){ box.textContent = gitBase.headSha ? 'Clean — no differences' : 'Pull to load repo state'; return; }
+  box.innerHTML = changes.map(c=>{
+    const color = c.type==='add' ? 'var(--green)' : c.type==='del' ? 'var(--red)' : 'var(--violet)';
+    const tag = c.type==='add' ? '+ added' : c.type==='del' ? '− deleted' : '• modified';
+    return `<div style="color:${color}"><strong>${tag}</strong> ${c.path}</div>`;
+  }).join('');
+}
+
+function refreshGitDiff(){
+  if(!gitBase.headSha){ renderGitChangesList([]); return; }
+  computeGitDiff();
+}
+
+function computeGitDiff(){
+  if(!gitBase.headSha) return [];
+  const files = collectWorkspaceFiles();
+  const base = gitBase.files || {};
+  const basePaths = new Set(Object.keys(base));
+  const out = [];
+
+  for(const f of files){
+    const baseEntry = base[f.path];
+    if(!baseEntry){ out.push({path:f.path, type:'add', before:'', after:f.content||''}); continue; }
+    basePaths.delete(f.path);
+    if((baseEntry.content||'') !== (f.content||'')){
+      out.push({path:f.path, type:'mod', before:baseEntry.content||'', after:f.content||''});
+    }
+  }
+  for(const p of basePaths){
+    out.push({path:p, type:'del', before:base[p].content||'', after:''});
+  }
+  renderGitChangesList(out);
+  return out;
+}
+
+async function pullRepo(){
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const token  = document.getElementById('ghToken').value.trim();
+  if(!repo || !token){ setGitStatus('Repo and PAT required', 'var(--red)'); return; }
+  setGitStatus('Fetching branch…');
+  try {
+    const branchMeta = await fetch(`https://api.github.com/repos/${repo}/branches/${encodeURIComponent(branch)}`, { headers: ghHeaders(token) });
+    if(!branchMeta.ok) throw new Error(`Branch fetch failed ${branchMeta.status}`);
+    const branchJson = await branchMeta.json();
+    const headSha = branchJson.commit.sha;
+    const treeSha = branchJson.commit.commit.tree.sha;
+
+    setGitStatus('Loading tree…');
+    const treeResp = await fetch(`https://api.github.com/repos/${repo}/git/trees/${treeSha}?recursive=1`, { headers: ghHeaders(token) });
+    if(!treeResp.ok) throw new Error(`Tree fetch failed ${treeResp.status}`);
+    const treeJson = await treeResp.json();
+    const blobs = (treeJson.tree||[]).filter(n=>n.type==='blob');
+
+    const files = {};
+    for(const node of blobs.slice(0,500)){ // cap to keep it responsive
+      if(node.size > 200000) continue; // skip huge blobs
+      const blobResp = await fetch(`https://api.github.com/repos/${repo}/git/blobs/${node.sha}`, { headers: ghHeaders(token) });
+      if(!blobResp.ok) continue;
+      const blobJson = await blobResp.json();
+      const text = blobJson.encoding === 'base64' ? fromBase64(blobJson.content||'') : (blobJson.content||'');
+      files[node.path] = { sha: node.sha, content: text };
+      await storeFile(node.path, text);
+    }
+
+    gitBase = { headSha, treeSha, files };
+    setGitStatus(`Pulled ${Object.keys(files).length} file(s) @ ${branch}`, 'var(--green)');
+    renderFileTree();
+    await updateIDBBadge();
+    computeGitDiff();
+  } catch(e){
+    setGitStatus(e.message || String(e), 'var(--red)');
+  }
+}
+
+function renderGitDiff(){
+  if(!gitBase.headSha){ setGitStatus('Pull first to diff', 'var(--red)'); return; }
+  const changes = computeGitDiff();
+  const diffView = document.getElementById('diffView');
+  diffView.innerHTML = '';
+  if(!changes.length){ diffView.innerHTML = '<div id="diffEmpty">No workspace vs repo differences</div>'; return; }
+  for(const change of changes.slice(0,30)){
+    const header = document.createElement('div');
+    header.style.padding = '6px 0';
+    header.style.color = 'var(--muted)';
+    header.textContent = `${change.type.toUpperCase()} — ${change.path}`;
+    diffView.appendChild(header);
+
+    if(change.type === 'del'){
+      const el = document.createElement('div');
+      el.textContent = '(deleted)';
+      el.style.color = 'var(--red)';
+      diffView.appendChild(el);
+      continue;
+    }
+
+    const diff = lineDiff((change.before||'').split('\n'), (change.after||'').split('\n'));
+    const block = document.createElement('div');
+    block.className = 'diff-block';
+    for(const {type, line} of diff){
+      const el = document.createElement('div');
+      el.className = `diff-line diff-${type}`;
+      el.textContent = line;
+      block.appendChild(el);
+    }
+    diffView.appendChild(block);
+  }
+}
+
+async function commitAndPushRepo(){
+  const repo   = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const token  = document.getElementById('ghToken').value.trim();
+  const message = document.getElementById('gitCommitMsg').value.trim() || 'Update via skAIxu IDE';
+  if(!repo || !token){ setGitStatus('Repo and PAT required', 'var(--red)'); return; }
+  if(!gitBase.headSha){ setGitStatus('Pull first to load base commit', 'var(--red)'); return; }
+
+  const changes = computeGitDiff();
+  if(!changes.length){ setGitStatus('Nothing to commit', 'var(--muted)'); return; }
+
+  setGitStatus('Creating blobs…');
+  try {
+    const files = collectWorkspaceFiles();
+    const contentMap = new Map(files.map(f=>[f.path, f.content||'']));
+    const treeEntries = [];
+
+    for(const change of changes){
+      if(change.type === 'del'){
+        treeEntries.push({ path: change.path, mode:'100644', type:'blob', sha: null });
+        continue;
+      }
+      const content = contentMap.get(change.path) || '';
+      const blobResp = await fetch(`https://api.github.com/repos/${repo}/git/blobs`, {
+        method:'POST', headers: ghHeaders(token),
+        body: JSON.stringify({ content, encoding:'utf-8' })
+      });
+      if(!blobResp.ok) throw new Error(`Blob failed ${blobResp.status}`);
+      const blobJson = await blobResp.json();
+      treeEntries.push({ path: change.path, mode:'100644', type:'blob', sha: blobJson.sha });
+    }
+
+    setGitStatus('Creating tree…');
+    const treeResp = await fetch(`https://api.github.com/repos/${repo}/git/trees`, {
+      method:'POST', headers: ghHeaders(token),
+      body: JSON.stringify({ base_tree: gitBase.treeSha, tree: treeEntries })
+    });
+    if(!treeResp.ok) throw new Error(`Tree create failed ${treeResp.status}`);
+    const treeJson = await treeResp.json();
+
+    setGitStatus('Creating commit…');
+    const commitResp = await fetch(`https://api.github.com/repos/${repo}/git/commits`, {
+      method:'POST', headers: ghHeaders(token),
+      body: JSON.stringify({ message, tree: treeJson.sha, parents:[gitBase.headSha] })
+    });
+    if(!commitResp.ok) throw new Error(`Commit failed ${commitResp.status}`);
+    const commitJson = await commitResp.json();
+
+    setGitStatus('Updating branch…');
+    const refResp = await fetch(`https://api.github.com/repos/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+      method:'PATCH', headers: ghHeaders(token),
+      body: JSON.stringify({ sha: commitJson.sha, force:false })
+    });
+    if(!refResp.ok) throw new Error(`Ref update failed ${refResp.status}`);
+
+    gitBase.headSha = commitJson.sha;
+    gitBase.treeSha = treeJson.sha;
+    const newBaseFiles = {};
+    for(const f of files){ newBaseFiles[f.path] = { sha:null, content:f.content||'' }; }
+    gitBase.files = newBaseFiles;
+    renderGitChangesList([]);
+    setGitStatus('Committed and pushed ✅', 'var(--green)');
+  } catch(e){
+    setGitStatus(e.message || String(e), 'var(--red)');
+  }
+}
+
+function toggleAutoFormat(enabled){
+  autoFormatEnabled = !!enabled;
+  localStorage.setItem('kaixu_auto_format', autoFormatEnabled ? '1' : '0');
+}
+
+async function formatCurrentFile(auto = false){
+  if(!editor) return;
+  if(typeof prettier === 'undefined' || typeof prettierPlugins === 'undefined'){
+    if(!auto) setStatus('Prettier not loaded');
+    return;
+  }
+  const lang = langFromExt(currentFileName || '') || 'javascript';
+  const parserMap = { javascript:'babel', typescript:'typescript', html:'html', css:'css', scss:'scss', json:'json', markdown:'markdown' };
+  const parser = parserMap[lang] || (lang === 'plaintext' ? null : 'babel');
+  if(!parser){ if(!auto) setStatus('No formatter for this file'); return; }
+  try {
+    const text = editor.getValue();
+    const formatted = prettier.format(text, {
+      parser,
+      plugins: prettierPlugins,
+      singleQuote: true,
+      trailingComma: 'es5',
+      tabWidth: 2,
+    });
+    if(formatted !== text){
+      editor.setValue(formatted);
+      currentContent = formatted;
+      if(currentFileName) await storeFile(currentFileName, formatted);
+    }
+    if(!auto) setStatus('Formatted ✓', 2000);
+  } catch(e){
+    if(!auto) setStatus('Format error: ' + (e.message || e), 4000);
+  }
+}
+
+let eslintInstance = null;
+async function lintCurrentFile(){
+  if(!editor) return;
+  try {
+    if(typeof eslint4b === 'undefined' || !eslint4b.ESLint) throw new Error('ESLint not loaded');
+    if(!eslintInstance){
+      eslintInstance = new eslint4b.ESLint({
+        baseConfig: {
+          env: { browser:true, node:true, es2021:true },
+          parserOptions: { ecmaVersion:2021, sourceType:'module' },
+          rules: { 'no-undef': 'warn', 'no-unused-vars': 'warn' },
+        },
+        useEslintrc: false,
+      });
+    }
+    const res = await eslintInstance.lintText(editor.getValue(), { filePath: currentFileName || 'file.js' });
+    const msgs = (res[0] && res[0].messages) || [];
+    if(!msgs.length){ setStatus('Lint clean ✓', 2500); return; }
+    const summary = msgs.slice(0,5).map(m=>`${m.ruleId || 'rule'} @${m.line}:${m.column} ${m.message}`).join(' | ');
+    setStatus('Lint: ' + summary, 6000);
+  } catch(e){
+    setStatus('Lint failed: ' + (e.message || e), 4000);
+  }
+}
+
+function refreshLanguageHints(){
+  if(!editor){ updateLangHints('Open a file to see quick tips.'); return; }
+  const lang = langFromExt(currentFileName || '') || 'plaintext';
+  const base = {
+    javascript:'Use const/let, prefer async/await, and keep functions pure where possible.',
+    typescript:'Type inputs/outputs, prefer unknown over any, and narrow types early.',
+    python:'Favor virtualenv, keep functions small, and use pathlib over os.path.',
+    html:'Keep semantic tags, avoid inline styles, and defer heavy scripts.',
+    css:'Group vars, prefer flex/grid, and avoid !important.',
+    markdown:'Use headings sparingly and keep lists tight.',
+  };
+  const model = editor.getModel();
+  let token = '';
+  if(model){
+    const pos = editor.getPosition();
+    const w = model.getWordAtPosition(pos);
+    token = w && w.word ? ` · token: ${w.word}` : '';
+  }
+  updateLangHints(`${lang.toUpperCase()}: ${base[lang] || 'Plaintext editing.'}${token}`);
 }
 
 function mimeFromExt(name) {
@@ -994,7 +1705,19 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
     saveCurrentFile();
   }
+  if (e.key === 'Escape') closeTutorial();
 });
+
+function showTutorial(){
+  const el = document.getElementById('tutorialBackdrop');
+  if(el) el.classList.add('active');
+}
+
+function closeTutorial(ev){
+  if(ev) ev.preventDefault();
+  const el = document.getElementById('tutorialBackdrop');
+  if(el) el.classList.remove('active');
+}
 </script>
 </body>
 </html>
