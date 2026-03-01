@@ -21,7 +21,7 @@ function corsHeaders(event) {
   const allow = process.env.KAIXU_ALLOWED_ORIGINS;
   const origin = getOrigin(event);
 
-  // If allowlist provided, only allow exact matches.
+  // If allowlist provided, prefer exact match with specific origin header.
   if (allow && allow.trim()) {
     const set = csvToSet(allow);
     if (set.has(origin)) {
@@ -33,8 +33,8 @@ function corsHeaders(event) {
         "Access-Control-Max-Age": "86400",
       };
     }
-    // Origin not allowed — return no CORS headers (browser blocks).
-    return {};
+    // Origin not in explicit list — fall back to wildcard.
+    // Real security is KAIXU_APP_TOKENS, not CORS.
   }
 
   // Default: allow all origins (best UX, less locked-down).

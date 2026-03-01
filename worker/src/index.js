@@ -109,10 +109,24 @@ END OF SYSTEM CONTEXT`;
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
+// Models callers are allowed to request. Anything else is rejected.
+const ALLOWED_MODELS = new Set([
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-2.0-flash",
+  "gemini-2.0-pro",
+]);
+
 function csvToSet(v) {
   return new Set(
     String(v || "").split(",").map(s => s.trim()).filter(Boolean)
   );
+}
+
+function reqId() {
+  // Compact 16-char hex request ID for correlation
+  return Array.from(crypto.getRandomValues(new Uint8Array(8)))
+    .map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
 function corsHeaders(request, env) {
@@ -130,9 +144,8 @@ function corsHeaders(request, env) {
         "Access-Control-Max-Age": "86400",
       };
     }
-    // Origin not in explicit list — fall back to wildcard.
-    // Real security is enforced by KAIXU_APP_TOKENS, not CORS
-    // (CORS only stops browsers; curl/server calls bypass it anyway).
+    // Origin not in explicit allowlist — fall back to wildcard.
+    // Real security is KAIXU_APP_TOKENS (CORS only stops browsers, not curl/server calls).
   }
 
   return {
@@ -143,20 +156,20 @@ function corsHeaders(request, env) {
   };
 }
 
-function jsonResp(status, obj, cors = {}) {
+function jsonResp(status, obj, extraHeaders = {}) {
   return new Response(JSON.stringify(obj), {
     status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
-      ...cors,
+      ...extraHeaders,
     },
   });
 }
 
 function enforceAuth(request, env) {
   const openGate = String(env.KAIXU_OPEN_GATE || "0") === "1";
-  if (openGate) return { ok: true };
+  if (openGate) return { ok: true, token: "open-gate" };
 
   const tokens = csvToSet(env.KAIXU_APP_TOKENS || "");
   if (!tokens.size) return { ok: false, code: 500, message: "Gateway misconfigured: KAIXU_APP_TOKENS is not set." };
@@ -168,8 +181,10 @@ function enforceAuth(request, env) {
   else if (xToken) token = xToken.trim();
 
   if (!token) return { ok: false, code: 401, message: "Missing app token. Send Authorization: Bearer <token>." };
+  // Minimum token entropy guard — reject suspiciously short tokens
+  if (token.length < 16) return { ok: false, code: 403, message: "Invalid app token." };
   if (!tokens.has(token)) return { ok: false, code: 403, message: "Invalid app token." };
-  return { ok: true };
+  return { ok: true, token };
 }
 
 function clampInt(n, min, max, fallback) {
@@ -177,6 +192,10 @@ function clampInt(n, min, max, fallback) {
   if (!Number.isFinite(x)) return fallback;
   return Math.max(min, Math.min(max, Math.floor(x)));
 }
+
+// ─── Rate Limiter placeholder ────────────────────────────────────────────────
+// Not active. Will be implemented via admin dashboard + Neon DB.
+async function checkRateLimit(_env, _token) { return { ok: true }; }
 
 // ─── Generate helpers (ported from kaixu-generate.js) ────────────────────────
 
@@ -236,14 +255,16 @@ function buildRequestBody(body, env) {
 
   const req = {
     contents,
-    ...(body.tools       ? { tools: body.tools }             : {}),
-    ...(body.toolConfig  ? { toolConfig: body.toolConfig }   : {}),
-    ...(body.safetySettings ? { safetySettings: body.safetySettings } : {}),
+    ...(body.tools       ? { tools: body.tools }           : {}),
+    ...(body.toolConfig  ? { toolConfig: body.toolConfig } : {}),
+    // safetySettings intentionally NOT forwarded — gateway enforces its own safety posture.
+    // Callers cannot disable content safety filters.
     ...(Object.keys(generationConfig).length ? { generationConfig } : {}),
   };
 
-  // KAIXU_CANON is always first — locked identity that cannot be bypassed by callers.
-  // globalSystem (from env) and caller-supplied system are additive on top.
+  // KAIXU_CANON is always first and covers all identity + brand rules.
+  // KAIXU_GLOBAL_SYSTEM should be left blank in env to avoid double-injection
+  // that wastes tokens. Per-call system prompts (body.system) are additive on top.
   const sysText = [KAIXU_CANON, globalSystem, system].filter(Boolean).join("\n\n").trim();
   req.systemInstruction = { role: "system", parts: [{ text: sysText }] };
 
@@ -279,8 +300,13 @@ function extractUsage(respJson) {
 
 // ─── Route handlers ───────────────────────────────────────────────────────────
 
-async function handleHealth(request, env) {
+async function handleHealth(request, env, rid) {
+  // Health requires auth — don't leak config state to anonymous callers
   const cors = corsHeaders(request, env);
+  const hdrs = { ...cors, "X-Request-ID": rid };
+  const auth = enforceAuth(request, env);
+  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
   const hasKey    = !!(env.KAIXU_GEMINI_API_KEY && env.KAIXU_GEMINI_API_KEY.trim());
   const hasTokens = !!(env.KAIXU_APP_TOKENS && env.KAIXU_APP_TOKENS.trim());
   const openGate  = String(env.KAIXU_OPEN_GATE || "0") === "1";
@@ -294,11 +320,12 @@ async function handleHealth(request, env) {
     authConfigured: hasTokens || openGate,
     openGate,
     time: new Date().toISOString(),
-  }, cors);
+  }, hdrs);
 }
 
-async function handleModels(request, env) {
+async function handleModels(request, env, rid) {
   const cors = corsHeaders(request, env);
+  const hdrs = { ...cors, "X-Request-ID": rid };
   const models = [
     { id: "gemini-2.5-flash", label: "gemini-2.5-flash (fast)" },
     { id: "gemini-2.5-pro",   label: "gemini-2.5-pro (best quality)" },
@@ -307,29 +334,44 @@ async function handleModels(request, env) {
     ok: true,
     defaultModel: env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash",
     models,
-  }, cors);
+  }, hdrs);
 }
 
-async function handleGenerate(request, env) {
+async function handleGenerate(request, env, rid) {
   const cors = corsHeaders(request, env);
+  const hdrs = { ...cors, "X-Request-ID": rid };
 
   const auth = enforceAuth(request, env);
-  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, cors);
+  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
+  // Rate limit check
+  const rl = await checkRateLimit(env, auth.token);
+  if (!rl.ok) {
+    return jsonResp(429, { ok: false, error: "Rate limit exceeded. Slow down." }, {
+      ...hdrs, "Retry-After": String(rl.retryAfter),
+    });
+  }
 
   const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
-  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, cors);
+  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
 
   const maxBytes = clampInt(env.KAIXU_MAX_BODY_BYTES, 1024, 16_000_000, 5_242_880);
   const rawBody = await request.text();
-  if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, cors);
+  if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, hdrs);
 
   let body;
   try { body = JSON.parse(rawBody); }
-  catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, cors); }
+  catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const model = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  // Model allowlist — callers cannot request arbitrary models
+  if (!ALLOWED_MODELS.has(requestedModel)) {
+    return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
+  }
+  const model = requestedModel;
+
   const built = buildRequestBody(body, env);
-  if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, cors);
+  if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
@@ -341,7 +383,7 @@ async function handleGenerate(request, env) {
       body: JSON.stringify(built.value),
     });
   } catch (e) {
-    return jsonResp(502, { ok: false, error: e.message || String(e) }, cors);
+    return jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
   }
 
   const text = await upstream.text();
@@ -353,7 +395,7 @@ async function handleGenerate(request, env) {
       ok: false,
       error: "Upstream model error.",
       details: upstreamJson || { raw: text.slice(0, 4000) },
-    }, cors);
+    }, hdrs);
   }
 
   const outText      = upstreamJson ? extractTextFromGemini(upstreamJson) : "";
@@ -365,7 +407,7 @@ async function handleGenerate(request, env) {
       ok: false,
       error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like gemini-2.5-pro require a larger budget).",
       model, finishReason, usage,
-    }, cors);
+    }, hdrs);
   }
 
   const includeRaw = !!body.includeRaw;
@@ -376,37 +418,46 @@ async function handleGenerate(request, env) {
     finishReason,
     usage,
     ...(includeRaw ? { raw: upstreamJson } : {}),
-  }, cors);
+  }, hdrs);
 }
 
-async function handleStream(request, env) {
+async function handleStream(request, env, rid) {
   const cors = corsHeaders(request, env);
+  const hdrs = { ...cors, "X-Request-ID": rid };
 
   const auth = enforceAuth(request, env);
-  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, cors);
+  if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
+  // Rate limit check
+  const rl = await checkRateLimit(env, auth.token);
+  if (!rl.ok) {
+    return jsonResp(429, { ok: false, error: "Rate limit exceeded. Slow down." }, {
+      ...hdrs, "Retry-After": String(rl.retryAfter),
+    });
+  }
 
   const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
-  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, cors);
+  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
 
   const maxBytes = clampInt(env.KAIXU_MAX_BODY_BYTES, 1024, 16_000_000, 5_242_880);
   const rawBody = await request.text();
-  if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, cors);
+  if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, hdrs);
 
   let body;
   try { body = JSON.parse(rawBody); }
-  catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, cors); }
+  catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const model = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
-
-  // Accept raw Gemini request at body.request, or build from body normally
-  let reqBody;
-  if (body.request && typeof body.request === "object") {
-    reqBody = body.request;
-  } else {
-    const built = buildRequestBody(body, env);
-    if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, cors);
-    reqBody = built.value;
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  // Model allowlist
+  if (!ALLOWED_MODELS.has(requestedModel)) {
+    return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
   }
+  const model = requestedModel;
+
+  // Always build through buildRequestBody — no raw passthrough.
+  // body.request bypass was removed: it allowed KAIXU_CANON to be skipped entirely.
+  const built = buildRequestBody(body, env);
+  if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
 
@@ -415,10 +466,10 @@ async function handleStream(request, env) {
     upstream = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify(reqBody),
+      body: JSON.stringify(built.value),
     });
   } catch (e) {
-    return jsonResp(502, { ok: false, error: e.message || String(e) }, cors);
+    return jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
   }
 
   if (!upstream.ok) {
@@ -428,7 +479,7 @@ async function handleStream(request, env) {
     return jsonResp(upstream.status, {
       ok: false, error: "Upstream model error.",
       details: errJson || errText.slice(0, 4000),
-    }, cors);
+    }, hdrs);
   }
 
   // Pipe directly — Cloudflare Workers have no response timeout
@@ -436,6 +487,7 @@ async function handleStream(request, env) {
     status: 200,
     headers: {
       ...cors,
+      "X-Request-ID": rid,
       "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Accel-Buffering": "no",
@@ -451,21 +503,22 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/$/, "") || "/";
     const cors = corsHeaders(request, env);
+    const rid = reqId(); // unique request ID for every request
 
     // CORS preflight
     if (method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: cors });
+      return new Response(null, { status: 204, headers: { ...cors, "X-Request-ID": rid } });
     }
 
     // Router
-    if (method === "GET"  && path === "/v1/health")   return handleHealth(request, env);
-    if (method === "GET"  && path === "/v1/models")   return handleModels(request, env);
-    if (method === "POST" && path === "/v1/generate") return handleGenerate(request, env);
-    if (method === "POST" && path === "/v1/stream")   return handleStream(request, env);
+    if (method === "GET"  && path === "/v1/health")   return handleHealth(request, env, rid);
+    if (method === "GET"  && path === "/v1/models")   return handleModels(request, env, rid);
+    if (method === "POST" && path === "/v1/generate") return handleGenerate(request, env, rid);
+    if (method === "POST" && path === "/v1/stream")   return handleStream(request, env, rid);
 
     // Health also on root GET for browser
-    if (method === "GET" && (path === "/" || path === "")) return handleHealth(request, env);
+    if (method === "GET" && (path === "/" || path === "")) return handleHealth(request, env, rid);
 
-    return jsonResp(404, { ok: false, error: `No route for ${method} ${path}` }, cors);
+    return jsonResp(404, { ok: false, error: `No route for ${method} ${path}` }, { ...cors, "X-Request-ID": rid });
   },
 };

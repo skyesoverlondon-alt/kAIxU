@@ -29,3 +29,46 @@ package = "@netlify/plugin-functions-install-core"
   from = "/v1/stream"
   to = "/.netlify/functions/kaixu-stream"
   status = 200
+
+# ── Admin API routes ───────────────────────────────────────────────────────────
+# Service-secret auth (called by Cloudflare Worker)
+[[redirects]]
+  from = "/api/admin/token/verify"
+  to = "/.netlify/functions/admin-token-verify"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/log"
+  to = "/.netlify/functions/admin-log"
+  status = 200
+
+# Admin Identity auth (called by adminKai.html)
+[[redirects]]
+  from = "/api/admin/tokens/create"
+  to = "/.netlify/functions/admin-tokens-create"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/tokens/list"
+  to = "/.netlify/functions/admin-tokens-list"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/tokens/revoke"
+  to = "/.netlify/functions/admin-tokens-revoke"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/usage/summary"
+  to = "/.netlify/functions/admin-usage-summary"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/usage/logs"
+  to = "/.netlify/functions/admin-usage-logs"
+  status = 200
+
+[[redirects]]
+  from = "/api/admin/events"
+  to = "/.netlify/functions/admin-events"
+  status = 200

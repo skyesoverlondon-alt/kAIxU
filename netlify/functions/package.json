@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "@netlify/functions": "^2.8.0"
+    "@netlify/functions": "^2.8.0",
+    "@neondatabase/serverless": "^0.10.4",
+    "jose": "^5.9.6"
   }
 }
