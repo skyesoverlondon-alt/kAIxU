@@ -414,6 +414,16 @@ function authHeaders(token) {
   return { "Authorization": token.startsWith("Bearer ") ? token : "Bearer " + token };
 }
 
+// ── helpers ──
+function diagLabel(status) {
+  if (status === 401) return `HTTP ${status} — Auth FAILED: no token sent or token missing from input`;
+  if (status === 403) return `HTTP ${status} — Auth FAILED: token rejected (wrong, revoked, expired, or quota exceeded)`;
+  if (status === 429) return `HTTP ${status} — Rate limited`;
+  if (status === 500) return `HTTP ${status} — Server/gateway error`;
+  if (status === 503) return `HTTP ${status} — Circuit breaker open (upstream down)`;
+  return `HTTP ${status}`;
+}
+
 // ── individual tests ──
 async function testHealth(token) {
   const t0 = ms();
@@ -424,10 +434,19 @@ async function testHealth(token) {
       headers: { ...authHeaders(token) }
     });
     const elapsed = ms() - t0;
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
     $("resp-health").textContent = JSON.stringify(j, null, 2);
+    if (r.status !== 200) {
+      const why = diagLabel(r.status);
+      renderChecks("health", [
+        { label: why, ok: false },
+        { label: `Server error detail: ${j.error || "(none)"}`, ok: false },
+      ]);
+      setState("health", "fail", elapsed);
+      return { passed: false, elapsed };
+    }
     const checks = [
-      { label: "HTTP 200", ok: r.status === 200 },
+      { label: "HTTP 200", ok: true },
       { label: 'ok === true', ok: !!j.ok },
       { label: 'keyConfigured (Gemini API key loaded)', ok: !!j.keyConfigured },
       { label: 'authConfigured (app tokens present)', ok: !!j.authConfigured },
@@ -439,8 +458,8 @@ async function testHealth(token) {
     return { passed, elapsed, checks, response: j };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-health").textContent = "Error: " + e.message;
-    renderChecks("health", [{ label: "Network / CORS reachable", ok: false }]);
+    $("resp-health").textContent = "TypeError: " + e.message;
+    renderChecks("health", [{ label: `Network error (not auth, not CORS from worker — worker unreachable): ${e.message}`, ok: false }]);
     setState("health", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
@@ -455,10 +474,15 @@ async function testModels(token) {
       headers: { ...authHeaders(token) }
     });
     const elapsed = ms() - t0;
-    const j = await r.json();
+    const j = await r.json().catch(() => ({}));
     $("resp-models").textContent = JSON.stringify(j, null, 2);
+    if (r.status !== 200) {
+      renderChecks("models", [{ label: diagLabel(r.status) + ` — ${j.error || ""}`, ok: false }]);
+      setState("models", "fail", elapsed);
+      return { passed: false, elapsed };
+    }
     const checks = [
-      { label: "HTTP 200", ok: r.status === 200 },
+      { label: "HTTP 200", ok: true },
       { label: 'ok === true', ok: !!j.ok },
       { label: 'models array present', ok: Array.isArray(j.models) && j.models.length > 0 },
       { label: 'default model set', ok: !!j.defaultModel },
@@ -469,8 +493,8 @@ async function testModels(token) {
     return { passed, elapsed, checks, response: j };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-models").textContent = "Error: " + e.message;
-    renderChecks("models", [{ label: "Network reachable", ok: false }]);
+    $("resp-models").textContent = "TypeError: " + e.message;
+    renderChecks("models", [{ label: `Network error — worker unreachable: ${e.message}`, ok: false }]);
     setState("models", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
@@ -481,9 +505,6 @@ async function testCors() {
   setState("cors", "running");
   $("body-cors").classList.add("open");
   try {
-    // Simple OPTIONS fetch — browser sends it as-is, worker handles all OPTIONS
-    // with 204 + CORS headers. Browser can read the headers because CORS is present.
-    // We do NOT set Origin/Access-Control-Request-* — those are forbidden headers.
     const r = await fetch(`${API_BASE}/v1/generate`, { method: "OPTIONS" });
     const elapsed = ms() - t0;
     const allowOrigin  = r.headers.get("access-control-allow-origin");
@@ -507,8 +528,8 @@ async function testCors() {
     return { passed, elapsed, checks };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-cors").textContent = "TypeError: " + e.message + "\n\nThis means the browser blocked the request. Worker may be down.";
-    renderChecks("cors", [{ label: "OPTIONS fetch succeeded", ok: false }]);
+    $("resp-cors").textContent = "TypeError: " + e.message + "\n\nWorker is unreachable or CORS headers genuinely missing on OPTIONS.";
+    renderChecks("cors", [{ label: `OPTIONS fetch blocked by browser (worker down or no CORS headers): ${e.message}`, ok: false }]);
     setState("cors", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
@@ -520,8 +541,8 @@ async function testGenerate(token) {
   $("body-generate").classList.add("open");
   if (!token) {
     const elapsed = ms() - t0;
-    $("resp-generate").textContent = "⚠ Skipped — no token provided";
-    renderChecks("generate", [{ label: "Token provided", ok: false }]);
+    $("resp-generate").textContent = "⚠ No token in input box — enter your kAIxU token above and re-run";
+    renderChecks("generate", [{ label: "Token provided in input box", ok: false }]);
     setState("generate", "fail", elapsed);
     return { passed: false, elapsed, skipped: true };
   }
@@ -536,11 +557,20 @@ async function testGenerate(token) {
       })
     });
     const elapsed = ms() - t0;
-    const j = await r.json().catch(() => ({ ok: false, error: "Non-JSON" }));
+    const j = await r.json().catch(() => ({ ok: false, error: "Non-JSON response" }));
+    $("resp-generate").textContent = JSON.stringify(j, null, 2);
+    if (r.status !== 200) {
+      renderChecks("generate", [
+        { label: diagLabel(r.status), ok: false },
+        { label: `Reason from server: ${j.error || "(no message)"}`, ok: false },
+      ]);
+      setState("generate", "fail", elapsed);
+      return { passed: false, elapsed };
+    }
     const reply = (j.text || "").trim();
     $("resp-generate").textContent = reply || JSON.stringify(j, null, 2);
     const checks = [
-      { label: "HTTP 200", ok: r.status === 200 },
+      { label: "HTTP 200", ok: true },
       { label: 'ok === true', ok: !!j.ok },
       { label: 'Text reply received (non-empty)', ok: reply.length > 0 },
       { label: 'Contains expected phrase "kAIxU"', ok: reply.toLowerCase().includes("kaixu") },
@@ -551,8 +581,8 @@ async function testGenerate(token) {
     return { passed, elapsed, checks, reply };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-generate").textContent = "Error: " + e.message;
-    renderChecks("generate", [{ label: "Request succeeded", ok: false }]);
+    $("resp-generate").textContent = "TypeError: " + e.message;
+    renderChecks("generate", [{ label: `Network error — worker unreachable (not a CORS or auth issue): ${e.message}`, ok: false }]);
     setState("generate", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
@@ -564,8 +594,8 @@ async function testStream(token) {
   $("body-stream").classList.add("open");
   if (!token) {
     const elapsed = ms() - t0;
-    $("resp-stream").textContent = "⚠ Skipped — no token provided";
-    renderChecks("stream", [{ label: "Token provided", ok: false }]);
+    $("resp-stream").textContent = "⚠ No token in input box — enter your kAIxU token above and re-run";
+    renderChecks("stream", [{ label: "Token provided in input box", ok: false }]);
     setState("stream", "fail", elapsed);
     return { passed: false, elapsed, skipped: true };
   }
@@ -582,11 +612,11 @@ async function testStream(token) {
 
     if (!r.ok || !r.body) {
       const elapsed = ms() - t0;
-      const txt = await r.text().catch(() => "");
-      $("resp-stream").textContent = `HTTP ${r.status}\n${txt}`;
+      const j = await r.json().catch(async () => ({ error: await r.text().catch(() => "") }));
+      $("resp-stream").textContent = JSON.stringify(j, null, 2);
       renderChecks("stream", [
-        { label: "HTTP 200", ok: false },
-        { label: "Stream body received", ok: false },
+        { label: diagLabel(r.status), ok: false },
+        { label: `Reason from server: ${j.error || "(no message)"}`, ok: false },
       ]);
       setState("stream", "fail", elapsed);
       return { passed: false, elapsed };
@@ -604,14 +634,12 @@ async function testStream(token) {
       done = d;
       if (value) {
         const raw = decoder.decode(value);
-        // Parse SSE data lines
         raw.split("\n").forEach(line => {
           if (line.startsWith("data: ")) {
             const payload = line.slice(6).trim();
             if (payload === "[DONE]") { done = true; return; }
             try {
               const obj = JSON.parse(payload);
-              // Gemini SSE format: candidates[0].content.parts[].text
               const parts = obj?.candidates?.[0]?.content?.parts;
               if (Array.isArray(parts)) {
                 const chunk = parts.filter(p => !p.thought).map(p => p.text || "").join("");
@@ -637,8 +665,8 @@ async function testStream(token) {
     return { passed, elapsed, checks, chunks, text };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-stream").textContent = "Error: " + e.message;
-    renderChecks("stream", [{ label: "Stream request succeeded", ok: false }]);
+    $("resp-stream").textContent = "TypeError: " + e.message;
+    renderChecks("stream", [{ label: `Network error — worker unreachable (not a CORS or auth issue): ${e.message}`, ok: false }]);
     setState("stream", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
