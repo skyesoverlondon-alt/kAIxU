@@ -398,7 +398,7 @@
 
       <!-- Skip Button -->
       <button id="skip-btn" onclick="skipIntro()" style="
-        position:absolute;top:20px;right:24px;z-index:9999;
+        position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:9999;
         background:transparent;border:1px solid rgba(0,243,255,0.35);
         color:rgba(0,243,255,0.6);font-family:var(--mono);font-size:11px;
         letter-spacing:.15em;padding:6px 14px;border-radius:4px;cursor:pointer;
@@ -563,12 +563,11 @@
           return;
         }
 
-        appContainer.classList.add('active');
-        document.body.style.overflow = 'auto'; // allow scrolling again
-        
+        // No returnTarget — go to the app
+        sessionStorage.setItem('kaixuIntroPass','1');
         await sleep(40);
-        // Fade out flash
         flash.classList.remove('active');
+        window.location.replace('/');
       }
 
       async function runBootSequence() {
@@ -607,16 +606,11 @@
       }
 
       function skipIntro() {
-        const target = returnTarget && returnTarget !== window.location.pathname ? returnTarget : null;
+        const target = returnTarget && returnTarget !== window.location.pathname ? returnTarget : '/';
         bootSequence.classList.add('hidden');
-        if (target) {
-          sessionStorage.setItem('kaixuIntroPass','1');
-          sessionStorage.removeItem(introReturnKey);
-          window.location.href = target;
-        } else {
-          appContainer.classList.add('active');
-          document.body.style.overflow = 'auto';
-        }
+        sessionStorage.setItem('kaixuIntroPass','1');
+        sessionStorage.removeItem(introReturnKey);
+        window.location.href = target;
       }
 
       setTimeout(() => {
