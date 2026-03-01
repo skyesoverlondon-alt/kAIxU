@@ -51,6 +51,29 @@ exports.handler = async function (event, context) {
       return resp(200, { valid: false, reason: "expired" });
     }
 
+    // ── Monthly quota enforcement ─────────────────────────────────────────────
+    if (row.monthly_limit != null) {
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+      const { rows: usageRows } = await db.query(
+        `SELECT COALESCE(SUM(requests), 0)::int AS month_requests
+           FROM daily_usage
+          WHERE token_id = $1 AND date >= $2`,
+        [row.id, monthStart]
+      );
+      const monthRequests = usageRows[0]?.month_requests ?? 0;
+      if (monthRequests >= row.monthly_limit) {
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        return resp(200, {
+          valid: false,
+          reason: "quota_exceeded",
+          resetDate: nextMonth.toISOString().slice(0, 10),
+          monthlyLimit: row.monthly_limit,
+          monthRequests,
+        });
+      }
+    }
+
     // Touch last_used_at (fire-and-forget, don't await to keep this fast)
     db.query("UPDATE tokens SET last_used_at = NOW() WHERE id = $1", [row.id]).catch(() => {});
 

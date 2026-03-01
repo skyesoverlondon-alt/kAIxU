@@ -216,7 +216,13 @@ async function enforceAuth(request, env) {
         if (!data.valid) {
           return { ok: false, code: 403, message: "Invalid app token." + (data.reason ? ` (${data.reason})` : "") };
         }
-        return { ok: true, token, tokenId: data.tokenId || null, tokenPrefix: data.tokenPrefix || null };
+        return {
+          ok: true,
+          token,
+          tokenId: data.tokenId || null,
+          tokenPrefix: data.tokenPrefix || null,
+          allowedModels: Array.isArray(data.allowedModels) ? data.allowedModels : null,
+        };
       }
     } catch (e) {
       console.error("[auth] DB verify error, falling back to env var:", e.message);
@@ -394,6 +400,10 @@ async function handleEmbed(request, env, rid, ctx) {
     return jsonResp(400, { ok: false, error: `Embedding model "${requestedModel}" is not available. Use: ${[...ALLOWED_EMBED_MODELS].join(", ")}.` }, hdrs);
   }
   const model = requestedModel;
+  // Per-token model allowlist (set in admin dashboard — embed models checked separately)
+  if (auth.allowedModels && auth.allowedModels.length > 0 && !auth.allowedModels.includes("embeddings") && !auth.allowedModels.includes(model)) {
+    return jsonResp(403, { ok: false, error: "Your token is not authorized for embedding. Contact your administrator.", requestId: rid }, hdrs);
+  }
 
   // Normalize content → always an array of strings
   const rawContent = body.content;
@@ -559,6 +569,12 @@ async function handleGenerate(request, env, rid, ctx) {
   }
   const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
   const clientModel = MODEL_ALIASES[requestedModel] ? requestedModel : "kAIxU"; // branded name returned to callers
+  // Per-token model allowlist (set in admin dashboard)
+  if (auth.allowedModels && auth.allowedModels.length > 0) {
+    if (!auth.allowedModels.includes(requestedModel) && !auth.allowedModels.includes(model)) {
+      return jsonResp(403, { ok: false, error: `Your token is not authorized to use model "${requestedModel}". Contact your administrator.`, requestId: rid }, hdrs);
+    }
+  }
 
   const built = buildRequestBody(body, env);
   if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
@@ -654,6 +670,12 @@ async function handleStream(request, env, rid, ctx) {
     return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
   }
   const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
+  // Per-token model allowlist (set in admin dashboard)
+  if (auth.allowedModels && auth.allowedModels.length > 0) {
+    if (!auth.allowedModels.includes(requestedModel) && !auth.allowedModels.includes(model)) {
+      return jsonResp(403, { ok: false, error: `Your token is not authorized to use model "${requestedModel}". Contact your administrator.`, requestId: rid }, hdrs);
+    }
+  }
   // Stream: SSE chunks are piped raw. Build customer UIs to display only .text content, not raw chunk JSON.
 
   // Always build through buildRequestBody — no raw passthrough.
