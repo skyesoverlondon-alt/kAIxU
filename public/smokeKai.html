@@ -480,37 +480,26 @@ async function testCors() {
   const t0 = ms();
   setState("cors", "running");
   $("body-cors").classList.add("open");
-  // NOTE: Browsers forbid setting Origin / Access-Control-Request-* headers from JS.
-  // Manually firing OPTIONS is unreliable. The correct test: send a real cross-origin
-  // POST with Content-Type: application/json (no auth). The browser auto-sends the
-  // OPTIONS preflight internally. If CORS is broken the fetch throws a TypeError.
-  // If CORS is fine we get a 401 (no token) with CORS headers on the actual response.
   try {
-    const r = await fetch(`${API_BASE}/v1/generate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "kAIxU-flash", input: { type: "text", content: "cors-probe" } })
-    });
+    // Simple OPTIONS fetch — browser sends it as-is, worker handles all OPTIONS
+    // with 204 + CORS headers. Browser can read the headers because CORS is present.
+    // We do NOT set Origin/Access-Control-Request-* — those are forbidden headers.
+    const r = await fetch(`${API_BASE}/v1/generate`, { method: "OPTIONS" });
     const elapsed = ms() - t0;
-    const allowOrigin = r.headers.get("access-control-allow-origin");
-    const vary        = r.headers.get("vary") || "";
-    const j = await r.json().catch(() => ({}));
+    const allowOrigin  = r.headers.get("access-control-allow-origin");
+    const allowMethods = r.headers.get("access-control-allow-methods");
+    const allowHeaders = r.headers.get("access-control-allow-headers");
     $("resp-cors").textContent = [
-      `HTTP status:                  ${r.status}`,
-      `access-control-allow-origin: ${allowOrigin || "(missing — check worker CF env)"}`,
-      `vary:                         ${vary || "(none)"}`,
-      `body:                         ${JSON.stringify(j)}`,
-      ``,
-      `Preflight passed — browser received a response (not a network error).`,
-      `If CORS headers were missing the browser would have thrown TypeError.`,
+      `HTTP status:                      ${r.status}`,
+      `access-control-allow-origin:      ${allowOrigin  || "(missing)"}`,
+      `access-control-allow-methods:     ${allowMethods || "(missing)"}`,
+      `access-control-allow-headers:     ${allowHeaders || "(missing)"}`,
     ].join("\n");
-    const preflightOk  = true; // reaching here means preflight succeeded
-    const statusIs401  = r.status === 401;
-    const hasAoHeader  = !!allowOrigin;
     const checks = [
-      { label: "Preflight succeeded (no TypeError thrown)", ok: preflightOk },
-      { label: "Server reached — HTTP 401 (no token, expected)", ok: statusIs401 },
-      { label: "access-control-allow-origin present on response", ok: hasAoHeader },
+      { label: "HTTP 204 (preflight no-content)", ok: r.status === 204 },
+      { label: "access-control-allow-origin present", ok: !!allowOrigin },
+      { label: "POST in allowed methods", ok: !!(allowMethods && allowMethods.includes("POST")) },
+      { label: "Authorization in allowed headers", ok: !!(allowHeaders && allowHeaders.toLowerCase().includes("authorization")) },
     ];
     renderChecks("cors", checks);
     const passed = checks.every(c => c.ok);
@@ -518,13 +507,8 @@ async function testCors() {
     return { passed, elapsed, checks };
   } catch (e) {
     const elapsed = ms() - t0;
-    $("resp-cors").textContent = [
-      `TypeError: ${e.message}`,
-      ``,
-      `This means the browser blocked the request at the CORS preflight stage.`,
-      `Check: worker is deployed and Access-Control-Allow-Origin header is set.`,
-    ].join("\n");
-    renderChecks("cors", [{ label: "Preflight succeeded (no TypeError thrown)", ok: false }]);
+    $("resp-cors").textContent = "TypeError: " + e.message + "\n\nThis means the browser blocked the request. Worker may be down.";
+    renderChecks("cors", [{ label: "OPTIONS fetch succeeded", ok: false }]);
     setState("cors", "fail", elapsed);
     return { passed: false, elapsed, error: e.message };
   }
