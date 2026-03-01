@@ -615,7 +615,12 @@ async function testStream(token) {
             if (payload === "[DONE]") { done = true; return; }
             try {
               const obj = JSON.parse(payload);
-              if (obj.chunk) { text += obj.chunk; chunks++ }
+              // Gemini SSE format: candidates[0].content.parts[].text
+              const parts = obj?.candidates?.[0]?.content?.parts;
+              if (Array.isArray(parts)) {
+                const chunk = parts.filter(p => !p.thought).map(p => p.text || "").join("");
+                if (chunk) { text += chunk; chunks++; }
+              }
             } catch (_) {}
           }
         });

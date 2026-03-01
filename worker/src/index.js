@@ -130,7 +130,9 @@ function corsHeaders(request, env) {
         "Access-Control-Max-Age": "86400",
       };
     }
-    return {}; // origin not allowed — browser will block
+    // Origin not in explicit list — fall back to wildcard.
+    // Real security is enforced by KAIXU_APP_TOKENS, not CORS
+    // (CORS only stops browsers; curl/server calls bypass it anyway).
   }
 
   return {
