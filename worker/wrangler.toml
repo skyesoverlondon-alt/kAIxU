@@ -32,10 +32,12 @@ KAIXU_LOG_LEVEL = "info"
 # KAIXU_SERVICE_SECRET must be set via: wrangler secret put KAIXU_SERVICE_SECRET
 # KAIXU_RATE_LIMIT = "60"  # max requests per token per 60-second window
 
-# ── Rate Limiting (KV-backed) ──────────────────────────────────────────────
-# To enable rate limiting, create a KV namespace in the Cloudflare dashboard:
-#   Workers & Pages → KV → Create namespace → name it "KAIXU_RL"
-# Then uncomment and fill in the id below:
+# ── KV Namespace (circuit breaker + rate limiting) ────────────────────────────
+# Required for circuit breaker. Without it, circuit breaker is silently disabled.
+# Setup:
+#   1. Cloudflare Workers & Pages → KV → Create namespace → name it "kaixu-kv"
+#   2. Copy the namespace ID
+#   3. Uncomment the lines below and paste your ID
 # [[kv_namespaces]]
-# binding = "KAIXU_RL"
+# binding = "KAIXU_KV"
 # id = "<paste-your-kv-namespace-id-here>"

@@ -246,6 +246,50 @@ function clampInt(n, min, max, fallback) {
 // Not active. Will be implemented via admin dashboard + Neon DB.
 async function checkRateLimit(_env, _token) { return { ok: true }; }
 
+// ─── Circuit Breaker (KV-backed, optional) ───────────────────────────────────
+// Requires KAIXU_KV binding (Cloudflare KV namespace).
+// If KAIXU_KV is not bound, circuit breaker is silently disabled — gate keeps working.
+//
+// KV keys:
+//   circuit:open   → "1"  (TTL: 30s) — circuit is open, fail fast immediately
+//   circuit:fails  → "<n>" (TTL: 60s) — consecutive upstream 5xx count
+//
+// Behavior:
+//   - N consecutive upstream 5xx or network errors → circuit opens (30s)
+//   - While open: requests get immediate 503 + Retry-After: 30
+//   - After 30s TTL: circuit auto-heals (half-open), next request passes through
+const CIRCUIT_FAIL_THRESHOLD = 5;  // failures before opening
+const CIRCUIT_FAIL_TTL       = 60; // seconds to count failures over
+const CIRCUIT_OPEN_TTL       = 30; // seconds circuit stays open
+
+async function checkCircuit(env) {
+  if (!env.KAIXU_KV) return { open: false };
+  try {
+    const val = await env.KAIXU_KV.get("circuit:open");
+    return { open: val === "1" };
+  } catch (_) {
+    return { open: false }; // KV error — fail open, never break the gate
+  }
+}
+
+async function recordUpstreamFailure(env) {
+  if (!env.KAIXU_KV) return;
+  try {
+    const raw = await env.KAIXU_KV.get("circuit:fails");
+    const count = raw ? parseInt(raw, 10) + 1 : 1;
+    await env.KAIXU_KV.put("circuit:fails", String(count), { expirationTtl: CIRCUIT_FAIL_TTL });
+    if (count >= CIRCUIT_FAIL_THRESHOLD) {
+      await env.KAIXU_KV.put("circuit:open", "1", { expirationTtl: CIRCUIT_OPEN_TTL });
+      console.warn(`[circuit] OPENED after ${count} consecutive upstream failures`);
+    }
+  } catch (_) {} // KV errors must never break the gate
+}
+
+async function recordUpstreamSuccess(env) {
+  if (!env.KAIXU_KV) return;
+  try { await env.KAIXU_KV.delete("circuit:fails"); } catch (_) {}
+}
+
 // ─── Fire-and-forget request logger ──────────────────────────────────────────
 // Always called via ctx.waitUntil — never delays the response to the caller.
 async function fireLog(env, data) {
@@ -405,6 +449,12 @@ async function handleEmbed(request, env, rid, ctx) {
     return jsonResp(403, { ok: false, error: "Your token is not authorized for embedding. Contact your administrator.", requestId: rid }, hdrs);
   }
 
+  // Circuit breaker — fail fast if upstream is known down
+  const cb = await checkCircuit(env);
+  if (cb.open) {
+    return jsonResp(503, { ok: false, error: "Upstream AI is temporarily unavailable. Try again in 30 seconds.", requestId: rid }, { ...hdrs, "Retry-After": "30" });
+  }
+
   // Normalize content → always an array of strings
   const rawContent = body.content;
   if (rawContent == null) {
@@ -442,6 +492,7 @@ async function handleEmbed(request, env, rid, ctx) {
       if (!upstream.ok) {
         const r = jsonResp(upstream.status, { ok: false, error: "Upstream embed error.", details: upstreamJson || { raw: text.slice(0, 4000) } }, hdrs);
         ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream embed error" }));
+        ctx.waitUntil(recordUpstreamFailure(env));
         return r;
       }
 
@@ -474,6 +525,7 @@ async function handleEmbed(request, env, rid, ctx) {
       if (!upstream.ok) {
         const r = jsonResp(upstream.status, { ok: false, error: "Upstream batch embed error.", details: upstreamJson || { raw: text.slice(0, 4000) } }, hdrs);
         ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream batch embed error" }));
+        ctx.waitUntil(recordUpstreamFailure(env));
         return r;
       }
 
@@ -490,6 +542,7 @@ async function handleEmbed(request, env, rid, ctx) {
   } catch (e) {
     const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 }
@@ -551,6 +604,12 @@ async function handleGenerate(request, env, rid, ctx) {
     });
   }
 
+  // Circuit breaker — fail fast if upstream is known down
+  const cb = await checkCircuit(env);
+  if (cb.open) {
+    return jsonResp(503, { ok: false, error: "Upstream AI is temporarily unavailable. Try again in 30 seconds.", requestId: rid }, { ...hdrs, "Retry-After": "30" });
+  }
+
   const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
   if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
 
@@ -591,6 +650,7 @@ async function handleGenerate(request, env, rid, ctx) {
   } catch (e) {
     const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 
@@ -605,6 +665,7 @@ async function handleGenerate(request, env, rid, ctx) {
       details: upstreamJson || { raw: text.slice(0, 4000) },
     }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 
@@ -653,6 +714,12 @@ async function handleStream(request, env, rid, ctx) {
     });
   }
 
+  // Circuit breaker — fail fast if upstream is known down
+  const cb = await checkCircuit(env);
+  if (cb.open) {
+    return jsonResp(503, { ok: false, error: "Upstream AI is temporarily unavailable. Try again in 30 seconds.", requestId: rid }, { ...hdrs, "Retry-After": "30" });
+  }
+
   const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
   if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
 
@@ -695,6 +762,7 @@ async function handleStream(request, env, rid, ctx) {
   } catch (e) {
     const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 
@@ -707,6 +775,7 @@ async function handleStream(request, env, rid, ctx) {
       details: errJson || errText.slice(0, 4000),
     }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 
