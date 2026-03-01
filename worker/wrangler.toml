@@ -25,6 +25,11 @@ KAIXU_MAX_BODY_BYTES = "5242880"
 KAIXU_GLOBAL_SYSTEM = ""
 KAIXU_LOG_LEVEL = "info"
 # KAIXU_ALLOWED_ORIGINS = "https://yourapp.netlify.app,https://anotherapp.com"
+
+# ── Admin platform integration ─────────────────────────────────────────────────
+# Set both to enable DB-backed token verify + request logging.
+# KAIXU_NETLIFY_URL = "https://your-site.netlify.app"
+# KAIXU_SERVICE_SECRET must be set via: wrangler secret put KAIXU_SERVICE_SECRET
 # KAIXU_RATE_LIMIT = "60"  # max requests per token per 60-second window
 
 # ── Rate Limiting (KV-backed) ──────────────────────────────────────────────

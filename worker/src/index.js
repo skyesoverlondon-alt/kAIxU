@@ -167,12 +167,9 @@ function jsonResp(status, obj, extraHeaders = {}) {
   });
 }
 
-function enforceAuth(request, env) {
+async function enforceAuth(request, env) {
   const openGate = String(env.KAIXU_OPEN_GATE || "0") === "1";
-  if (openGate) return { ok: true, token: "open-gate" };
-
-  const tokens = csvToSet(env.KAIXU_APP_TOKENS || "");
-  if (!tokens.size) return { ok: false, code: 500, message: "Gateway misconfigured: KAIXU_APP_TOKENS is not set." };
+  if (openGate) return { ok: true, token: "open-gate", tokenId: null, tokenPrefix: null };
 
   const auth = request.headers.get("Authorization") || "";
   const xToken = request.headers.get("X-KAIXU-TOKEN") || "";
@@ -181,10 +178,38 @@ function enforceAuth(request, env) {
   else if (xToken) token = xToken.trim();
 
   if (!token) return { ok: false, code: 401, message: "Missing app token. Send Authorization: Bearer <token>." };
-  // Minimum token entropy guard — reject suspiciously short tokens
   if (token.length < 16) return { ok: false, code: 403, message: "Invalid app token." };
+
+  // ── DB-backed verify (admin platform) ────────────────────────────────────
+  // When KAIXU_NETLIFY_URL + KAIXU_SERVICE_SECRET are set, tokens created in
+  // the admin dashboard are verified against Neon. Falls back to env var on
+  // any fetch error so a DB outage never takes down the gate.
+  const netlifyUrl = (env.KAIXU_NETLIFY_URL || "").trim();
+  const serviceSecret = (env.KAIXU_SERVICE_SECRET || "").trim();
+  if (netlifyUrl && serviceSecret) {
+    try {
+      const res = await fetch(`${netlifyUrl}/api/admin/token/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-kaixu-service": serviceSecret },
+        body: JSON.stringify({ token }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.valid) {
+          return { ok: false, code: 403, message: "Invalid app token." + (data.reason ? ` (${data.reason})` : "") };
+        }
+        return { ok: true, token, tokenId: data.tokenId || null, tokenPrefix: data.tokenPrefix || null };
+      }
+    } catch (e) {
+      console.error("[auth] DB verify error, falling back to env var:", e.message);
+    }
+  }
+
+  // ── Env var fallback ──────────────────────────────────────────────────────
+  const tokens = csvToSet(env.KAIXU_APP_TOKENS || "");
+  if (!tokens.size) return { ok: false, code: 500, message: "Gateway misconfigured: no token source available." };
   if (!tokens.has(token)) return { ok: false, code: 403, message: "Invalid app token." };
-  return { ok: true, token };
+  return { ok: true, token, tokenId: null, tokenPrefix: token.slice(0, 12) + "..." };
 }
 
 function clampInt(n, min, max, fallback) {
@@ -196,6 +221,23 @@ function clampInt(n, min, max, fallback) {
 // ─── Rate Limiter placeholder ────────────────────────────────────────────────
 // Not active. Will be implemented via admin dashboard + Neon DB.
 async function checkRateLimit(_env, _token) { return { ok: true }; }
+
+// ─── Fire-and-forget request logger ──────────────────────────────────────────
+// Always called via ctx.waitUntil — never delays the response to the caller.
+async function fireLog(env, data) {
+  const netlifyUrl = (env.KAIXU_NETLIFY_URL || "").trim();
+  const serviceSecret = (env.KAIXU_SERVICE_SECRET || "").trim();
+  if (!netlifyUrl || !serviceSecret) return;
+  try {
+    await fetch(`${netlifyUrl}/api/admin/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-kaixu-service": serviceSecret },
+      body: JSON.stringify(data),
+    });
+  } catch (_) {
+    // Swallow — logging must never affect the gate
+  }
+}
 
 // ─── Generate helpers (ported from kaixu-generate.js) ────────────────────────
 
@@ -304,7 +346,7 @@ async function handleHealth(request, env, rid) {
   // Health requires auth — don't leak config state to anonymous callers
   const cors = corsHeaders(request, env);
   const hdrs = { ...cors, "X-Request-ID": rid };
-  const auth = enforceAuth(request, env);
+  const auth = await enforceAuth(request, env);
   if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
 
   const hasKey    = !!(env.KAIXU_GEMINI_API_KEY && env.KAIXU_GEMINI_API_KEY.trim());
@@ -337,12 +379,15 @@ async function handleModels(request, env, rid) {
   }, hdrs);
 }
 
-async function handleGenerate(request, env, rid) {
+async function handleGenerate(request, env, rid, ctx) {
+  const t0 = Date.now();
   const cors = corsHeaders(request, env);
   const hdrs = { ...cors, "X-Request-ID": rid };
 
-  const auth = enforceAuth(request, env);
+  const auth = await enforceAuth(request, env);
   if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
+  const logBase = { requestId: rid, tokenId: auth.tokenId, tokenPrefix: auth.tokenPrefix, endpoint: "/v1/generate" };
 
   // Rate limit check
   const rl = await checkRateLimit(env, auth.token);
@@ -383,7 +428,9 @@ async function handleGenerate(request, env, rid) {
       body: JSON.stringify(built.value),
     });
   } catch (e) {
-    return jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    return r;
   }
 
   const text = await upstream.text();
@@ -391,11 +438,13 @@ async function handleGenerate(request, env, rid) {
   try { upstreamJson = JSON.parse(text); } catch (_) {}
 
   if (!upstream.ok) {
-    return jsonResp(upstream.status, {
+    const r = jsonResp(upstream.status, {
       ok: false,
       error: "Upstream model error.",
       details: upstreamJson || { raw: text.slice(0, 4000) },
     }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    return r;
   }
 
   const outText      = upstreamJson ? extractTextFromGemini(upstreamJson) : "";
@@ -403,15 +452,17 @@ async function handleGenerate(request, env, rid) {
   const finishReason = upstreamJson ? extractFinishReason(upstreamJson)   : null;
 
   if (finishReason === "MAX_TOKENS" && !outText) {
-    return jsonResp(200, {
+    const r = jsonResp(200, {
       ok: false,
       error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like gemini-2.5-pro require a larger budget).",
       model, finishReason, usage,
     }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0, error: "MAX_TOKENS" }));
+    return r;
   }
 
   const includeRaw = !!body.includeRaw;
-  return jsonResp(200, {
+  const r = jsonResp(200, {
     ok: true,
     model,
     text: outText,
@@ -419,14 +470,19 @@ async function handleGenerate(request, env, rid) {
     usage,
     ...(includeRaw ? { raw: upstreamJson } : {}),
   }, hdrs);
+  ctx.waitUntil(fireLog(env, { ...logBase, model, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0 }));
+  return r;
 }
 
-async function handleStream(request, env, rid) {
+async function handleStream(request, env, rid, ctx) {
+  const t0 = Date.now();
   const cors = corsHeaders(request, env);
   const hdrs = { ...cors, "X-Request-ID": rid };
 
-  const auth = enforceAuth(request, env);
+  const auth = await enforceAuth(request, env);
   if (!auth.ok) return jsonResp(auth.code, { ok: false, error: auth.message }, hdrs);
+
+  const logBase = { requestId: rid, tokenId: auth.tokenId, tokenPrefix: auth.tokenPrefix, endpoint: "/v1/stream" };
 
   // Rate limit check
   const rl = await checkRateLimit(env, auth.token);
@@ -469,18 +525,25 @@ async function handleStream(request, env, rid) {
       body: JSON.stringify(built.value),
     });
   } catch (e) {
-    return jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    return r;
   }
 
   if (!upstream.ok) {
     const errText = await upstream.text();
     let errJson = null;
     try { errJson = JSON.parse(errText); } catch (_) {}
-    return jsonResp(upstream.status, {
+    const r = jsonResp(upstream.status, {
       ok: false, error: "Upstream model error.",
       details: errJson || errText.slice(0, 4000),
     }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    return r;
   }
+
+  // Log stream initiation — token counts unavailable (streamed, not buffered)
+  ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 200, durationMs: Date.now() - t0 }));
 
   // Pipe directly — Cloudflare Workers have no response timeout
   return new Response(upstream.body, {
@@ -498,7 +561,7 @@ async function handleStream(request, env, rid) {
 // ─── Main fetch handler ───────────────────────────────────────────────────────
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const { method } = request;
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/$/, "") || "/";
@@ -513,8 +576,8 @@ export default {
     // Router
     if (method === "GET"  && path === "/v1/health")   return handleHealth(request, env, rid);
     if (method === "GET"  && path === "/v1/models")   return handleModels(request, env, rid);
-    if (method === "POST" && path === "/v1/generate") return handleGenerate(request, env, rid);
-    if (method === "POST" && path === "/v1/stream")   return handleStream(request, env, rid);
+    if (method === "POST" && path === "/v1/generate") return handleGenerate(request, env, rid, ctx);
+    if (method === "POST" && path === "/v1/stream")   return handleStream(request, env, rid, ctx);
 
     // Health also on root GET for browser
     if (method === "GET" && (path === "/" || path === "")) return handleHealth(request, env, rid);
