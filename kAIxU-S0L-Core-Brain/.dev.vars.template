@@ -1,0 +1,38 @@
+# Copy this file to .dev.vars for local development.
+
+# Comma-separated app tokens accepted by the worker when KAIXU_OPEN_GATE=0
+KAIXU_APP_TOKENS=replace_with_local_token
+
+# Central token authority (recommended):
+# no fixed URL required — brain auto-discovers verify endpoints from request origin,
+# configured URL list, and known defaults.
+# Optional overrides:
+# KAIXU_TOKEN_VERIFY_URL=https://your-gate-site.netlify.app/api/admin/token/verify
+# KAIXU_NETLIFY_URLS=https://gate-a.netlify.app,https://gate-b.netlify.app
+# KAIXU_NETLIFY_URL remains supported for legacy single-URL setups.
+KAIXU_NETLIFY_URL=
+KAIXU_SERVICE_SECRET=your_shared_service_secret
+
+# Brand identity surfaced to clients
+KAIXU_COMPANY_NAME=Skyes Over London
+KAIXU_BRAIN_NAME=kAIxU S0L
+KAIXU_BRAND_MODEL_FLASH=kAIxU6.7-flash
+KAIXU_BRAND_MODEL_PRO=kAIxU6.7-pro
+KAIXU_BRAND_MODEL_EMBED=kAIxU6.7-embed
+KAIXU_DEFAULT_MODEL=kAIxU6.7-flash
+
+# Provider credentials (recommended generic keys)
+KAIXU_PROVIDER_API_KEY=replace_with_provider_key
+KAIXU_PROVIDER_BASE_URL=https://api.openai.com/v1
+KAIXU_PROVIDER_CHAT_PATH=/chat/completions
+KAIXU_PROVIDER_EMBEDDINGS_PATH=/embeddings
+KAIXU_PROVIDER_AUTH_HEADER=Authorization
+KAIXU_PROVIDER_AUTH_PREFIX=Bearer
+
+# Provider model IDs (never client-facing)
+KAIXU_PROVIDER_MODEL_FLASH=gpt-4.1-mini
+KAIXU_PROVIDER_MODEL_PRO=gpt-4.1
+KAIXU_PROVIDER_MODEL_EMBED=text-embedding-3-small
+
+# Backward-compatible alias (optional if KAIXU_PROVIDER_API_KEY is set)
+KAIXU_OPENAI_API_KEY=replace_with_openai_key

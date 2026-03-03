@@ -119,7 +119,7 @@ export class KaixuClient {
    *
    * @param {string|object} input  - Prompt string, or full request body object
    * @param {object} [options]
-   * @param {string}  [options.model]            - "kAIxU-flash" (default) | "kAIxU-pro"
+   * @param {string}  [options.model]            - "kAIxU6.7-flash" (default) | "kAIxU6.7-pro" — provider: Skyes Over London
    * @param {string}  [options.system]           - Per-request system instruction (appended after KAIXU_CANON)
    * @param {Array}   [options.messages]         - Multi-turn history [{role, content}]
    * @param {object}  [options.generationConfig] - temperature, topP, maxOutputTokens, stopSequences

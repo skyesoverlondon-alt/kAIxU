@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-03-02T07:35:52.329Z",
+  "outputDirectory": "artifacts/enterprise-evidence-2026-03-02T07-35-52-315Z",
+  "copiedCount": 19,
+  "missingCount": 0,
+  "copied": [
+    "docs/enterprise/enterprise-readiness-packet.md",
+    "docs/enterprise/execution-board.md",
+    "docs/enterprise/trust-summary.md",
+    "ops/compliance/evidence-index.md",
+    "ops/compliance/control-matrix.md",
+    "ops/compliance/security-questionnaire-kit.md",
+    "ops/governance/owner-roster.md",
+    "ops/governance/data-lifecycle.md",
+    "ops/slo/slo-catalog.yaml",
+    "ops/release/release-checklist.md",
+    "ops/runbooks/disaster-recovery.md",
+    "ops/runbooks/incident-response.md",
+    "ops/runbooks/load-chaos-drill.md",
+    "ops/runbooks/weekly-solo-ops.md",
+    "observability/dashboards/admin-audit-dashboard.json",
+    "scripts/verify-smoke.sh",
+    "scripts/contract-test.mjs",
+    "scripts/quality-gates.mjs",
+    ".github/workflows/quality-gates.yml"
+  ],
+  "missing": []
+}

@@ -1,0 +1,10 @@
+# CODEOWNERS
+# Solo-owner enterprise posture for Skyes Over London
+
+* @skyesoverlondon-alt
+
+/.github/ @skyesoverlondon-alt
+/docs/enterprise/ @skyesoverlondon-alt
+/ops/ @skyesoverlondon-alt
+/scripts/ @skyesoverlondon-alt
+/src/ @skyesoverlondon-alt

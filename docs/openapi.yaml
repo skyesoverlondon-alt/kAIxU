@@ -96,7 +96,7 @@ paths:
                 summary: With system instructions
                 value:
                   system: You are a concise legal assistant.
-                  model: kAIxU-flash
+                  model: kAIxU6.7-flash
                   input:
                     type: text
                     content: What is habeas corpus?
@@ -281,9 +281,9 @@ components:
       properties:
         model:
           type: string
-          enum: [kAIxU-flash, kAIxU-pro]
-          default: kAIxU-flash
-          description: Model to use. Defaults to kAIxU-flash.
+          enum: [kAIxU6.7-flash, kAIxU6.7-pro]
+          default: kAIxU6.7-flash
+          description: Model to use. Defaults to kAIxU6.7-flash. Provider is always Skyes Over London.
         input:
           type: object
           description: Single-turn input
@@ -298,7 +298,7 @@ components:
           required: [content]
         messages:
           type: array
-          description: Multi-turn conversation history (OpenAI format)
+          description: Multi-turn conversation history (role/content message format)
           items:
             type: object
             properties:
@@ -366,7 +366,7 @@ components:
           description: false if generation failed or was cut off (check `error`)
         model:
           type: string
-          example: kAIxU-flash
+          example: kAIxU6.7-flash
         text:
           type: string
           description: Generated text. Empty string if MAX_TOKENS with no output.
@@ -383,7 +383,7 @@ components:
               type: integer
             thoughtsTokens:
               type: integer
-              description: Internal reasoning tokens (kAIxU-pro only)
+              description: Internal reasoning tokens (kAIxU6.7-pro only)
             totalTokens:
               type: integer
         error:
@@ -430,7 +430,7 @@ components:
           type: boolean
         model:
           type: string
-          example: kAIxU-embed
+          example: kAIxU6.7-embed
         embeddings:
           type: array
           items:
@@ -480,9 +480,12 @@ components:
       properties:
         ok:
           type: boolean
+        provider:
+          type: string
+          example: Skyes Over London
         defaultModel:
           type: string
-          example: kAIxU-flash
+          example: kAIxU6.7-flash
         models:
           type: array
           items:
@@ -490,10 +493,13 @@ components:
             properties:
               id:
                 type: string
-                example: kAIxU-flash
+                example: kAIxU6.7-flash
+              provider:
+                type: string
+                example: Skyes Over London
               label:
                 type: string
-                example: kAIxU Flash (fast, recommended)
+                example: kAIxU6.7 Flash — Skyes Over London (fast, recommended)
 
     ErrorResponse:
       type: object

@@ -1,0 +1,30 @@
+# Copy this file to .dev.vars for local wrangler dev
+# Never commit real secrets
+
+KAIXU_OPENAI_API_KEY=your_provider_key_here
+KAIXU_APP_TOKENS=your_app_token_here
+
+# Central token authority (recommended):
+# no fixed URL required — brain auto-discovers verify endpoints from request origin,
+# configured URL list, and known defaults.
+# Optional overrides:
+# KAIXU_TOKEN_VERIFY_URL=https://your-gate-site.netlify.app/api/admin/token/verify
+# KAIXU_NETLIFY_URLS=https://gate-a.netlify.app,https://gate-b.netlify.app
+# KAIXU_NETLIFY_URL remains supported for legacy single-URL setups.
+# KAIXU_SERVICE_SECRET (or KAIXUSI_SECRET) must match Netlify KAIXU_SERVICE_SECRET.
+KAIXU_NETLIFY_URL=
+KAIXU_SERVICE_SECRET=your_shared_service_secret
+
+# Brain selector (no routing changes, just registry/resolve APIs)
+# Backward compatibility: legacy target IDs core67 and coresi4 are still accepted.
+# New integrations should use kaixu67 and kaixu0s.
+KAIXU_BRAIN_DEFAULT_TARGET=kaixu67
+KAIXU_BRAIN_BASE_KAIXU67=https://kaixu67.skyesoverlondon.workers.dev
+KAIXU_BRAIN_BASE_KAIXU0S=http://127.0.0.1:8787
+KAIXU_BRAIN_BASE_FLOW32=https://skaixu-flow-32.example.workers.dev
+
+# Automated smoke config (cron handler)
+KAIXU_SMOKE_AUTORUN=1
+KAIXU_SMOKE_AUTORUN_GENERATE=1
+KAIXU_SMOKE_PROMPT=Reply with SMOKE_OK
+KAIXU_SMOKE_MAX_TOKENS=16

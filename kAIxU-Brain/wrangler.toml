@@ -1,0 +1,42 @@
+name = "kaixu-brain-openai"
+main = "src/index.js"
+compatibility_date = "2026-03-02"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[triggers]
+crons = ["*/3 * * * *"]
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[vars]
+KAIXU_BRAIN_NAME = "kAIxU0s"
+KAIXU_DEFAULT_MODEL = "kAIxU6.7-flash"
+KAIXU_OPENAI_BASE_URL = "https://api.openai.com/v1"
+KAIXU_OPEN_GATE = "0"
+KAIXU_MAX_BODY_BYTES = "5242880"
+KAIXU_TIMEOUT_MS = "25000"
+KAIXU_ALLOWED_ORIGINS = ""
+KAIXU_GLOBAL_SYSTEM = ""
+# Central token authority (admin platform)
+KAIXU_NETLIFY_URL = ""
+KAIXU_EMBED_MODEL = "text-embedding-3-small"
+KAIXU_BRAIN_DEFAULT_TARGET = "kaixu67"
+KAIXU_BRAIN_BASE_KAIXU67 = "https://kaixu67.skyesoverlondon.workers.dev"
+KAIXU_BRAIN_BASE_KAIXU0S = ""
+KAIXU_BRAIN_BASE_FLOW32 = ""
+KAIXU_SMOKE_AUTORUN = "1"
+KAIXU_SMOKE_AUTORUN_GENERATE = "1"
+KAIXU_SMOKE_PROMPT = "Reply with SMOKE_OK"
+KAIXU_SMOKE_MAX_TOKENS = "16"
+
+# Secret required when KAIXU_NETLIFY_URL is set:
+# wrangler secret put KAIXU_SERVICE_SECRET
+
+[[kv_namespaces]]
+binding = "KAIXU_SMOKE_KV"
+id = "23fb56af05d94cd58b0aea70153d00b3"
+preview_id = "f188f76d7cd145ed851ae8b87e8b2e60"

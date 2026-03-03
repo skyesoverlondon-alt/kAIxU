@@ -1,0 +1,1183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SmokeHouse Standalone</title>
+  <style>
+    :root {
+      --bg: #130a24;
+      --panel: #1d1233;
+      --panel-2: #24163f;
+      --line: #4d2f85;
+      --text: #f8f3ff;
+      --muted: #d6c7f8;
+      --gold: #f2c94c;
+      --gold-2: #ffdf7a;
+      --ok: #2ecc71;
+      --bad: #ff5d6c;
+      --warn: #ffb347;
+      --shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font: 14px/1.45 Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% -10%, #3a1c73 0%, transparent 35%),
+        radial-gradient(circle at 90% -20%, #4b2a8a 0%, transparent 32%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1280px;
+      margin: 20px auto;
+      padding: 0 14px 20px;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1.05fr 1.4fr 1fr;
+      grid-template-areas:
+        "top top top"
+        "left center right"
+        "history history history";
+    }
+
+    .card {
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .top { grid-area: top; }
+    .left { grid-area: left; }
+    .center { grid-area: center; }
+    .right { grid-area: right; }
+    .history { grid-area: history; }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 20px;
+      letter-spacing: .2px;
+      color: var(--gold-2);
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      color: var(--gold-2);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .sub {
+      color: var(--muted);
+      margin: 0;
+      font-size: 12px;
+    }
+
+    .grid {
+      margin-top: 10px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    input, textarea, select, button {
+      width: 100%;
+      background: #150d27;
+      border: 1px solid #5b3e96;
+      color: var(--text);
+      border-radius: 10px;
+      padding: 9px 10px;
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      background: linear-gradient(180deg, var(--gold-2), var(--gold));
+      color: #261800;
+      font-weight: 800;
+      cursor: pointer;
+      border: none;
+      transition: transform .08s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .btn-grid {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .status {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #777;
+      box-shadow: 0 0 10px rgba(255,255,255,.2);
+    }
+    .dot.ok { background: var(--ok); }
+    .dot.bad { background: var(--bad); }
+    .dot.warn { background: var(--warn); }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #0f0a1d;
+      border: 1px solid #4d2f85;
+      border-radius: 10px;
+      padding: 10px;
+      max-height: 520px;
+      overflow: auto;
+      line-height: 1.4;
+    }
+
+    .summary-line {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px dashed #5b3e96;
+      padding: 6px 0;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .summary-line strong { color: var(--gold-2); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #4d2f85;
+      padding: 7px 6px;
+      text-align: left;
+    }
+
+    th { color: var(--gold-2); }
+    td { color: var(--muted); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #5b3e96;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .sev-ok {
+      border-color: var(--ok);
+      color: var(--ok);
+    }
+
+    .sev-info {
+      border-color: #6d5ea3;
+      color: #e5dbff;
+    }
+
+    .sev-medium {
+      border-color: var(--warn);
+      color: var(--warn);
+    }
+
+    .sev-high,
+    .sev-critical {
+      border-color: var(--bad);
+      color: var(--bad);
+    }
+
+    @media (max-width: 1050px) {
+      .wrap {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "top"
+          "left"
+          "center"
+          "right"
+          "history";
+      }
+
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card top">
+      <h1>SmokeHouse · Standalone UI</h1>
+      <p class="sub">Investor smoke proof surface for the kAIxU0s test brain. Single-file client, no backend code in this file.</p>
+      <div class="grid">
+        <div>
+          <label for="base">Base URL</label>
+          <input id="base" placeholder="http://127.0.0.1:8701" />
+        </div>
+        <div>
+          <label for="envPreset">Environment Preset</label>
+          <select id="envPreset">
+            <option value="custom" selected>Custom</option>
+            <option value="local">Local Dev (127.0.0.1:8701)</option>
+            <option value="preview">Preview (set Base URL)</option>
+            <option value="prod">Production (set Base URL)</option>
+          </select>
+        </div>
+        <div>
+          <label for="token">Bearer Token (optional)</label>
+          <input id="token" type="password" placeholder="token if open-gate off" />
+        </div>
+        <div>
+          <label for="persistToken">Token Handling</label>
+          <select id="persistToken">
+            <option value="no" selected>Do not persist token</option>
+            <option value="yes">Persist token in browser</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <section class="card left">
+      <h2>Actions</h2>
+      <div class="btn-grid">
+        <button id="btnConnect">Connect</button>
+        <button id="btnVerify">Verify Smoke</button>
+        <button id="btnExport">Export Verify Evidence</button>
+        <button id="btnCopyDiag">Copy Diagnostics JSON</button>
+        <button id="btnRun">Run Smoke</button>
+        <button id="btnAudit">Run Audit</button>
+        <button id="btnHealth">Health</button>
+        <button id="btnModels">Models</button>
+        <button id="btnGenerate">Generate</button>
+        <button id="btnStream">Stream</button>
+        <button id="btnLog">Smoke Log</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <label for="prompt">Prompt</label>
+        <textarea id="prompt">Return exactly: SMOKEHOUSE_OK</textarea>
+      </div>
+
+      <div class="status">
+        <span id="dot" class="dot"></span>
+        <span id="statusText">Idle</span>
+        <span id="severityBadge" class="pill sev-info">SEV: INFO</span>
+      </div>
+    </section>
+
+    <section class="card center">
+      <h2>Output Console</h2>
+      <pre id="out">Ready. Click an action.</pre>
+    </section>
+
+    <section class="card right">
+      <h2>Run Summary</h2>
+      <div id="summary">
+        <div class="summary-line"><span>Verdict</span><strong id="sumVerdict">N/A</strong></div>
+        <div class="summary-line"><span>Run ID</span><strong id="sumRunId">-</strong></div>
+        <div class="summary-line"><span>Total Checks</span><strong id="sumTotal">-</strong></div>
+        <div class="summary-line"><span>Failed Checks</span><strong id="sumFailed">-</strong></div>
+        <div class="summary-line"><span>Last Status</span><strong id="sumStatus">-</strong></div>
+        <div class="summary-line"><span>Last Updated</span><strong id="sumTime">-</strong></div>
+      </div>
+      <div style="margin-top:10px" class="pill">Deterministic smoke evidence from API responses</div>
+    </section>
+
+    <section class="card history">
+      <h2>Recent UI Run History</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Action</th>
+            <th>Status</th>
+            <th>Run ID</th>
+            <th>Failed</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const baseEl = $("base");
+    const tokenEl = $("token");
+    const envPresetEl = $("envPreset");
+    const persistTokenEl = $("persistToken");
+    const promptEl = $("prompt");
+    const outEl = $("out");
+    const dotEl = $("dot");
+    const statusEl = $("statusText");
+    const severityEl = $("severityBadge");
+
+    const historyBody = $("historyBody");
+
+    const sumVerdict = $("sumVerdict");
+    const sumRunId = $("sumRunId");
+    const sumTotal = $("sumTotal");
+    const sumFailed = $("sumFailed");
+    const sumStatus = $("sumStatus");
+    const sumTime = $("sumTime");
+
+    const LS_BASE = "smokehouse.standalone.base";
+    const LS_TOKEN = "smokehouse.standalone.token";
+    const LS_PERSIST = "smokehouse.standalone.persistToken";
+    const LS_ENV = "smokehouse.standalone.envPreset";
+    const LS_HISTORY = "smokehouse.standalone.history";
+
+    let lastVerifyEvidence = null;
+    let lastDiagnostics = null;
+
+    function nowIso() { return new Date().toISOString(); }
+
+    function safeJson(text) {
+      try { return JSON.parse(text); } catch { return text; }
+    }
+
+    function setStatus(text, tone = "warn") {
+      statusEl.textContent = text;
+      dotEl.className = `dot ${tone}`;
+    }
+
+    function sanitizeDisplay(value) {
+      if (value == null) return value;
+
+      if (typeof value === "string") {
+        return value.replace(/openai/ig, "kAIxU Gateway");
+      }
+
+      if (Array.isArray(value)) {
+        return value.map(sanitizeDisplay);
+      }
+
+      if (typeof value === "object") {
+        const out = {};
+        for (const [key, val] of Object.entries(value)) {
+          if (key.toLowerCase() === "provider") {
+            out[key] = "kAIxU Gateway";
+            continue;
+          }
+          out[key] = sanitizeDisplay(val);
+        }
+        return out;
+      }
+
+      return value;
+    }
+
+    function setSeverity(label = "INFO", tone = "info") {
+      severityEl.textContent = `SEV: ${label}`;
+      severityEl.className = `pill sev-${tone}`;
+    }
+
+    function severityFromCategory(category) {
+      const cat = String(category || "").toLowerCase();
+      if (!cat || cat === "none") return { label: "NONE", tone: "ok" };
+      if (cat === "rate-limit") return { label: "MEDIUM", tone: "medium" };
+      if (cat === "auth" || cat === "route" || cat === "method") return { label: "HIGH", tone: "high" };
+      if (cat === "network-or-cors" || cat === "mixed-content" || cat === "server") return { label: "CRITICAL", tone: "critical" };
+      return { label: "INFO", tone: "info" };
+    }
+
+    function updateDiagnosticsState(payload) {
+      const diagnostics = payload?.diagnostics || null;
+      if (diagnostics) {
+        lastDiagnostics = {
+          capturedAt: nowIso(),
+          baseUrl: payload?.baseUrl || getBase(),
+          status: payload?.status ?? 0,
+          diagnostics,
+          triedBases: payload?.triedBases || null,
+          responsePreview: payload?.responsePreview || null,
+        };
+        const sev = severityFromCategory(diagnostics.category);
+        setSeverity(sev.label, sev.tone);
+        return;
+      }
+
+      if (payload?.ok === true) {
+        setSeverity("NONE", "ok");
+      }
+    }
+
+    function renderOutput(payload) {
+      updateDiagnosticsState(payload);
+      const safe = sanitizeDisplay(payload);
+      outEl.textContent = typeof safe === "string" ? safe : JSON.stringify(safe, null, 2);
+    }
+
+    function getBase() {
+      const raw = (baseEl.value || "").trim();
+      const fallback = deriveApiBaseFromLocation();
+      return (raw || fallback).replace(/\/$/, "");
+    }
+
+    function toNormalizedBase(input) {
+      const raw = String(input || "").trim().replace(/\/$/, "");
+      if (!raw) return "";
+      try {
+        const u = new URL(raw);
+        return u.origin;
+      } catch {
+        return raw;
+      }
+    }
+
+    function uniqueBases(list) {
+      const seen = new Set();
+      const out = [];
+      for (const item of list) {
+        const normalized = toNormalizedBase(item);
+        if (!normalized) continue;
+        if (seen.has(normalized)) continue;
+        seen.add(normalized);
+        out.push(normalized);
+      }
+      return out;
+    }
+
+    function isLocalHttp(base) {
+      try {
+        const u = new URL(base);
+        return u.protocol === "http:" && (u.hostname === "127.0.0.1" || u.hostname === "localhost");
+      } catch {
+        return false;
+      }
+    }
+
+    function isBlockedByMixedContent(base) {
+      try {
+        const page = new URL(window.location.href);
+        const target = new URL(base);
+        return page.protocol === "https:" && target.protocol === "http:";
+      } catch {
+        return false;
+      }
+    }
+
+    function canUseBaseFromBrowser(base) {
+      if (!isBlockedByMixedContent(base)) return true;
+      return isLocalHttp(base) && /^(localhost|127\.0\.0\.1)$/i.test(window.location.hostname || "");
+    }
+
+    function derivePortMappedApiBase(base, targetPort) {
+      try {
+        const u = new URL(base);
+
+        if (u.port) {
+          u.port = String(targetPort);
+          return u.origin;
+        }
+
+        const host = u.hostname;
+        const rewrittenHost = host
+          .replace(/-(\d+)\.app\.github\.dev$/i, `-${targetPort}.app.github.dev`)
+          .replace(/-(\d+)\.github\.dev$/i, `-${targetPort}.github.dev`)
+          .replace(/^\d+-/, `${targetPort}-`);
+
+        if (rewrittenHost !== host) {
+          u.hostname = rewrittenHost;
+          return u.origin;
+        }
+
+        return "";
+      } catch {
+        return "";
+      }
+    }
+
+    function getApiBaseCandidates() {
+      const current = toNormalizedBase(getBase());
+      const derived = toNormalizedBase(deriveApiBaseFromLocation());
+      const mappedFromCurrent = toNormalizedBase(derivePortMappedApiBase(current, 8701));
+      const mappedFromDerived = toNormalizedBase(derivePortMappedApiBase(derived, 8701));
+      const sameOrigin = toNormalizedBase(window.location.origin);
+      const local = "http://127.0.0.1:8701";
+      const localAlt = "http://localhost:8701";
+
+      const candidates = uniqueBases([
+        current,
+        mappedFromCurrent,
+        derived,
+        mappedFromDerived,
+        sameOrigin,
+        local,
+        localAlt,
+      ]).filter(canUseBaseFromBrowser);
+
+      if (!candidates.length) {
+        return [local];
+      }
+
+      return candidates;
+    }
+
+    function deriveApiBaseFromLocation() {
+      try {
+        const url = new URL(window.location.href);
+
+        if (url.protocol !== "http:" && url.protocol !== "https:") {
+          return "http://127.0.0.1:8701";
+        }
+
+        if (url.port) {
+          url.port = "8701";
+          return url.origin;
+        }
+
+        if (/-\d+\.app\.github\.dev$/i.test(url.hostname)) {
+          url.hostname = url.hostname.replace(/-\d+\.app\.github\.dev$/i, "-8701.app.github.dev");
+          return url.origin;
+        }
+
+        if (/-\d+\.github\.dev$/i.test(url.hostname)) {
+          url.hostname = url.hostname.replace(/-\d+\.github\.dev$/i, "-8701.github.dev");
+          return url.origin;
+        }
+
+        if (/^\d+-/.test(url.hostname)) {
+          url.hostname = url.hostname.replace(/^\d+-/, "8701-");
+          return url.origin;
+        }
+
+        return url.origin;
+      } catch {
+        return "http://127.0.0.1:8701";
+      }
+    }
+
+    function getHeaders(json = true) {
+      const headers = {};
+      if (json) headers["Content-Type"] = "application/json";
+      const token = (tokenEl.value || "").trim();
+      if (token) headers.Authorization = `Bearer ${token}`;
+      return headers;
+    }
+
+    function persistSettings() {
+      localStorage.setItem(LS_BASE, getBase());
+      localStorage.setItem(LS_PERSIST, persistTokenEl.value);
+      localStorage.setItem(LS_ENV, envPresetEl.value);
+      if (persistTokenEl.value === "yes") {
+        localStorage.setItem(LS_TOKEN, tokenEl.value || "");
+      } else {
+        localStorage.removeItem(LS_TOKEN);
+      }
+    }
+
+    function addHistory(entry) {
+      const existing = safeJson(localStorage.getItem(LS_HISTORY) || "[]");
+      const next = Array.isArray(existing) ? existing : [];
+      next.unshift(entry);
+      localStorage.setItem(LS_HISTORY, JSON.stringify(next.slice(0, 40)));
+      drawHistory();
+    }
+
+    function drawHistory() {
+      const items = safeJson(localStorage.getItem(LS_HISTORY) || "[]");
+      const rows = Array.isArray(items) ? items : [];
+      historyBody.innerHTML = rows.map((row) => {
+        return `<tr>
+          <td>${row.time || "-"}</td>
+          <td>${row.action || "-"}</td>
+          <td>${row.status || "-"}</td>
+          <td>${row.runId || "-"}</td>
+          <td>${row.failed ?? "-"}</td>
+        </tr>`;
+      }).join("");
+      if (!rows.length) {
+        historyBody.innerHTML = `<tr><td colspan="5">No runs yet.</td></tr>`;
+      }
+    }
+
+    function updateSummary({ verdict = "N/A", runId = "-", total = "-", failed = "-", status = "-" } = {}) {
+      sumVerdict.textContent = verdict;
+      sumRunId.textContent = runId;
+      sumTotal.textContent = total;
+      sumFailed.textContent = failed;
+      sumStatus.textContent = status;
+      sumTime.textContent = nowIso();
+    }
+
+    function asPreview(value, max = 400) {
+      try {
+        const text = typeof value === "string" ? value : JSON.stringify(value);
+        if (!text) return "";
+        return text.length > max ? `${text.slice(0, max)}...` : text;
+      } catch {
+        return "";
+      }
+    }
+
+    function classifyFailure({ status = 0, error = "", mixedContentBlocked = false, baseUrl = "", path = "", method = "GET" } = {}) {
+      const errorText = String(error || "").toLowerCase();
+      const advice = [];
+      let category = "unknown";
+      let summary = "Unclassified failure";
+
+      if (mixedContentBlocked) {
+        category = "mixed-content";
+        summary = "Secure page attempted insecure API request";
+        advice.push("Use an https Base URL for the API (for example forwarded github.dev on 8701)");
+      } else if (status === 401 || status === 403) {
+        category = "auth";
+        summary = "Authentication/authorization failed";
+        advice.push("Provide a valid Bearer token in Token field");
+        advice.push("Confirm gateway auth mode allows this request");
+      } else if (status === 404) {
+        category = "route";
+        summary = "Endpoint not found at selected base URL";
+        advice.push("Confirm Base URL points to API worker, not static page host");
+        advice.push(`Verify endpoint exists: ${method} ${path}`);
+      } else if (status === 405) {
+        category = "method";
+        summary = "HTTP method not allowed for endpoint";
+        advice.push(`Check method for ${path}; current method is ${method}`);
+      } else if (status === 429) {
+        category = "rate-limit";
+        summary = "Request rate-limited";
+        advice.push("Retry after backoff and reduce request frequency");
+      } else if (status >= 500) {
+        category = "server";
+        summary = "Server-side failure";
+        advice.push("Check worker logs/runtime errors for this endpoint");
+      } else if (status === 0 || /failed to fetch|networkerror|load failed|abort/i.test(errorText)) {
+        category = "network-or-cors";
+        summary = "Browser could not complete request";
+        advice.push("Confirm API host is reachable from browser network");
+        advice.push("Check CORS headers and scheme compatibility");
+      }
+
+      return {
+        category,
+        summary,
+        advice,
+        request: { method, path, baseUrl },
+      };
+    }
+
+    async function api(path, method = "GET", body = null, timeoutMs = 45000) {
+      const started = performance.now();
+      const candidates = getApiBaseCandidates();
+      let lastError = null;
+
+      for (const candidateBase of candidates) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+        try {
+          const res = await fetch(`${candidateBase}${path}`, {
+            method,
+            headers: getHeaders(method !== "GET"),
+            body: body ? JSON.stringify(body) : undefined,
+            signal: controller.signal,
+          });
+          const text = await res.text();
+          const data = safeJson(text);
+
+          if (res.ok || res.status !== 404 || candidateBase === candidates[candidates.length - 1]) {
+            if (toNormalizedBase(baseEl.value) !== candidateBase) {
+              baseEl.value = candidateBase;
+              persistSettings();
+            }
+            return {
+              ok: res.ok,
+              status: res.status,
+              data,
+              ms: Math.round(performance.now() - started),
+              baseUrl: candidateBase,
+              triedBases: candidates,
+              request: { path, method, hasBody: !!body },
+            };
+          }
+        } catch (error) {
+          lastError = error;
+        } finally {
+          clearTimeout(timer);
+        }
+      }
+
+      const message = String(lastError?.message || "Failed to fetch");
+      const error = new Error(message);
+      error.triedBases = candidates;
+      error.request = { path, method, hasBody: !!body };
+      throw error;
+    }
+
+    async function probeBase(base, timeoutMs = 12000) {
+      const started = performance.now();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await fetch(`${base}/v1/health`, {
+          method: "GET",
+          headers: getHeaders(false),
+          signal: controller.signal,
+        });
+        return {
+          base,
+          ok: res.ok,
+          status: res.status,
+          ms: Math.round(performance.now() - started),
+          note: res.ok ? "reachable" : "reachable but non-2xx",
+        };
+      } catch (error) {
+        return {
+          base,
+          ok: false,
+          status: 0,
+          ms: Math.round(performance.now() - started),
+          error: String(error?.message || error),
+          note: isBlockedByMixedContent(base) ? "blocked by browser mixed-content policy" : "network/CORS failure",
+        };
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    async function runConnectivityProbe() {
+      const candidates = getApiBaseCandidates();
+      const results = [];
+      for (const base of candidates) {
+        results.push(await probeBase(base));
+      }
+      return {
+        ok: results.some((r) => r.ok),
+        pageOrigin: window.location.origin,
+        candidates,
+        results,
+      };
+    }
+
+    async function doAction(label, fn) {
+      persistSettings();
+      setStatus(`${label}...`, "warn");
+      try {
+        const result = await fn();
+        const tone = result.ok ? "ok" : "bad";
+        const base = getBase();
+        if (!result.ok && result.status === 404 && /:8711$/.test(base)) {
+          result.hint = "Base URL is pointing at static file server (:8711). Set Base URL to http://127.0.0.1:8701";
+        }
+        if (!result.ok) {
+          const requestPath = result?.request?.path || "unknown";
+          const requestMethod = result?.request?.method || "GET";
+          result.diagnostics = classifyFailure({
+            status: result.status,
+            error: asPreview(result.data),
+            mixedContentBlocked: isBlockedByMixedContent(result.baseUrl || getBase()),
+            baseUrl: result.baseUrl || getBase(),
+            path: requestPath,
+            method: requestMethod,
+          });
+          result.responsePreview = asPreview(result.data);
+        }
+        setStatus(`${label} ${result.ok ? "OK" : "FAIL"} (${result.status})`, tone);
+        renderOutput(result);
+        return result;
+      } catch (error) {
+        setStatus(`${label} ERROR`, "bad");
+        const suggestedBase = deriveApiBaseFromLocation();
+        const mixedContentBlocked = isBlockedByMixedContent(getBase());
+        const requestPath = error?.request?.path || "unknown";
+        const requestMethod = error?.request?.method || "GET";
+        const diagnostics = classifyFailure({
+          status: 0,
+          error: String(error?.message || error),
+          mixedContentBlocked,
+          baseUrl: getBase(),
+          path: requestPath,
+          method: requestMethod,
+        });
+        renderOutput({
+          ok: false,
+          error: String(error?.message || error),
+          hint: mixedContentBlocked
+            ? "Browser blocked insecure API from secure page. Use an https API base (for example your forwarded 8701 github.dev URL)."
+            : "Network-level fetch failure. Check Base URL, CORS, and whether API port is reachable.",
+          suggestedBase,
+          currentBase: getBase(),
+          triedBases: Array.isArray(error?.triedBases) ? error.triedBases : getApiBaseCandidates(),
+          mixedContentBlocked,
+          diagnostics,
+        });
+        return { ok: false, status: 0, data: { error: String(error?.message || error) }, ms: 0 };
+      }
+    }
+
+    async function runVerify() {
+      persistSettings();
+      setStatus("Verify Smoke...", "warn");
+
+      try {
+        const audit = await api("/v1/admin/smoke/audit");
+        const run = await api("/v1/admin/smoke/run", "POST", {});
+        const log = await api("/v1/admin/smoke/log");
+
+        const auditOk = audit.ok && audit.data?.ok === true && Array.isArray(audit.data?.checks) && audit.data.checks.length >= 4;
+        const runData = run.data?.run || null;
+        const runOk = run.ok && run.data?.ok === true && runData && runData.engine === "runtime-smoke-v2" && Number(runData.totalChecks || 0) >= 7 && Number(runData.failedChecks || 999) === 0;
+        const logOk = log.ok && log.data?.ok === true && log.data?.log?.latestRun?.id === runData?.id;
+
+        const pass = auditOk && runOk && logOk;
+        const verdict = pass ? "VERIFY PASS" : "VERIFY FAIL";
+        setStatus(verdict, pass ? "ok" : "bad");
+
+        const payload = {
+          ok: pass,
+          verdict,
+          evidenceVersion: "smoke-ui-v1",
+          executedAt: nowIso(),
+          baseUrl: getBase(),
+          environmentPreset: envPresetEl.value,
+          checks: { auditOk, runOk, logOk },
+          runId: runData?.id || null,
+          runSummary: runData ? {
+            totalChecks: runData.totalChecks,
+            failedChecks: runData.failedChecks,
+            failingChecks: runData.failingChecks,
+          } : null,
+          timingMs: {
+            audit: audit.ms,
+            run: run.ms,
+            log: log.ms,
+            total: audit.ms + run.ms + log.ms,
+          },
+          raw: {
+            audit: audit.data,
+            run: run.data,
+            log: log.data,
+          },
+        };
+
+        if (!pass) {
+          const failingStep = !auditOk ? audit : (!runOk ? run : log);
+          payload.diagnostics = classifyFailure({
+            status: failingStep.status,
+            error: asPreview(failingStep.data),
+            mixedContentBlocked: isBlockedByMixedContent(failingStep.baseUrl || getBase()),
+            baseUrl: failingStep.baseUrl || getBase(),
+            path: failingStep?.request?.path || "verify-step",
+            method: failingStep?.request?.method || "GET",
+          });
+        }
+
+        lastVerifyEvidence = payload;
+
+        renderOutput(payload);
+        updateSummary({
+          verdict,
+          runId: payload.runId || "-",
+          total: runData?.totalChecks ?? "-",
+          failed: runData?.failedChecks ?? "-",
+          status: pass ? "PASS" : "FAIL",
+        });
+
+        addHistory({
+          time: nowIso(),
+          action: "verify",
+          status: pass ? "PASS" : "FAIL",
+          runId: payload.runId || "-",
+          failed: runData?.failedChecks ?? "-",
+        });
+      } catch (error) {
+        const diagnostics = classifyFailure({
+          status: 0,
+          error: String(error?.message || error),
+          mixedContentBlocked: isBlockedByMixedContent(getBase()),
+          baseUrl: getBase(),
+          path: error?.request?.path || "verify",
+          method: error?.request?.method || "GET",
+        });
+        setStatus("VERIFY ERROR", "bad");
+        renderOutput({
+          ok: false,
+          verdict: "VERIFY ERROR",
+          error: String(error?.message || error),
+          diagnostics,
+          triedBases: Array.isArray(error?.triedBases) ? error.triedBases : getApiBaseCandidates(),
+        });
+      }
+    }
+
+    function runExportEvidence() {
+      if (!lastVerifyEvidence) {
+        setStatus("Export FAIL", "bad");
+        renderOutput({ ok: false, error: "No verify evidence yet. Run Verify Smoke first." });
+        return;
+      }
+
+      const stamp = nowIso().replace(/[:.]/g, "-");
+      const fileName = `smoke-verify-evidence-${stamp}.json`;
+      const blob = new Blob([JSON.stringify(lastVerifyEvidence, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      setStatus("Evidence Exported", "ok");
+      renderOutput({ ok: true, fileName, note: "Verification evidence JSON downloaded." });
+    }
+
+    async function runCopyDiagnostics() {
+      if (!lastDiagnostics) {
+        setStatus("Copy FAIL", "bad");
+        renderOutput({ ok: false, error: "No diagnostics captured yet. Trigger a failing action first." });
+        return;
+      }
+
+      const text = JSON.stringify(lastDiagnostics, null, 2);
+
+      try {
+        if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+          await navigator.clipboard.writeText(text);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+        setStatus("Diagnostics Copied", "ok");
+        renderOutput({ ok: true, note: "Diagnostics JSON copied to clipboard.", capturedAt: lastDiagnostics.capturedAt });
+      } catch (error) {
+        setStatus("Copy ERROR", "bad");
+        renderOutput({ ok: false, error: String(error?.message || error), diagnostics: lastDiagnostics });
+      }
+    }
+
+    function handleEnvPresetChange() {
+      const preset = envPresetEl.value;
+      if (preset === "local") {
+        baseEl.value = "http://127.0.0.1:8701";
+      } else if (preset === "preview" || preset === "prod") {
+        baseEl.value = deriveApiBaseFromLocation();
+      }
+      persistSettings();
+    }
+
+    async function runConnect() {
+      const probe = await runConnectivityProbe();
+      const reachable = probe.results.find((r) => r.ok);
+      if (reachable && toNormalizedBase(baseEl.value) !== reachable.base) {
+        baseEl.value = reachable.base;
+      }
+
+      const result = await doAction("connect", () => api("/v1/health"));
+      result.probe = probe;
+      renderOutput(result);
+      addHistory({
+        time: nowIso(),
+        action: "connect",
+        status: result.ok ? "PASS" : "FAIL",
+        runId: "-",
+        failed: result.ok ? 0 : 1,
+      });
+
+      updateSummary({
+        verdict: result.ok ? "CONNECTED" : "DISCONNECTED",
+        runId: "-",
+        total: "-",
+        failed: result.ok ? 0 : 1,
+        status: `HTTP ${result.status}`,
+      });
+    }
+
+    async function runStream() {
+      persistSettings();
+      setStatus("Stream...", "warn");
+      const started = performance.now();
+
+      try {
+        const res = await fetch(`${getBase()}/v1/stream`, {
+          method: "POST",
+          headers: getHeaders(true),
+          body: JSON.stringify({
+            model: "kAIxU6.7-flash",
+            input: { type: "text", content: promptEl.value || "Say SMOKEHOUSE_STREAM" },
+          }),
+        });
+
+        if (!res.ok || !res.body) {
+          const text = await res.text();
+          const payload = { ok: false, status: res.status, error: text, ms: Math.round(performance.now() - started) };
+          renderOutput(payload);
+          setStatus("Stream FAIL", "bad");
+          addHistory({ time: nowIso(), action: "stream", status: "FAIL", runId: "-", failed: "-" });
+          updateSummary({ status: `HTTP ${res.status}` });
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let chunks = 0;
+        let textOut = "";
+        let doneSeen = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            const raw = line.slice(5).trim();
+            if (raw === "[DONE]") {
+              doneSeen = true;
+              continue;
+            }
+            try {
+              const obj = JSON.parse(raw);
+              const parts = obj?.candidates?.[0]?.content?.parts || [];
+              for (const part of parts) {
+                const t = typeof part?.text === "string" ? part.text : "";
+                if (t) textOut += t;
+              }
+              chunks += 1;
+            } catch {
+              // ignore malformed chunks in display pass
+            }
+          }
+        }
+
+        const ok = doneSeen && chunks > 0;
+        const payload = {
+          ok,
+          status: 200,
+          ms: Math.round(performance.now() - started),
+          contract: {
+            doneSeen,
+            chunks,
+            expects: "candidates[0].content.parts[].text + [DONE]",
+          },
+          text: textOut,
+        };
+
+        renderOutput(payload);
+        setStatus(ok ? "Stream OK" : "Stream FAIL", ok ? "ok" : "bad");
+        addHistory({ time: nowIso(), action: "stream", status: ok ? "PASS" : "FAIL", runId: "-", failed: ok ? 0 : 1 });
+        updateSummary({ status: ok ? "PASS" : "FAIL" });
+      } catch (error) {
+        const payload = {
+          ok: false,
+          status: 0,
+          error: String(error?.message || error),
+          diagnostics: classifyFailure({
+            status: 0,
+            error: String(error?.message || error),
+            mixedContentBlocked: isBlockedByMixedContent(getBase()),
+            baseUrl: getBase(),
+            path: "/v1/stream",
+            method: "POST",
+          }),
+        };
+        renderOutput(payload);
+        setStatus("Stream ERROR", "bad");
+      }
+    }
+
+    async function quickAction(actionName, path, method = "GET", body = null, runExtractor = null) {
+      const result = await doAction(actionName, () => api(path, method, body));
+      const run = runExtractor ? runExtractor(result?.data) : null;
+      const failed = run?.failedChecks ?? "-";
+      const runId = run?.id || "-";
+      addHistory({
+        time: nowIso(),
+        action: actionName,
+        status: result.ok ? "PASS" : "FAIL",
+        runId,
+        failed,
+      });
+
+      updateSummary({
+        verdict: result.ok ? "PASS" : "FAIL",
+        runId,
+        total: run?.totalChecks ?? "-",
+        failed,
+        status: `HTTP ${result.status}`,
+      });
+    }
+
+    function init() {
+      baseEl.value = localStorage.getItem(LS_BASE) || deriveApiBaseFromLocation();
+      if (/127\.0\.0\.1:8711|localhost:8711/.test(baseEl.value)) {
+        baseEl.value = deriveApiBaseFromLocation();
+      }
+      envPresetEl.value = localStorage.getItem(LS_ENV) || "custom";
+      persistTokenEl.value = localStorage.getItem(LS_PERSIST) || "no";
+      tokenEl.value = persistTokenEl.value === "yes" ? (localStorage.getItem(LS_TOKEN) || "") : "";
+
+      envPresetEl.addEventListener("change", handleEnvPresetChange);
+      $("btnConnect").addEventListener("click", runConnect);
+      $("btnVerify").addEventListener("click", runVerify);
+      $("btnExport").addEventListener("click", runExportEvidence);
+      $("btnCopyDiag").addEventListener("click", runCopyDiagnostics);
+      $("btnRun").addEventListener("click", () => quickAction("run", "/v1/admin/smoke/run", "POST", {}, (d) => d?.run || null));
+      $("btnAudit").addEventListener("click", () => quickAction("audit", "/v1/admin/smoke/audit"));
+      $("btnHealth").addEventListener("click", () => quickAction("health", "/v1/health"));
+      $("btnModels").addEventListener("click", () => quickAction("models", "/v1/models"));
+      $("btnGenerate").addEventListener("click", () => quickAction("generate", "/v1/generate", "POST", {
+        model: "kAIxU6.7-flash",
+        input: { type: "text", content: promptEl.value || "Return exactly: SMOKEHOUSE_OK" },
+      }));
+      $("btnLog").addEventListener("click", () => quickAction("log", "/v1/admin/smoke/log"));
+      $("btnStream").addEventListener("click", runStream);
+
+      drawHistory();
+      setStatus("Ready", "ok");
+      setSeverity("INFO", "info");
+    }
+
+    window.addEventListener("error", (e) => {
+      setStatus("UI Error", "bad");
+      renderOutput({ ok: false, error: e?.message || "Unknown UI error" });
+    });
+
+    init();
+  </script>
+</body>
+</html>

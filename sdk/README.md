@@ -16,7 +16,7 @@ const { text } = await kai.generate('Explain WebSockets in one paragraph.');
 
 // Generate with options
 const result = await kai.generate('Analyse microservices vs monolith.', {
-  model: 'kAIxU-pro',
+  model: 'kAIxU6.7-pro',
   system: 'You are a senior software architect.',
   generationConfig: { temperature: 0.7 },
 });
@@ -72,7 +72,7 @@ print(f"Tokens used: {result.total_tokens}")
 # Generate with options
 result = kai.generate(
     "Analyse microservices vs monolith.",
-    model="kAIxU-pro",
+    model="kAIxU6.7-pro",
     system="You are a senior software architect.",
     generation_config={"temperature": 0.7},
 )

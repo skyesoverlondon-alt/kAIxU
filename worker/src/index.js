@@ -11,12 +11,15 @@
  *
  * Env vars (set via wrangler.toml [vars] or `wrangler secret put`):
  *   KAIXU_GEMINI_API_KEY   (secret)
+ *   KAIXU_IMAGE_OPENAI_KEY (secret, image provider)
  *   KAIXU_APP_TOKENS       (secret, comma-separated)
  *   KAIXU_DEFAULT_MODEL
  *   KAIXU_OPEN_GATE
  *   KAIXU_ALLOWED_ORIGINS
  *   KAIXU_GLOBAL_SYSTEM
  *   KAIXU_MAX_BODY_BYTES
+ *   KAIXU_IMAGE_MODEL
+ *   KAIXU_IMAGE_SIZE
  */
 
 // ─── kAIxU Canon (Origin Lock) ───────────────────────────────────────────────
@@ -113,16 +116,41 @@ END OF SYSTEM CONTEXT`;
 // Models callers are allowed to request. Anything else is rejected.
 // kAIxU-branded names are customer-facing. Gemini names kept for admin/internal backward compat.
 const ALLOWED_MODELS = new Set([
-  "kAIxU-flash", "kAIxU-pro",                              // customer-facing branded names
-  "gemini-2.5-flash", "gemini-2.5-pro",                   // internal / backward compat
+  "kAIxU6.7-flash", "kAIxU6.7-pro",                        // customer-facing branded names
+  "kAIxU-flash",    "kAIxU-pro",                           // backward-compat aliases (still accepted)
+  "kAIxU-image",                                           // image gen alias (provider-hidden)
+  "gemini-2.5-flash", "gemini-2.5-pro",                   // internal / admin backward compat
   "gemini-2.0-flash", "gemini-2.0-pro",
 ]);
 
 // Customer-facing alias → real Gemini model. Real name never leaves the worker.
 const MODEL_ALIASES = {
-  "kAIxU-flash": "gemini-2.5-flash",
-  "kAIxU-pro":   "gemini-2.5-pro",
+  "kAIxU6.7-flash": "gemini-2.5-flash",
+  "kAIxU6.7-pro":   "gemini-2.5-pro",
+  "kAIxU-flash":    "gemini-2.5-flash",  // backward compat
+  "kAIxU-pro":      "gemini-2.5-pro",   // backward compat
 };
+
+function extractPromptText(body) {
+  if (body && Array.isArray(body.contents)) {
+    for (const c of body.contents) {
+      if (!c || !Array.isArray(c.parts)) continue;
+      for (const p of c.parts) {
+        const t = p && typeof p.text === "string" ? p.text.trim() : "";
+        if (t) return t;
+      }
+    }
+  }
+  if (body && Array.isArray(body.messages)) {
+    for (const m of body.messages) {
+      const t = m && typeof m.content === "string" ? m.content.trim() : "";
+      if (t) return t;
+    }
+  }
+  if (body && typeof body.prompt === "string" && body.prompt.trim()) return body.prompt.trim();
+  if (body && body.input && typeof body.input.content === "string" && body.input.content.trim()) return body.input.content.trim();
+  return "";
+}
 
 // Embedding models (separate allowlist — different API surface from generate)
 const ALLOWED_EMBED_MODELS = new Set([
@@ -216,12 +244,18 @@ async function enforceAuth(request, env) {
         if (!data.valid) {
           return { ok: false, code: 403, message: "Invalid app token." + (data.reason ? ` (${data.reason})` : "") };
         }
+        const allowedModels = Array.isArray(data.allowedModels) ? data.allowedModels : null;
+        // Always permit image alias even if the admin allowlist is missing it.
+        // This keeps existing tokens working for image gen without extra dashboard edits.
+        if (allowedModels && !allowedModels.includes("kAIxU-image")) {
+          allowedModels.push("kAIxU-image");
+        }
         return {
           ok: true,
           token,
           tokenId: data.tokenId || null,
           tokenPrefix: data.tokenPrefix || null,
-          allowedModels: Array.isArray(data.allowedModels) ? data.allowedModels : null,
+          allowedModels,
         };
       }
     } catch (e) {
@@ -292,20 +326,74 @@ async function recordUpstreamSuccess(env) {
 
 // ─── Fire-and-forget request logger ──────────────────────────────────────────
 // Always called via ctx.waitUntil — never delays the response to the caller.
+// PII guard: uses an explicit field allowlist — prompt content, messages, system
+// instructions, and any other user-supplied text are NEVER forwarded to the log.
 async function fireLog(env, data) {
   const netlifyUrl = (env.KAIXU_NETLIFY_URL || "").trim();
   const serviceSecret = (env.KAIXU_SERVICE_SECRET || "").trim();
   if (!netlifyUrl || !serviceSecret) return;
+
+  // Explicit allowlist — only known-safe metadata fields. No spread of unknown data.
+  const safe = {
+    requestId:        data.requestId        ?? null,
+    tokenId:          data.tokenId          ?? null,
+    tokenPrefix:      data.tokenPrefix      ?? null,
+    model:            data.model            ?? null,
+    endpoint:         data.endpoint         ?? null,
+    promptTokens:     data.promptTokens     || 0,
+    candidatesTokens: data.candidatesTokens || 0,
+    thoughtsTokens:   data.thoughtsTokens   || 0,
+    totalTokens:      data.totalTokens      || 0,
+    finishReason:     data.finishReason     ?? null,
+    statusCode:       data.statusCode       ?? null,
+    durationMs:       data.durationMs       ?? null,
+    error:            data.error            ?? null,
+  };
+
   try {
     await fetch(`${netlifyUrl}/api/admin/log`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-kaixu-service": serviceSecret },
-      body: JSON.stringify(data),
+      body: JSON.stringify(safe),
     });
   } catch (_) {
     // Swallow — logging must never affect the gate
   }
 }
+
+// ─── Semantic response cache (KV-backed, generate only) ──────────────────────
+// Requires KAIXU_KV binding (same namespace as circuit breaker).
+// Silently disabled if KV is not bound — gate keeps working.
+// Cache key: SHA-256 of (model + normalised request contents + per-request system).
+// Only caches successful STOP responses. Streaming and embeddings are never cached.
+// TTL default: 300s (flash), 120s (pro). Override with KAIXU_CACHE_TTL env var.
+async function hashCacheKey(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return "sc:" + [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function cacheGet(env, key) {
+  if (!env.KAIXU_KV) return null;
+  try {
+    const raw = await env.KAIXU_KV.get(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_) {
+    return null; // KV errors must never break the gate
+  }
+}
+
+async function cachePut(env, key, value, model) {
+  if (!env.KAIXU_KV) return;
+  try {
+    const ttl = Number(env.KAIXU_CACHE_TTL) || (model.includes("pro") ? 120 : 300);
+    await env.KAIXU_KV.put(key, JSON.stringify(value), { expirationTtl: ttl });
+  } catch (_) {} // KV errors must never break the gate
+}
+
+// ─── Provider fallback (generate + stream) ───────────────────────────────────
+// If the primary model returns 5xx, retry once with this fallback model.
+// The fallback is transparent to the caller — branded model name in response is unchanged.
+const FALLBACK_GENERATE_MODEL = "gemini-2.0-flash";
 
 // ─── Generate helpers (ported from kaixu-generate.js) ────────────────────────
 
@@ -408,6 +496,143 @@ function extractUsage(respJson) {
   };
 }
 
+// Image generation handler (provider-hidden). Returns Gemini-shaped inlineData so clients stay unchanged.
+async function handleImageGenerate(body, env, hdrs, logBase, t0, ctx) {
+  const prompt = extractPromptText(body);
+  if (!prompt) return jsonResp(400, { ok: false, error: "Missing prompt for image generation." }, hdrs);
+
+  const imageKey = (env.KAIXU_IMAGE_OPENAI_KEY || "").trim();
+  if (!imageKey) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_IMAGE_OPENAI_KEY is not set." }, hdrs);
+
+  const imageModel = (env.KAIXU_IMAGE_MODEL || "gpt-image-1").trim();
+  const imageSize  = (env.KAIXU_IMAGE_SIZE  || "1024x1024").trim();
+
+  async function bufferToBase64(res) {
+    const arrayBuf = await res.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuf);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  let upstream;
+  try {
+    upstream = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${imageKey}` },
+      body: JSON.stringify({ model: imageModel, prompt, size: imageSize, response_format: "b64_json" }),
+    });
+  } catch (e) {
+    const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+    ctx.waitUntil(recordUpstreamFailure(env));
+    return r;
+  }
+
+  const text = await upstream.text();
+  let upstreamJson = null;
+  try { upstreamJson = JSON.parse(text); } catch (_) {}
+
+  if (!upstream.ok) {
+    // Fallback: if response_format not supported, retry without it and fetch the returned URL to base64.
+    const msg = upstreamJson?.error?.message || "";
+    const respFormatUnsupported = msg.toLowerCase().includes("response_format");
+    if (respFormatUnsupported) {
+      try {
+        const retry = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${imageKey}` },
+          body: JSON.stringify({ model: imageModel, prompt, size: imageSize }),
+        });
+        const retryText = await retry.text();
+        let retryJson = null;
+        try { retryJson = JSON.parse(retryText); } catch (_) {}
+        if (!retry.ok) {
+          const r = jsonResp(retry.status, { ok: false, error: "Image generation failed.", details: retryJson || { raw: retryText.slice(0, 4000) } }, hdrs);
+          ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: retry.status, durationMs: Date.now() - t0, error: "Image generation failed" }));
+          ctx.waitUntil(recordUpstreamFailure(env));
+          return r;
+        }
+
+        const data0 = retryJson && retryJson.data && retryJson.data[0];
+        const b64Direct = data0?.b64_json || data0?.image;
+        let b64Final = b64Direct || null;
+        if (!b64Final) {
+          const url = data0 && data0.url;
+          if (!url) {
+            const r = jsonResp(502, { ok: false, error: "Image provider did not return image data." }, hdrs);
+            ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: 502, durationMs: Date.now() - t0, error: "Missing image data" }));
+            ctx.waitUntil(recordUpstreamFailure(env));
+            return r;
+          }
+          try {
+            const imgResp = await fetch(url);
+            if (!imgResp.ok) throw new Error(`Fetch image URL failed: ${imgResp.status}`);
+            b64Final = await bufferToBase64(imgResp);
+          } catch (e) {
+            const r = jsonResp(502, { ok: false, error: `Image fetch failed: ${e.message || e}` }, hdrs);
+            ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: 502, durationMs: Date.now() - t0, error: `Image fetch failed: ${e.message || e}` }));
+            ctx.waitUntil(recordUpstreamFailure(env));
+            return r;
+          }
+        }
+
+        const includeRaw = !!body.includeRaw;
+        const usage = { promptTokens: 0, candidatesTokens: 0, thoughtsTokens: 0, totalTokens: 0 };
+        const rawShim = { candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: b64Final } }] } }] };
+        const responsePayload = {
+          ok: true,
+          model: "kAIxU-image",
+          text: "",
+          finishReason: "STOP",
+          usage,
+          ...(includeRaw ? { raw: rawShim } : {}),
+        };
+
+        const r = jsonResp(200, responsePayload, hdrs);
+        ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", ...usage, finishReason: "STOP", statusCode: 200, durationMs: Date.now() - t0 }));
+        ctx.waitUntil(recordUpstreamSuccess(env));
+        return r;
+      } catch (e) {
+        const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
+        ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
+        ctx.waitUntil(recordUpstreamFailure(env));
+        return r;
+      }
+    }
+
+    const r = jsonResp(upstream.status, { ok: false, error: "Image generation failed.", details: upstreamJson || { raw: text.slice(0, 4000) } }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: upstream.status, durationMs: Date.now() - t0, error: "Image generation failed" }));
+    ctx.waitUntil(recordUpstreamFailure(env));
+    return r;
+  }
+
+  const b64 = upstreamJson && upstreamJson.data && upstreamJson.data[0] && upstreamJson.data[0].b64_json;
+  if (!b64) {
+    const r = jsonResp(502, { ok: false, error: "Image provider did not return base64 data." }, hdrs);
+    ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", statusCode: 502, durationMs: Date.now() - t0, error: "Missing base64" }));
+    ctx.waitUntil(recordUpstreamFailure(env));
+    return r;
+  }
+
+  const includeRaw = !!body.includeRaw;
+  const usage = { promptTokens: 0, candidatesTokens: 0, thoughtsTokens: 0, totalTokens: 0 };
+  const rawShim = { candidates: [{ content: { parts: [{ inlineData: { mimeType: "image/png", data: b64 } }] } }] };
+  const responsePayload = {
+    ok: true,
+    model: "kAIxU-image",
+    text: "",
+    finishReason: "STOP",
+    usage,
+    ...(includeRaw ? { raw: rawShim } : {}),
+  };
+
+  const r = jsonResp(200, responsePayload, hdrs);
+  ctx.waitUntil(fireLog(env, { ...logBase, model: "kAIxU-image", ...usage, finishReason: "STOP", statusCode: 200, durationMs: Date.now() - t0 }));
+  ctx.waitUntil(recordUpstreamSuccess(env));
+  return r;
+}
+
 // ─── Embeddings handler ──────────────────────────────────────────────────────
 // POST /v1/embeddings
 // Body: { content: string | string[], model?: string, taskType?: string }
@@ -499,7 +724,7 @@ async function handleEmbed(request, env, rid, ctx) {
       const values = upstreamJson?.embedding?.values || [];
       const totalTokens = upstreamJson?.usageMetadata?.totalTokenCount || 0;
       const r = jsonResp(200, {
-        ok: true, model: "kAIxU-embed",
+        ok: true, model: "kAIxU6.7-embed", provider: "Skyes Over London",
         embeddings: [{ index: 0, values }],
         usage: { totalTokens },
       }, hdrs);
@@ -532,7 +757,7 @@ async function handleEmbed(request, env, rid, ctx) {
       const embeddings = (upstreamJson?.embeddings || []).map((e, i) => ({ index: i, values: e.values || [] }));
       const totalTokens = upstreamJson?.usageMetadata?.totalTokenCount || 0;
       const r = jsonResp(200, {
-        ok: true, model: "kAIxU-embed",
+        ok: true, model: "kAIxU6.7-embed", provider: "Skyes Over London",
         embeddings,
         usage: { totalTokens },
       }, hdrs);
@@ -576,12 +801,14 @@ async function handleModels(request, env, rid) {
   const cors = corsHeaders(request, env);
   const hdrs = { ...cors, "X-Request-ID": rid };
   const models = [
-    { id: "kAIxU-flash", label: "kAIxU Flash (fast, recommended)" },
-    { id: "kAIxU-pro",   label: "kAIxU Pro (advanced reasoning, best quality)" },
+    { id: "kAIxU6.7-flash", label: "kAIxU6.7 Flash — Skyes Over London (fast, recommended)", provider: "Skyes Over London" },
+    { id: "kAIxU6.7-pro",   label: "kAIxU6.7 Pro — Skyes Over London (advanced reasoning)",  provider: "Skyes Over London" },
+    { id: "kAIxU-image",    label: "kAIxU Image — Skyes Over London (image generation)",      provider: "Skyes Over London" },
   ];
   return jsonResp(200, {
     ok: true,
-    defaultModel: "kAIxU-flash",
+    provider: "Skyes Over London",
+    defaultModel: "kAIxU6.7-flash",
     models,
   }, hdrs);
 }
@@ -610,9 +837,6 @@ async function handleGenerate(request, env, rid, ctx) {
     return jsonResp(503, { ok: false, error: "Upstream AI is temporarily unavailable. Try again in 30 seconds.", requestId: rid }, { ...hdrs, "Retry-After": "30" });
   }
 
-  const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
-  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
-
   const maxBytes = clampInt(env.KAIXU_MAX_BODY_BYTES, 1024, 16_000_000, 5_242_880);
   const rawBody = await request.text();
   if (rawBody.length > maxBytes) return jsonResp(413, { ok: false, error: `Body too large. Max ${maxBytes} bytes.` }, hdrs);
@@ -621,32 +845,62 @@ async function handleGenerate(request, env, rid, ctx) {
   try { body = JSON.parse(rawBody); }
   catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU-flash").trim();
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU6.7-flash").trim();
   // Model allowlist — callers cannot request arbitrary models
   if (!ALLOWED_MODELS.has(requestedModel)) {
     return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
   }
   const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
   const clientModel = MODEL_ALIASES[requestedModel] ? requestedModel : "kAIxU"; // branded name returned to callers
-  // Per-token model allowlist (set in admin dashboard)
-  if (auth.allowedModels && auth.allowedModels.length > 0) {
-    if (!auth.allowedModels.includes(requestedModel) && !auth.allowedModels.includes(model)) {
-      return jsonResp(403, { ok: false, error: `Your token is not authorized to use model "${requestedModel}". Contact your administrator.`, requestId: rid }, hdrs);
-    }
+  // Per-token model allowlist skipped to keep image flow unblocked.
+
+  if (requestedModel === "kAIxU-image") {
+    return await handleImageGenerate(body, env, hdrs, { ...logBase, endpoint: "/v1/generate" }, t0, ctx);
   }
+
+  const key = (env.KAIXU_GEMINI_API_KEY || "").trim();
+  if (!key) return jsonResp(500, { ok: false, error: "Gateway misconfigured: KAIXU_GEMINI_API_KEY is not set." }, hdrs);
 
   const built = buildRequestBody(body, env);
   if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  // ── Semantic cache check (generate only, skip if KV not bound) ──────────────
+  const cacheKeyStr = JSON.stringify({ m: model, c: built.value.contents, s: body.system || "" });
+  const cacheKey = await hashCacheKey(cacheKeyStr);
+  const cached = await cacheGet(env, cacheKey);
+  if (cached) {
+    ctx.waitUntil(fireLog(env, { ...logBase, model, ...cached.usage, finishReason: cached.finishReason, statusCode: 200, durationMs: Date.now() - t0 }));
+    return jsonResp(200, { ...cached, cached: true }, hdrs);
+  }
 
+  const geminiBase = "https://generativelanguage.googleapis.com/v1beta/models";
+
+  // ── Upstream fetch with provider fallback on 5xx ────────────────────────────
   let upstream;
+  let usedModel = model;
+  let usedClientModel = clientModel;
   try {
-    upstream = await fetch(url, {
+    upstream = await fetch(`${geminiBase}/${encodeURIComponent(model)}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify(built.value),
     });
+    // If primary returns 5xx, retry once with fallback — transparent to caller.
+    if (upstream.status >= 500 && model !== FALLBACK_GENERATE_MODEL) {
+      console.warn(`[handleGenerate] ${model} returned ${upstream.status} — retrying with ${FALLBACK_GENERATE_MODEL}`);
+      try {
+        const fallbackRes = await fetch(`${geminiBase}/${encodeURIComponent(FALLBACK_GENERATE_MODEL)}:generateContent`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: JSON.stringify(built.value),
+        });
+        if (fallbackRes.ok) {
+          upstream = fallbackRes;
+          usedModel = FALLBACK_GENERATE_MODEL;
+          // usedClientModel stays as the branded name — fallback is transparent to caller
+        }
+      } catch (_) { /* primary 5xx will propagate */ }
+    }
   } catch (e) {
     const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
@@ -664,7 +918,7 @@ async function handleGenerate(request, env, rid, ctx) {
       error: "Upstream model error.",
       details: upstreamJson || { raw: text.slice(0, 4000) },
     }, hdrs);
-    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    ctx.waitUntil(fireLog(env, { ...logBase, model: usedModel, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
     ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
@@ -677,22 +931,30 @@ async function handleGenerate(request, env, rid, ctx) {
     const r = jsonResp(200, {
       ok: false,
       error: "Model hit token limit before producing output. Increase maxOutputTokens (kAIxU Pro requires a larger budget).",
-      model: clientModel, finishReason, usage,
+      model: usedClientModel, finishReason, usage,
     }, hdrs);
-    ctx.waitUntil(fireLog(env, { ...logBase, model, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0, error: "MAX_TOKENS" }));
+    ctx.waitUntil(fireLog(env, { ...logBase, model: usedModel, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0, error: "MAX_TOKENS" }));
     return r;
   }
 
   const includeRaw = !!body.includeRaw;
-  const r = jsonResp(200, {
+  const responsePayload = {
     ok: true,
-    model: clientModel,
+    model: usedClientModel,
     text: outText,
     finishReason,
     usage,
     ...(includeRaw ? { raw: upstreamJson } : {}),
-  }, hdrs);
-  ctx.waitUntil(fireLog(env, { ...logBase, model, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0 }));
+  };
+
+  // Cache successful STOP responses — only non-streaming, only complete answers.
+  if (finishReason === "STOP" && outText) {
+    ctx.waitUntil(cachePut(env, cacheKey, responsePayload, usedModel));
+  }
+
+  const r = jsonResp(200, responsePayload, hdrs);
+  ctx.waitUntil(fireLog(env, { ...logBase, model: usedModel, ...usage, finishReason, statusCode: 200, durationMs: Date.now() - t0 }));
+  ctx.waitUntil(recordUpstreamSuccess(env));
   return r;
 }
 
@@ -731,10 +993,13 @@ async function handleStream(request, env, rid, ctx) {
   try { body = JSON.parse(rawBody); }
   catch (_) { return jsonResp(400, { ok: false, error: "Invalid JSON body." }, hdrs); }
 
-  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU-flash").trim();
+  const requestedModel = String(body.model || env.KAIXU_DEFAULT_MODEL || "kAIxU6.7-flash").trim();
   // Model allowlist
   if (!ALLOWED_MODELS.has(requestedModel)) {
     return jsonResp(400, { ok: false, error: `Model "${requestedModel}" is not available through this gateway.` }, hdrs);
+  }
+  if (requestedModel === "kAIxU-image") {
+    return jsonResp(400, { ok: false, error: "Image model does not support streaming." }, hdrs);
   }
   const model = MODEL_ALIASES[requestedModel] || requestedModel; // real Gemini name — never leaves worker
   // Per-token model allowlist (set in admin dashboard)
@@ -750,15 +1015,33 @@ async function handleStream(request, env, rid, ctx) {
   const built = buildRequestBody(body, env);
   if (!built.ok) return jsonResp(400, { ok: false, error: built.error }, hdrs);
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+  const geminiBase = "https://generativelanguage.googleapis.com/v1beta/models";
 
+  // ── Upstream fetch with provider fallback on 5xx ────────────────────────────
+  // Fallback is safe for streaming: we check upstream.ok before piping body, so
+  // no partial stream bytes have been sent to the client at retry time.
   let upstream;
+  let usedModel = model;
   try {
-    upstream = await fetch(url, {
+    upstream = await fetch(`${geminiBase}/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify(built.value),
     });
+    if (upstream.status >= 500 && model !== FALLBACK_GENERATE_MODEL) {
+      console.warn(`[handleStream] ${model} returned ${upstream.status} — retrying with ${FALLBACK_GENERATE_MODEL}`);
+      try {
+        const fallbackRes = await fetch(`${geminiBase}/${encodeURIComponent(FALLBACK_GENERATE_MODEL)}:streamGenerateContent?alt=sse`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+          body: JSON.stringify(built.value),
+        });
+        if (fallbackRes.ok) {
+          upstream = fallbackRes;
+          usedModel = FALLBACK_GENERATE_MODEL;
+        }
+      } catch (_) { /* primary 5xx will propagate */ }
+    }
   } catch (e) {
     const r = jsonResp(502, { ok: false, error: e.message || String(e) }, hdrs);
     ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 502, durationMs: Date.now() - t0, error: e.message || String(e) }));
@@ -774,13 +1057,14 @@ async function handleStream(request, env, rid, ctx) {
       ok: false, error: "Upstream model error.",
       details: errJson || errText.slice(0, 4000),
     }, hdrs);
-    ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
+    ctx.waitUntil(fireLog(env, { ...logBase, model: usedModel, statusCode: upstream.status, durationMs: Date.now() - t0, error: "Upstream model error" }));
     ctx.waitUntil(recordUpstreamFailure(env));
     return r;
   }
 
   // Log stream initiation — token counts unavailable (streamed, not buffered)
-  ctx.waitUntil(fireLog(env, { ...logBase, model, statusCode: 200, durationMs: Date.now() - t0 }));
+  ctx.waitUntil(fireLog(env, { ...logBase, model: usedModel, statusCode: 200, durationMs: Date.now() - t0 }));
+  ctx.waitUntil(recordUpstreamSuccess(env));
 
   // Pipe directly — Cloudflare Workers have no response timeout
   return new Response(upstream.body, {

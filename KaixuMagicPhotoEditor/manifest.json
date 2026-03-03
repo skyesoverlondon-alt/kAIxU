@@ -1,0 +1,22 @@
+{
+  "name": "kAIxu Magic Editor",
+  "short_name": "kAIxu Editor",
+  "description": "A modern, dark-themed interface for an AI-powered content and image editor.",
+  "theme_color": "#A855F7",
+  "background_color": "#050505",
+  "display": "standalone",
+  "start_url": "./index.html",
+  "iconUrl": "blob:https://factorypwa.netlify.app/ce3fa38e-d2c8-41fd-8891-ec788534e69f",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>SOL DevProof Valuator — Fortune 500 Edition</title>
+  <meta name="description" content="Upload a repo ZIP, run deterministic metrics + AI valuation, generate a branded certificate PDF, and export everything (CSV/JSON/PDF)."/>
+  <style>
+    :root{
+      --bg:#07021a; --ink:#ecf1ff; --muted:#a8b2d6; --gold:#f6d18b; --line:rgba(255,255,255,.12);
+      --ok:#7bff6a; --warn:#ffcf5b; --bad:#ff4d6d;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:var(--sans); color:var(--ink);
+      background:
+        radial-gradient(1200px 900px at 20% 20%, rgba(124,60,255,.22), transparent 60%),
+        radial-gradient(900px 700px at 80% 25%, rgba(255,43,214,.14), transparent 55%),
+        linear-gradient(180deg, #05010c, var(--bg));
+    }
+    .topbar{
+      height:76px; display:flex; align-items:center;
+      background: linear-gradient(180deg, rgba(21,10,42,.95), rgba(21,10,42,.70));
+      border-bottom:1px solid rgba(255,255,255,.08);
+    }
+    .wrap{max-width:1120px; margin:0 auto; padding:0 18px;}
+    .brand{display:flex; align-items:center; gap:12px;}
+    .brand img{height:48px; width:auto; filter: drop-shadow(0 10px 18px rgba(0,0,0,.55));}
+    .brandText{display:flex; flex-direction:column; gap:2px;}
+    .brandText b{font-size:14px; letter-spacing:.12em; text-transform:uppercase; color:var(--gold)}
+    .brandText span{font-size:12px; color:rgba(236,241,255,.92)}
+    .pill{display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:999px;
+          border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.05); font-size:12px;}
+    .dot{width:9px; height:9px; border-radius:999px; display:inline-block;}
+    .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+    .grid{display:grid; grid-template-columns:repeat(12,1fr); gap:14px; margin:18px 0 32px;}
+    .card{grid-column:span 12; padding:16px; border-radius:18px;
+          background: linear-gradient(180deg, rgba(13,5,38,.84), rgba(9,2,26,.70));
+          border:1px solid rgba(255,255,255,.10); box-shadow: 0 18px 55px rgba(0,0,0,.55);}
+    .card h2{margin:0 0 10px; font-size:13px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,226,160,.92);}
+    .muted{color:var(--muted)}
+    .row{display:flex; gap:12px; align-items:center; flex-wrap:wrap;}
+    .btn{border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:var(--ink);
+         border-radius:14px; padding:11px 14px; font-size:12px; letter-spacing:.08em; text-transform:uppercase; cursor:pointer;}
+    .btn.primary{background: linear-gradient(180deg, rgba(246,209,139,.20), rgba(246,209,139,.10)); border-color: rgba(246,209,139,.35);}
+    .btn:disabled{opacity:.55; cursor:not-allowed}
+    input, select, textarea{width:100%; padding:11px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.14);
+         background:rgba(0,0,0,.18); color:rgba(236,241,255,.92); outline:none; font-size:13px;}
+    textarea{min-height:110px; resize:vertical;}
+    .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+    .kpi{border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(0,0,0,.18); padding:12px; min-width:0;}
+    .kpi b{display:block; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,226,160,.92); margin-bottom:6px;}
+    .kpi span{font-family:var(--mono); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+    .tabs{display:flex; gap:10px; flex-wrap:wrap; margin:10px 0 0;}
+    .tab{padding:9px 12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(0,0,0,.12); cursor:pointer; font-size:12px;}
+    .tab.active{border-color: rgba(246,209,139,.35); background: rgba(246,209,139,.10);}
+    .panel{display:none; margin-top:12px;}
+    .panel.active{display:block;}
+    .tbl{width:100%; border-collapse:collapse; font-size:12.5px; margin-top:10px;}
+    .tbl th, .tbl td{padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.10); vertical-align:top;}
+    .tbl th{text-align:left; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:rgba(255,226,160,.92);}
+    .chartBox{border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(0,0,0,.18); padding:10px; overflow:hidden;}
+    canvas{max-width:100%}
+    .footer{margin:24px 0 30px; color:var(--muted); font-size:12px;}
+    @media (max-width:920px){ .kpis{grid-template-columns:repeat(2,1fr);} }
+  </style>
+</head>
+<body>
+
+<div id="jsCrashBanner" style="display:none; position:fixed; left:12px; right:12px; top:12px; z-index:120;
+  border:1px solid rgba(255,120,120,.55); background:rgba(30,0,10,.92); color:#ffecec;
+  border-radius:14px; padding:12px 12px; box-shadow:0 18px 55px rgba(0,0,0,.55);">
+  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+    <div>
+      <div style="font-weight:800; letter-spacing:.12em; text-transform:uppercase;">UI integrity error — scripts did not fully initialize</div>
+      <div style="opacity:.92; margin-top:6px; line-height:1.35;">
+        Open DevTools → Console to see the root error. You can also open Diagnostics (hold 6+7, click logo 3x).
+      </div>
+      <pre id="jsCrashDetails" style="margin:10px 0 0 0; white-space:pre-wrap; font-size:12px; opacity:.92;"></pre>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <button class="btn" id="btnCopyCrash">Copy</button>
+      <button class="btn primary" id="btnDismissCrash">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+  <div class="topbar">
+    <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:14px;">
+      <div class="brand">
+        <img alt="Skyes Over London" src="./assets/SKYESOVERLONDONDIETYLOGO.png"/>
+        <div class="brandText">
+          <b>Skyes Over London LC</b>
+          <span>SOL DevProof Valuator | Fortune 500 App</span>
+        </div>
+      </div>
+      <div class="row">
+        <span class="pill" id="statusPill"><span class="dot warn"></span><span>Ready</span></span>
+        <button class="btn" id="btnNew">New</button>
+        <button class="btn primary" id="btnRun" disabled>Run Valuation</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="grid">
+      <div class="card">
+        <h2>Upload + Options</h2>
+        <div class="row">
+          <input id="zipFile" type="file" accept=".zip"/>
+          <select id="mode" style="max-width:360px;">
+            <option value="local_only">Local-only mode (send only metrics + metadata)</option>
+            <option value="full_context">Full-context mode (send code excerpts + metrics)</option>
+          </select>
+          <select id="model" style="max-width:260px;">
+            <option value="kAIxU6.7-pro">kAIxU6.7 Pro (advanced)</option>
+            <option value="kAIxU6.7-flash">kAIxU6.7 Flash (fast)</option>
+          </select>
+        </div>
+        <div style="margin-top:10px;">
+          <label style="display:block; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:rgba(255,226,160,.92); margin-bottom:6px;">Notes / definition of done</label>
+          <textarea id="notes" placeholder="What must be true for this to be 'production-ready'? Target users, compliance, uptime, etc."></textarea>
+        </div>
+
+        <div class="tabs" id="tabs">
+          <div class="tab active" data-tab="metrics">Metrics</div>
+          <div class="tab" data-tab="scorecard">Scorecard</div>
+          <div class="tab" data-tab="valuation">Valuation</div>
+          <div class="tab" data-tab="certificate">Certificate</div>
+          <div class="tab" data-tab="exports">Exports</div>
+        </div>
+
+        <div class="panel active" id="panel-metrics">
+          <div class="kpis" style="margin-top:10px;">
+            <div class="kpi"><b>Files</b><span id="kFiles">—</span></div>
+            <div class="kpi"><b>Total lines</b><span id="kLines">—</span></div>
+            <div class="kpi"><b>Code lines</b><span id="kCode">—</span></div>
+            <div class="kpi"><b>ZIP SHA-256</b><span id="kSha">—</span></div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">Top files by size</div>
+              <canvas id="chartSizes" height="170"></canvas>
+            </div>
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">LOC distribution (top files)</div>
+              <canvas id="chartLoc" height="170"></canvas>
+            </div>
+          </div>
+          <table class="tbl" id="tblFiles"></table>
+        </div>
+
+        <div class="panel" id="panel-scorecard">
+          <div class="row">
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">Readiness scorecard</div>
+              <canvas id="chartScores" height="230"></canvas>
+            </div>
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">Controls present</div>
+              <canvas id="chartControls" height="230"></canvas>
+            </div>
+          </div>
+          <table class="tbl" id="tblScores"></table>
+          <table class="tbl" id="tblControls"></table>
+        </div>
+
+        <div class="panel" id="panel-valuation">
+          <div class="kpis" style="margin-top:10px;">
+            <div class="kpi"><b>Replacement cost</b><span id="kRepl">—</span></div>
+            <div class="kpi"><b>Completion budget</b><span id="kComp">—</span></div>
+            <div class="kpi"><b>Appraised range</b><span id="kRange">—</span></div>
+            <div class="kpi"><b>Avg readiness</b><span id="kAvg">—</span></div>
+          </div>
+          <div class="row" style="margin-top:12px;">
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">Value bands</div>
+              <canvas id="chartValue" height="190"></canvas>
+            </div>
+            <div class="chartBox" style="flex:1; min-width:260px;">
+              <div class="muted" style="margin:0 0 6px;">Effort (hours)</div>
+              <canvas id="chartHours" height="190"></canvas>
+            </div>
+          </div>
+          <div class="muted" style="margin-top:10px;">Narrative (boring on purpose)</div>
+          <textarea id="narrative" readonly></textarea>
+        </div>
+
+        <div class="panel" id="panel-certificate">
+          <div class="row">
+            <button class="btn primary" id="btnCert" disabled>Generate Certificate PDF</button>
+            <span class="muted" id="certMsg">Run a valuation first.</span>
+          </div>
+          <div class="muted" style="margin-top:10px;">Certificate fields (auto-filled JSON)</div>
+          <textarea id="certJson" readonly></textarea>
+        </div>
+
+        <div class="panel" id="panel-exports">
+          <div class="row">
+            <button class="btn" id="btnExportJSON" disabled>Export JSON</button>
+            <button class="btn" id="btnExportCSV" disabled>Export CSV</button>
+            <button class="btn" id="btnExportAll" disabled>Export Evidence Pack ZIP</button>
+          </div>
+          <div class="muted" style="margin-top:10px;">Exports include: file metrics CSV, scorecard CSV, controls CSV, full valuation JSON, and the certificate PDF (if generated).</div>
+          <textarea id="exportLog" readonly></textarea>
+        </div>
+
+      </div>
+
+      <div class="card">
+        <h2>Devil’s Advocate (Reality Check)</h2>
+        <p class="muted" style="margin:0 0 8px;">
+          Your edge is the combination of <b>deterministic metrics</b> (repeatable), <b>evidence packs</b> (auditor-friendly),
+          and <b>structured outputs</b> (certificate-ready). Most tools hand-wave; this app forces scope, hashes, and assumptions.
+        </p>
+        <div class="row" style="margin-bottom:10px;">
+          <span class="pill"><span class="dot ok"></span>Evidence pack exports</span>
+          <span class="pill"><span class="dot ok"></span>Structured JSON certificate fields</span>
+          <span class="pill"><span class="dot ok"></span>Charts + CSV backups</span>
+          <span class="pill"><span class="dot warn"></span>Needs strict process + disclaimers</span>
+        </div>
+        <p class="muted" style="margin:0;">
+          The only real “gotcha” is credibility: treat the certificate as an appraisal with fingerprints (hashes) and explicit scope boundaries. This product enforces that.
+        </p>
+        <div class="footer">
+          Support: SkyesOverLondonLC@solenterprises.org | +1 (480) 469-5416 | SOLEnterprises.org
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script src="./app.js"></script>
+
+<div id="diagOverlay" style="position:fixed; inset:0; display:none; background:rgba(0,0,0,.74); z-index:90; padding:14px;">
+  <div style="max-width:1100px; margin:0 auto; height:100%; display:flex; flex-direction:column; gap:10px;">
+    <div style="display:flex; gap:10px; align-items:center; justify-content:space-between;">
+      <div class="pill"><span class="dot warn"></span><span>Diagnostics Console</span></div>
+      <div class="row">
+        <button class="btn" id="btnDiagRun">Run Checks</button>
+        <button class="btn" id="btnDiagCopy">Copy Report</button>
+        <button class="btn primary" id="btnDiagClose">Close</button>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(12,1fr); gap:10px; flex:1; overflow:hidden;">
+      <div style="grid-column:span 5; overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(0,0,0,.20); padding:10px;">
+        <div class="muted" style="margin:0 0 8px;">Quick actions</div>
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <button class="btn" data-diag-action="health">Ping /api/health</button>
+          <button class="btn" data-diag-action="me">Session /api/me</button>
+          <button class="btn" data-diag-action="env">Env hints</button>
+        </div>
+        <div style="height:1px; background:rgba(255,255,255,.08); margin:12px 0;"></div>
+        <div class="muted" style="line-height:1.5;">
+          <b>Run button disabled</b>: you must choose a ZIP; button enables after SHA-256 finishes.<br/>
+          <b>Max call stack</b>: fixed by chunked base64 encoder in this build.<br/>
+          <b>502</b>: likely payload too big/timeouts — try smaller ZIP or local-only mode.
+        </div>
+      </div>
+      <div style="grid-column:span 7; overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(0,0,0,.20); padding:10px;">
+        <div class="muted" style="margin:0 0 8px;">Diagnostics report</div>
+        <textarea id="diagOut" readonly style="width:100%; min-height:520px;"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

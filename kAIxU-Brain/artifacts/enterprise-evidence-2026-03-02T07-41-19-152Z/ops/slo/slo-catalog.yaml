@@ -1,0 +1,27 @@
+service: kaixu-brain-openai
+owner: platform-ai
+slo:
+  availability:
+    target: 99.95
+    window: monthly
+    indicators:
+      - endpoint: /v1/health
+      - endpoint: /v1/models
+      - endpoint: /v1/generate
+      - endpoint: /v1/stream
+  latency:
+    - endpoint: /v1/health
+      objective: p95<300ms
+    - endpoint: /v1/generate
+      objective: p95<1200ms
+  smoke_correctness:
+    objective: pass_rate>=99%
+    source: /v1/admin/smoke/run
+error_budget:
+  monthly_seconds: 1314
+  fast_burn:
+    threshold_percent: 10
+    window: 1h
+  slow_burn:
+    threshold_percent: 25
+    window: 24h

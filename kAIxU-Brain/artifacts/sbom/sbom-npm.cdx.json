@@ -1,0 +1,564 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:03ae3089-9bc9-4f7c-bd49-68aa630f3834",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-03-02T07:41:18.598Z",
+    "component": {
+      "type": "application",
+      "name": "kaixu-brain-openai-worker",
+      "version": "1.0.0",
+      "bomRef": "pkg:npm/kaixu-brain-openai-worker@1.0.0"
+    },
+    "tools": [
+      {
+        "vendor": "Skyes Over London",
+        "name": "sbom-generator",
+        "version": "1.0.0"
+      }
+    ]
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "wrangler",
+      "version": "4.69.0",
+      "purl": "pkg:npm/wrangler@4.69.0"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/kv-asset-handler",
+      "version": "0.4.2",
+      "purl": "pkg:npm/%40cloudflare%2Fkv-asset-handler@0.4.2"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/unenv-preset",
+      "version": "2.14.0",
+      "purl": "pkg:npm/%40cloudflare%2Funenv-preset@2.14.0"
+    },
+    {
+      "type": "library",
+      "name": "unenv",
+      "version": "2.0.0-rc.24",
+      "purl": "pkg:npm/unenv@2.0.0-rc.24"
+    },
+    {
+      "type": "library",
+      "name": "workerd",
+      "version": "1.20260305.0",
+      "purl": "pkg:npm/workerd@1.20260305.0"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workers-types",
+      "version": "unknown",
+      "purl": "pkg:npm/%40cloudflare%2Fworkers-types@unknown"
+    },
+    {
+      "type": "library",
+      "name": "blake3-wasm",
+      "version": "2.1.5",
+      "purl": "pkg:npm/blake3-wasm@2.1.5"
+    },
+    {
+      "type": "library",
+      "name": "esbuild",
+      "version": "0.27.3",
+      "purl": "pkg:npm/esbuild@0.27.3"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/aix-ppc64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Faix-ppc64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/android-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fandroid-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/darwin-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fdarwin-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/freebsd-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Ffreebsd-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ia32",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ia32@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-loong64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-loong64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-mips64el",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-mips64el@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-ppc64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-ppc64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-riscv64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-riscv64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-s390x",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Flinux-s390x@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/linux-x64",
+      "version": "0.27.3",
+      "purl": "pkg:npm/%40esbuild%2Flinux-x64@0.27.3"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/netbsd-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fnetbsd-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openbsd-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fopenbsd-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/openharmony-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fopenharmony-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/sunos-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fsunos-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-ia32",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-ia32@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@esbuild/win32-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40esbuild%2Fwin32-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "fsevents",
+      "version": "unknown",
+      "purl": "pkg:npm/fsevents@unknown"
+    },
+    {
+      "type": "library",
+      "name": "miniflare",
+      "version": "4.20260305.0",
+      "purl": "pkg:npm/miniflare@4.20260305.0"
+    },
+    {
+      "type": "library",
+      "name": "@cspotcode/source-map-support",
+      "version": "0.8.1",
+      "purl": "pkg:npm/%40cspotcode%2Fsource-map-support@0.8.1"
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.9",
+      "purl": "pkg:npm/%40jridgewell%2Ftrace-mapping@0.3.9"
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/resolve-uri",
+      "version": "3.1.2",
+      "purl": "pkg:npm/%40jridgewell%2Fresolve-uri@3.1.2"
+    },
+    {
+      "type": "library",
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.5.5",
+      "purl": "pkg:npm/%40jridgewell%2Fsourcemap-codec@1.5.5"
+    },
+    {
+      "type": "library",
+      "name": "sharp",
+      "version": "0.34.5",
+      "purl": "pkg:npm/sharp@0.34.5"
+    },
+    {
+      "type": "library",
+      "name": "@img/colour",
+      "version": "1.1.0",
+      "purl": "pkg:npm/%40img%2Fcolour@1.1.0"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-darwin-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-darwin-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-darwin-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-darwin-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-darwin-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-darwin-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-darwin-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-darwin-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-arm",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-arm@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-ppc64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-ppc64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-riscv64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-riscv64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-s390x",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-s390x@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linux-x64",
+      "version": "1.2.4",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linux-x64@1.2.4"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linuxmusl-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linuxmusl-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-libvips-linuxmusl-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-libvips-linuxmusl-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-arm",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-arm@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-ppc64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-ppc64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-riscv64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-riscv64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-s390x",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-s390x@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linux-x64",
+      "version": "0.34.5",
+      "purl": "pkg:npm/%40img%2Fsharp-linux-x64@0.34.5"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linuxmusl-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linuxmusl-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-linuxmusl-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-linuxmusl-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-wasm32",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-wasm32@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-win32-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-win32-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-win32-ia32",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-win32-ia32@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@img/sharp-win32-x64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40img%2Fsharp-win32-x64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "detect-libc",
+      "version": "2.1.2",
+      "purl": "pkg:npm/detect-libc@2.1.2"
+    },
+    {
+      "type": "library",
+      "name": "semver",
+      "version": "7.7.4",
+      "purl": "pkg:npm/semver@7.7.4"
+    },
+    {
+      "type": "library",
+      "name": "undici",
+      "version": "7.18.2",
+      "purl": "pkg:npm/undici@7.18.2"
+    },
+    {
+      "type": "library",
+      "name": "ws",
+      "version": "8.18.0",
+      "purl": "pkg:npm/ws@8.18.0"
+    },
+    {
+      "type": "library",
+      "name": "bufferutil",
+      "version": "unknown",
+      "purl": "pkg:npm/bufferutil@unknown"
+    },
+    {
+      "type": "library",
+      "name": "utf-8-validate",
+      "version": "unknown",
+      "purl": "pkg:npm/utf-8-validate@unknown"
+    },
+    {
+      "type": "library",
+      "name": "youch",
+      "version": "4.1.0-beta.10",
+      "purl": "pkg:npm/youch@4.1.0-beta.10"
+    },
+    {
+      "type": "library",
+      "name": "@poppinss/colors",
+      "version": "4.1.6",
+      "purl": "pkg:npm/%40poppinss%2Fcolors@4.1.6"
+    },
+    {
+      "type": "library",
+      "name": "kleur",
+      "version": "4.1.5",
+      "purl": "pkg:npm/kleur@4.1.5"
+    },
+    {
+      "type": "library",
+      "name": "@poppinss/dumper",
+      "version": "0.6.5",
+      "purl": "pkg:npm/%40poppinss%2Fdumper@0.6.5"
+    },
+    {
+      "type": "library",
+      "name": "@sindresorhus/is",
+      "version": "7.2.0",
+      "purl": "pkg:npm/%40sindresorhus%2Fis@7.2.0"
+    },
+    {
+      "type": "library",
+      "name": "supports-color",
+      "version": "10.2.2",
+      "purl": "pkg:npm/supports-color@10.2.2"
+    },
+    {
+      "type": "library",
+      "name": "@speed-highlight/core",
+      "version": "1.2.14",
+      "purl": "pkg:npm/%40speed-highlight%2Fcore@1.2.14"
+    },
+    {
+      "type": "library",
+      "name": "cookie",
+      "version": "1.1.1",
+      "purl": "pkg:npm/cookie@1.1.1"
+    },
+    {
+      "type": "library",
+      "name": "youch-core",
+      "version": "0.3.3",
+      "purl": "pkg:npm/youch-core@0.3.3"
+    },
+    {
+      "type": "library",
+      "name": "@poppinss/exception",
+      "version": "1.2.3",
+      "purl": "pkg:npm/%40poppinss%2Fexception@1.2.3"
+    },
+    {
+      "type": "library",
+      "name": "error-stack-parser-es",
+      "version": "1.0.5",
+      "purl": "pkg:npm/error-stack-parser-es@1.0.5"
+    },
+    {
+      "type": "library",
+      "name": "path-to-regexp",
+      "version": "6.3.0",
+      "purl": "pkg:npm/path-to-regexp@6.3.0"
+    },
+    {
+      "type": "library",
+      "name": "pathe",
+      "version": "2.0.3",
+      "purl": "pkg:npm/pathe@2.0.3"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workerd-darwin-64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40cloudflare%2Fworkerd-darwin-64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workerd-darwin-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40cloudflare%2Fworkerd-darwin-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workerd-linux-64",
+      "version": "1.20260305.0",
+      "purl": "pkg:npm/%40cloudflare%2Fworkerd-linux-64@1.20260305.0"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workerd-linux-arm64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40cloudflare%2Fworkerd-linux-arm64@unknown"
+    },
+    {
+      "type": "library",
+      "name": "@cloudflare/workerd-windows-64",
+      "version": "unknown",
+      "purl": "pkg:npm/%40cloudflare%2Fworkerd-windows-64@unknown"
+    }
+  ]
+}

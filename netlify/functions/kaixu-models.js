@@ -8,16 +8,16 @@ exports.handler = async (event) => {
     return { statusCode: 204, headers: cors, body: "" };
   }
 
-  // Curated list: edit anytime. Keeping it simple and stable for your apps.
   const models = [
-    { id: "gemini-2.5-flash", label: "gemini-2.5-flash (fast)" },
-    { id: "gemini-2.5-pro", label: "gemini-2.5-pro (best quality)" },
+    { id: "kAIxU6.7-flash", label: "kAIxU6.7 Flash — Skyes Over London (fast, recommended)", provider: "Skyes Over London" },
+    { id: "kAIxU6.7-pro",   label: "kAIxU6.7 Pro — Skyes Over London (advanced reasoning)",  provider: "Skyes Over London" },
   ];
 
-  const defaultModel = process.env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash";
+  const defaultModel = process.env.KAIXU_DEFAULT_MODEL || "kAIxU6.7-flash";
 
   return json(200, {
     ok: true,
+    provider: "Skyes Over London",
     defaultModel,
     models,
   }, cors);

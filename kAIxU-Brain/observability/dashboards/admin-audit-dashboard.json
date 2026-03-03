@@ -1,0 +1,37 @@
+{
+  "title": "kAIxU Admin Audit Dashboard",
+  "version": 1,
+  "panels": [
+    {
+      "id": "smoke_pass_rate",
+      "title": "Smoke Pass Rate",
+      "query": "sum(smoke_pass)/count(smoke_runs) by 15m",
+      "threshold": ">= 0.99"
+    },
+    {
+      "id": "smoke_failing_checks",
+      "title": "Top Failing Checks",
+      "query": "topk(5, count(smoke_failed_check))"
+    },
+    {
+      "id": "api_error_rate",
+      "title": "API Error Rate",
+      "query": "sum(http_5xx)/sum(http_total) by route"
+    },
+    {
+      "id": "p95_latency",
+      "title": "p95 Latency by Route",
+      "query": "p95(http_duration_ms) by route"
+    },
+    {
+      "id": "auth_denials",
+      "title": "Auth Denials by Route",
+      "query": "count(auth_denied) by route,role"
+    },
+    {
+      "id": "incident_mttr",
+      "title": "Incident MTTR",
+      "query": "avg(incident_resolution_minutes) by severity"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-03-02T07:41:18.599Z",
+  "componentCount": 90,
+  "rootComponent": {
+    "type": "application",
+    "name": "kaixu-brain-openai-worker",
+    "version": "1.0.0",
+    "bomRef": "pkg:npm/kaixu-brain-openai-worker@1.0.0"
+  }
+}

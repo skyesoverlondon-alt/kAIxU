@@ -1,0 +1,20 @@
+{
+  "name": "kaixu-brain-openai-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "smoke:verify": "bash scripts/verify-smoke.sh",
+    "contract:test": "node scripts/contract-test.mjs",
+    "quality:gates": "node scripts/quality-gates.mjs",
+    "quality:gates:static": "node scripts/quality-gates.mjs --static-only",
+    "ops:weekly": "node scripts/weekly-ops.mjs",
+    "evidence:bundle": "node scripts/build-evidence-bundle.mjs",
+    "sbom:generate": "node scripts/generate-sbom.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.69.0"
+  }
+}

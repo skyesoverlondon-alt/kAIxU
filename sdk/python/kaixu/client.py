@@ -86,7 +86,7 @@ class EmbedResult:
     def __init__(self, data: dict, request_id: str = None):
         self._raw       = data
         self.ok         = data.get("ok", False)
-        self.model      = data.get("model", "kAIxU-embed")
+        self.model      = data.get("model", "kAIxU6.7-embed")
         self.embeddings = data.get("embeddings", [])
         self.request_id = data.get("requestId") or request_id
         usage           = data.get("usage") or {}
@@ -232,7 +232,7 @@ class KaixuClient:
 
         Args:
             input:             Prompt string, or full request body dict
-            model:             "kAIxU-flash" (default) | "kAIxU-pro"
+            model:             "kAIxU6.7-flash" (default) | "kAIxU6.7-pro"  # provider: Skyes Over London
             system:            Per-request system instruction
             messages:          Multi-turn history [{"role": "user", "content": "..."}]
             generation_config: {"temperature": 0.7, "maxOutputTokens": 8192, ...}

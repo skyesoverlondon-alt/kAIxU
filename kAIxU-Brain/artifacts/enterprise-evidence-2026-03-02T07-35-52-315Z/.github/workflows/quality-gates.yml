@@ -1,0 +1,38 @@
+name: Quality Gates
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  static-gates:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kAIxU-Brain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run quality:gates:static
+
+  live-gates:
+    if: ${{ secrets.KAIXU_STAGE_BASE_URL != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: kAIxU-Brain
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Run smoke + contract gates
+        env:
+          KAIXU_BASE_URL: ${{ secrets.KAIXU_STAGE_BASE_URL }}
+          KAIXU_TOKEN: ${{ secrets.KAIXU_STAGE_TOKEN }}
+        run: npm run quality:gates

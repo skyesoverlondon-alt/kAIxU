@@ -9,6 +9,14 @@ const {
   clampInt,
 } = require("./_kaixu_utils");
 
+// Brand alias map — translates public model IDs to internal Gemini model names
+const MODEL_ALIASES = {
+  "kAIxU6.7-flash": "gemini-2.5-flash",
+  "kAIxU6.7-pro":   "gemini-2.5-pro",
+  "kAIxU-flash":    "gemini-2.5-flash",
+  "kAIxU-pro":      "gemini-2.5-pro",
+};
+
 function mapMessagesToContents(messages) {
   // OpenAI-ish messages -> Gemini contents[]
   // messages: [{role:"system"|"user"|"assistant", content:"..."}]
@@ -84,7 +92,8 @@ function buildRequestBody(body) {
     contents,
     ...(body.tools ? { tools: body.tools } : {}),
     ...(body.toolConfig ? { toolConfig: body.toolConfig } : {}),
-    ...(body.safetySettings ? { safetySettings: body.safetySettings } : {}),
+    // safetySettings intentionally NOT forwarded — gateway enforces its own safety posture.
+    // Callers cannot weaken or override safety filters.
     ...(Object.keys(generationConfig).length ? { generationConfig } : {}),
   };
 
@@ -141,7 +150,7 @@ exports.handler = async (event) => {
     return json(405, { ok: false, error: "Method not allowed. Use POST." }, cors);
   }
 
-  const auth = enforceAuth(event);
+  const auth = await enforceAuth(event);
   if (!auth.ok) return json(auth.code, { ok: false, error: auth.message }, cors);
 
   const key = (process.env.KAIXU_GEMINI_API_KEY || "").toString().trim();
@@ -159,7 +168,8 @@ exports.handler = async (event) => {
   }
   const body = parsed.value || {};
 
-  const model = String(body.model || process.env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  const model = String(body.model || process.env.KAIXU_DEFAULT_MODEL || "kAIxU6.7-flash").trim();
+  const internalModel = MODEL_ALIASES[model] || model;
   const built = buildRequestBody(body);
   if (!built.ok) return json(400, { ok: false, error: built.error }, cors);
 
@@ -168,7 +178,7 @@ exports.handler = async (event) => {
   const t = setTimeout(() => ac.abort(), timeoutMs);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(internalModel)}:generateContent`;
 
     const upstream = await fetch(url, {
       method: "POST",
@@ -200,7 +210,7 @@ exports.handler = async (event) => {
     if (finishReason === "MAX_TOKENS" && !outText) {
       return json(200, {
         ok: false,
-        error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like gemini-2.5-pro require a larger budget).",
+        error: "Model hit token limit before producing output. Increase maxOutputTokens (thinking models like kAIxU6.7-pro require a larger budget).",
         model,
         finishReason,
         usage,

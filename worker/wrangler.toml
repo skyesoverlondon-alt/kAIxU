@@ -22,7 +22,7 @@ invocation_logs = true
 # Secret values (KAIXU_GEMINI_API_KEY, KAIXU_APP_TOKENS) must be set via:
 #   wrangler secret put KAIXU_GEMINI_API_KEY
 #   wrangler secret put KAIXU_APP_TOKENS
-KAIXU_DEFAULT_MODEL = "gemini-2.5-flash"
+KAIXU_DEFAULT_MODEL = "kAIxU6.7-flash"
 KAIXU_OPEN_GATE = "0"
 KAIXU_MAX_BODY_BYTES = "5242880"
 # KAIXU_GLOBAL_SYSTEM intentionally blank — KAIXU_CANON in worker code handles all identity.

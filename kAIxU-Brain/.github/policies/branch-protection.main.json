@@ -1,0 +1,20 @@
+{
+  "policyName": "main-branch-protection",
+  "targetBranch": "main",
+  "requirePullRequest": true,
+  "requiredApprovingReviewCount": 1,
+  "dismissStaleReviews": true,
+  "requireCodeOwnerReview": true,
+  "requireConversationResolution": true,
+  "requiredStatusChecks": [
+    "static-gates",
+    "live-gates"
+  ],
+  "requireBranchUpToDate": true,
+  "enforceAdmins": true,
+  "allowForcePushes": false,
+  "allowDeletions": false,
+  "blockCreations": false,
+  "lockBranch": false,
+  "allowForkSyncing": true
+}

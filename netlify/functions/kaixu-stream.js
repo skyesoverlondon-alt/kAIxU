@@ -7,6 +7,14 @@
 const { streamifyResponse } = require("@netlify/functions");
 const { corsHeaders, json, enforceAuth, safeJsonParse, clampInt } = require("./_kaixu_utils");
 
+// Brand alias map — translates public model IDs to internal Gemini model names
+const MODEL_ALIASES = {
+  "kAIxU6.7-flash": "gemini-2.5-flash",
+  "kAIxU6.7-pro":   "gemini-2.5-pro",
+  "kAIxU-flash":    "gemini-2.5-flash",
+  "kAIxU-pro":      "gemini-2.5-pro",
+};
+
 exports.handler = streamifyResponse(async (event) => {
   const cors = corsHeaders(event);
 
@@ -22,7 +30,7 @@ exports.handler = streamifyResponse(async (event) => {
     });
   }
 
-  const auth = enforceAuth(event);
+  const auth = await enforceAuth(event);
   if (!auth.ok) {
     return new Response(JSON.stringify({ ok: false, error: auth.message }), {
       status: auth.code,
@@ -56,12 +64,17 @@ exports.handler = streamifyResponse(async (event) => {
   }
 
   const body = parsed.value || {};
-  const model = String(body.model || process.env.KAIXU_DEFAULT_MODEL || "gemini-2.5-flash").trim();
+  const model = String(body.model || process.env.KAIXU_DEFAULT_MODEL || "kAIxU6.7-flash").trim();
+  const internalModel = MODEL_ALIASES[model] || model;
 
-  // Accept raw Gemini request body at body.request, or use body directly
-  const reqBody = (body.request && typeof body.request === "object") ? body.request : body;
+  // Accept raw Gemini request body at body.request, or use body directly.
+  // Strip safetySettings — callers cannot override the gateway's safety posture.
+  const { safetySettings: _stripped, ...bodyClean } = body;
+  const { safetySettings: _stripped2, ...requestClean } =
+    (body.request && typeof body.request === "object") ? body.request : bodyClean;
+  const reqBody = (body.request && typeof body.request === "object") ? requestClean : bodyClean;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(internalModel)}:streamGenerateContent?alt=sse`;
 
   let upstream;
   try {

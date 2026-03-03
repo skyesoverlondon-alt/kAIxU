@@ -1,0 +1,176 @@
+=== index.html ===
+--- index.html
++++ index.html
+@@ -68,6 +68,25 @@
+   </style>
+ </head>
+ <body>
++
++<div id="jsCrashBanner" style="display:none; position:fixed; left:12px; right:12px; top:12px; z-index:120;
++  border:1px solid rgba(255,120,120,.55); background:rgba(30,0,10,.92); color:#ffecec;
++  border-radius:14px; padding:12px 12px; box-shadow:0 18px 55px rgba(0,0,0,.55);">
++  <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;">
++    <div>
++      <div style="font-weight:800; letter-spacing:.12em; text-transform:uppercase;">UI integrity error — scripts did not fully initialize</div>
++      <div style="opacity:.92; margin-top:6px; line-height:1.35;">
++        Open DevTools → Console to see the root error. You can also open Diagnostics (hold 6+7, click logo 3x).
++      </div>
++      <pre id="jsCrashDetails" style="margin:10px 0 0 0; white-space:pre-wrap; font-size:12px; opacity:.92;"></pre>
++    </div>
++    <div style="display:flex; gap:8px; align-items:center;">
++      <button class="btn" id="btnCopyCrash">Copy</button>
++      <button class="btn primary" id="btnDismissCrash">Dismiss</button>
++    </div>
++  </div>
++</div>
++
+   <div class="topbar">
+     <div class="wrap" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:14px;">
+       <div class="brand">
+@@ -213,5 +232,39 @@
+   </div>
+ 
+ <script src="./app.js"></script>
++
++<div id="diagOverlay" style="position:fixed; inset:0; display:none; background:rgba(0,0,0,.74); z-index:90; padding:14px;">
++  <div style="max-width:1100px; margin:0 auto; height:100%; display:flex; flex-direction:column; gap:10px;">
++    <div style="display:flex; gap:10px; align-items:center; justify-content:space-between;">
++      <div class="pill"><span class="dot warn"></span><span>Diagnostics Console</span></div>
++      <div class="row">
++        <button class="btn" id="btnDiagRun">Run Checks</button>
++        <button class="btn" id="btnDiagCopy">Copy Report</button>
++        <button class="btn primary" id="btnDiagClose">Close</button>
++      </div>
++    </div>
++    <div style="display:grid; grid-template-columns:repeat(12,1fr); gap:10px; flex:1; overflow:hidden;">
++      <div style="grid-column:span 5; overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(0,0,0,.20); padding:10px;">
++        <div class="muted" style="margin:0 0 8px;">Quick actions</div>
++        <div class="row" style="gap:8px; flex-wrap:wrap;">
++          <button class="btn" data-diag-action="health">Ping /api/health</button>
++          <button class="btn" data-diag-action="me">Session /api/me</button>
++          <button class="btn" data-diag-action="env">Env hints</button>
++        </div>
++        <div style="height:1px; background:rgba(255,255,255,.08); margin:12px 0;"></div>
++        <div class="muted" style="line-height:1.5;">
++          <b>Run button disabled</b>: you must choose a ZIP; button enables after SHA-256 finishes.<br/>
++          <b>Max call stack</b>: fixed by chunked base64 encoder in this build.<br/>
++          <b>502</b>: likely payload too big/timeouts — try smaller ZIP or local-only mode.
++        </div>
++      </div>
++      <div style="grid-column:span 7; overflow:auto; border:1px solid rgba(255,255,255,.12); border-radius:16px; background:rgba(0,0,0,.20); padding:10px;">
++        <div class="muted" style="margin:0 0 8px;">Diagnostics report</div>
++        <textarea id="diagOut" readonly style="width:100%; min-height:520px;"></textarea>
++      </div>
++    </div>
++  </div>
++</div>
++
+ </body>
+ </html>
+
+=== app.js ===
+--- app.js
++++ app.js
+@@ -1,3 +1,30 @@
++
++(function(){
++  const show = (msg, stack) => {
++    try{
++      const b = document.getElementById("jsCrashBanner");
++      const d = document.getElementById("jsCrashDetails");
++      if(!b || !d) return;
++      const payload = { time: new Date().toISOString(), message: String(msg||""), stack: String(stack||"") };
++      d.textContent = JSON.stringify(payload, null, 2);
++      b.style.display = "block";
++      const copyBtn = document.getElementById("btnCopyCrash");
++      if(copyBtn) copyBtn.onclick = ()=> navigator.clipboard.writeText(d.textContent||"").then(()=>alert("Copied ✅"));
++      const dis = document.getElementById("btnDismissCrash");
++      if(dis) dis.onclick = ()=>{ b.style.display="none"; };
++    }catch{}
++  };
++  window.addEventListener("error", (e)=>{
++    show(e?.message || "Script error", e?.error?.stack || "");
++  });
++  window.addEventListener("unhandledrejection", (e)=>{
++    const r = e?.reason;
++    show((r?.message)||String(r||"Unhandled rejection"), r?.stack || "");
++  });
++  window.__DP_BOOT_OK=false;
++  setTimeout(()=>{ if(!window.__DP_BOOT_OK) show("Initialization watchdog: app did not reach READY state",""); }, 2500);
++})();
++
+ const $ = (id) => document.getElementById(id);
+ 
+ const state = { zipName:null, zipSha256:null, metrics:null, valuation:null };
+@@ -146,7 +173,7 @@
+   try{
+     setStatus("warn","Uploading + scanning…");
+     const buf = await f.arrayBuffer();
+-    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
++    const b64 = arrayBufferToBase64(buf);
+     const r = await api("/valuate", {
+       zip_name: f.name,
+       zip_sha256: state.zipSha256,
+@@ -268,3 +295,47 @@
+     alert("Evidence pack failed: " + e.message);
+   }
+ });
++
++
++try{ window.__DP_BOOT_OK = true; }catch{}
++
++
++
++let _diagClicks=0, _diagTimer=null, _k6=false, _k7=false;
++document.addEventListener("keydown",(e)=>{ if(e.key==="6") _k6=true; if(e.key==="7") _k7=true; });
++document.addEventListener("keyup",(e)=>{ if(e.key==="6") _k6=false; if(e.key==="7") _k7=false; });
++
++function openDiag(on){
++  const ov=$("diagOverlay");
++  if(ov) ov.style.display = on ? "block":"none";
++}
++function diagSet(obj){
++  const out=$("diagOut");
++  if(out) out.value = JSON.stringify(obj, null, 2);
++}
++async function diagRunAll(){
++  const rep={ time:new Date().toISOString(), url:location.href, ua:navigator.userAgent, checks:{} };
++  try{ const r=await fetch("/api/health"); rep.checks.health={ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))}; }catch(e){ rep.checks.health={ok:false,error:String(e)}; }
++  try{ const r=await fetch("/api/me"); rep.checks.me={ok:r.ok,status:r.status,body:await r.json().catch(()=>({}))}; }catch(e){ rep.checks.me={ok:false,error:String(e)}; }
++  rep.hints={ run_button:"Must select ZIP; button enables after hashing completes.", zip_b64:"Chunked base64 encoder enabled." };
++  diagSet(rep); return rep;
++}
++document.addEventListener("click",(e)=>{
++  const logo=$("appLogo");
++  if(logo && (e.target===logo || logo.contains(e.target))){
++    if(!(_k6 && _k7)) return;
++    _diagClicks++;
++    if(_diagTimer) clearTimeout(_diagTimer);
++    _diagTimer=setTimeout(()=>{ _diagClicks=0; }, 900);
++    if(_diagClicks>=3){ _diagClicks=0; openDiag(true); diagRunAll(); }
++  }
++  if(e.target && e.target.id==="btnDiagClose") openDiag(false);
++  if(e.target && e.target.id==="btnDiagRun") diagRunAll();
++  if(e.target && e.target.id==="btnDiagCopy"){
++    const out=$("diagOut"); if(out) navigator.clipboard.writeText(out.value||"").then(()=>alert("Diagnostics copied ✅"));
++  }
++  const act=e.target?.getAttribute?.("data-diag-action");
++  if(act==="health") fetch("/api/health").then(r=>r.json()).then(j=>diagSet({health:j,time:new Date().toISOString()})).catch(err=>diagSet({error:String(err)}));
++  if(act==="me") fetch("/api/me").then(r=>r.json()).then(j=>diagSet({me:j,time:new Date().toISOString()})).catch(err=>diagSet({error:String(err)}));
++  if(act==="env") diagSet({ env:{ cookieEnabled:navigator.cookieEnabled, origin:location.origin }, note:"If 403/CSRF, check ORIGIN_ALLOWLIST + cookies." });
++});
+
+=== netlify/functions/api.mjs ===
+
+
+=== package.json ===
+--- package.json
++++ package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "sol-devproof-valuator",
+-  "version": "1.0.0",
++  "version": "1.10.5",
+   "type": "module",
+   "private": true,
+   "dependencies": {

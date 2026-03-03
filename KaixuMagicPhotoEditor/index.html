@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kAIxu Magic Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f0f12;
+            color: white;
+            overflow: hidden;
+        }
+
+        .checkerboard {
+            background-image: url('https://t3.ftcdn.net/jpg/03/76/74/61/360_F_376746187_2vEecF1a5X73Qd81d29c8e9b62793139.jpg');
+            background-size: contain;
+        }
+
+        @keyframes slide-in-right {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes pulse-logo {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.08); opacity: 1; }
+        }
+
+        .animate-slide-in-right {
+            animation: slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .pulse-logo {
+            animation: pulse-logo 4s ease-in-out infinite;
+        }
+
+        .hide { display: none !important; }
+
+        /* Custom scrollbar for right panel */
+        #rightPanel::-webkit-scrollbar { width: 4px; }
+        #rightPanel::-webkit-scrollbar-track { background: transparent; }
+        #rightPanel::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#A855F7"><link rel="apple-touch-icon" href="icon-192.png"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script></head>
+<body>
+
+    <div class="flex flex-col h-screen overflow-hidden">
+        <!-- HEADER -->
+        <header class="h-16 border-b border-gray-800 flex items-center justify-between px-6 bg-[#16161a] z-50">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight">kAIxu<span class="text-gray-400"> Magic</span></span>
+            </div>
+            <div class="flex items-center gap-4">
+                <button id="settingsBtn" class="p-2 hover:bg-gray-800 rounded-full text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="settings" class="w-5 h-5"></i>
+                </button>
+                <button id="exportBtn" disabled class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium bg-white text-black hover:bg-gray-200 disabled:opacity-50 transition-all">
+                    <i data-lucide="download" class="w-4 h-4"></i> Export Transparent
+                </button>
+            </div>
+        </header>
+
+        <div class="flex flex-1 overflow-hidden">
+            <!-- LEFT TOOLBAR -->
+            <div class="w-20 bg-[#16161a] border-r border-gray-800 flex flex-col items-center py-6 gap-6">
+                <input type="file" id="fileInput" accept="image/*" class="hidden" />
+                
+                <button data-tool="upload" class="flex flex-col items-center gap-1.5 p-3 rounded-2xl text-gray-500 hover:bg-gray-800 hover:text-white transition-all">
+                    <i data-lucide="upload" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Upload</span>
+                </button>
+
+                <div class="w-10 h-px bg-gray-800 my-2"></div>
+
+                <button data-tool="describe" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="scan-eye" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Insight</span>
+                </button>
+
+                <button data-tool="remove-bg" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="eraser" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Clean BG</span>
+                </button>
+
+                <button data-tool="ai-edit" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="wand-2" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">kAIxu Edit</span>
+                </button>
+
+                <button data-tool="generate" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="image" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Create</span>
+                </button>
+
+                <button data-tool="canvas" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="palette" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Canvas</span>
+                </button>
+
+                <div class="flex-1"></div>
+
+                <button data-tool="hub" class="tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center text-gray-500 hover:bg-gray-800 hover:text-white">
+                    <i data-lucide="layout-grid" class="w-5 h-5"></i>
+                    <span class="text-[8px] font-bold uppercase">Hub</span>
+                </button>
+            </div>
+
+            <!-- MAIN WORKSPACE -->
+            <div class="flex-1 relative bg-[#0a0a0c] flex items-center justify-center overflow-hidden">
+                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#333 1px, transparent 1px); background-size: 20px 20px;"></div>
+
+                <!-- FLOATING PULSING LOGO -->
+                <div class="absolute top-8 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+                    <img src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="kAIxu Logo" class="w-32 h-auto pulse-logo opacity-80" />
+                </div>
+
+                <div id="canvasScaleWrapper" class="relative shadow-2xl transition-transform duration-200" style="transform: scale(1);">
+                    <div id="noImagePlaceholder" class="text-center p-12 border-2 border-dashed border-gray-800 rounded-xl bg-[#16161a]">
+                        <i data-lucide="upload" class="w-8 h-8 mx-auto mb-4 text-gray-500"></i>
+                        <h3 class="text-lg font-medium">No Image Loaded</h3>
+                        <button id="uploadTriggerBtn" class="mt-4 px-6 py-2 bg-blue-600 rounded-lg text-sm font-medium hover:bg-blue-500 transition-colors">Upload Image</button>
+                    </div>
+
+                    <div id="imageArea" class="hide relative transition-all duration-300 p-8 rounded-xl ring-1 ring-white/10 checkerboard">
+                        <img id="mainImage" src="" alt="Workspace" class="max-w-[70vw] max-h-[70vh] object-contain block mx-auto drop-shadow-2xl" />
+                        <div id="originalBadge" class="hide absolute top-2 left-2 bg-black/80 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider text-blue-400 border border-blue-400/30">
+                            Original View
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM CONTROLS -->
+                <div id="bottomBar" class="hide absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-[#16161a] border border-gray-800 rounded-full flex items-center px-4 py-2 gap-4 shadow-xl z-20">
+                    <button id="undoBtn" disabled class="hover:text-blue-400 disabled:opacity-30 transition-colors"><i data-lucide="undo" class="w-4 h-4"></i></button>
+                    <div class="w-px h-4 bg-gray-700"></div>
+                    
+                    <button id="compareBtn" class="p-1.5 rounded-md transition-all hover:bg-gray-800 text-gray-400" title="Hold to see original">
+                        <i data-lucide="eye" class="w-4 h-4"></i>
+                    </button>
+                    <div class="w-px h-4 bg-gray-700"></div>
+
+                    <button id="zoomOutBtn"><i data-lucide="zoom-out" class="w-4 h-4"></i></button>
+                    <span id="zoomLevel" class="text-xs font-mono w-10 text-center">100%</span>
+                    <button id="zoomInBtn"><i data-lucide="zoom-in" class="w-4 h-4"></i></button>
+                    
+                    <div class="w-px h-4 bg-gray-700"></div>
+                    <button id="redoBtn" disabled class="hover:text-blue-400 disabled:opacity-30 transition-colors"><i data-lucide="redo" class="w-4 h-4"></i></button>
+                </div>
+                
+                <div id="loadingOverlay" class="hide absolute inset-0 bg-black/60 backdrop-blur-sm z-50 flex flex-col items-center justify-center text-center px-6">
+                    <i data-lucide="loader-2" class="w-12 h-12 text-blue-500 animate-spin mb-4"></i>
+                    <p id="loadingMsg" class="text-lg font-medium">kAIxu is processing...</p>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL -->
+            <div id="rightPanel" class="hide w-80 bg-[#16161a] border-l border-gray-800 p-6 flex flex-col gap-6 animate-slide-in-right overflow-y-auto z-10">
+                <div id="toolHeader" class="flex items-center justify-between">
+                    <h2 id="toolTitle" class="text-lg font-semibold flex items-center gap-2 tracking-tight">Tool Name</h2>
+                    <button id="closePanelBtn" class="text-gray-500 hover:text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
+                </div>
+
+                <div id="errorBox" class="hide bg-red-900/20 border border-red-900/50 text-red-200 text-xs p-3 rounded-lg flex items-center gap-2">
+                    <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                    <span id="errorMsg"></span>
+                </div>
+
+                <!-- TOOL CONTENT: DESCRIBE -->
+                <div id="contentDescribe" class="hide space-y-4">
+                    <p class="text-xs text-gray-400 leading-relaxed">kAIxu will analyze composition, colors, and visual context.</p>
+                    <button id="execDescribe" class="w-full py-3 bg-yellow-600 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-yellow-500 transition-colors">
+                        <i data-lucide="scan-eye" class="w-4 h-4"></i> kAIxu Insight
+                    </button>
+                    <div id="describeResult" class="hide p-4 bg-black/40 rounded-lg text-sm text-gray-300 leading-relaxed border border-gray-800"></div>
+                </div>
+
+                <!-- TOOL CONTENT: REMOVE BG -->
+                <div id="contentRemoveBg" class="hide space-y-4">
+                    <p class="text-xs text-gray-400 leading-relaxed">kAIxu will isolate your subject and clear the background for true transparency.</p>
+                    <button id="execRemoveBg" class="w-full py-3 bg-blue-600 rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-blue-500 transition-colors shadow-lg">
+                        <i data-lucide="eraser" class="w-4 h-4"></i> Clean Background
+                    </button>
+                </div>
+
+                <!-- TOOL CONTENT: PROMPT BASED -->
+                <div id="contentPrompt" class="hide space-y-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Vision Prompt</span>
+                        <button id="enhancePromptBtn" class="text-[10px] text-purple-400 font-bold uppercase hover:text-purple-300 transition-colors">Magic Enhance</button>
+                    </div>
+                    <textarea id="promptInput" placeholder="Describe your vision to kAIxu..." class="w-full h-32 bg-[#0a0a0c] border border-gray-700 rounded-lg p-3 text-sm focus:border-blue-500 outline-none resize-none font-medium text-gray-300"></textarea>
+                    <button id="execPrompt" class="w-full py-4 rounded-lg font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i> <span id="execBtnText">Apply</span>
+                    </button>
+                </div>
+
+                <!-- TOOL CONTENT: CANVAS -->
+                <div id="contentCanvas" class="hide space-y-6">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-4 block">Workspace Context</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button class="canvas-opt p-1 rounded-xl border-2 transition-all flex flex-col items-center gap-2 border-blue-600 bg-blue-600/5" data-bg="checkerboard">
+                                <div class="w-full h-16 rounded-lg overflow-hidden border border-white/5 checkerboard"></div>
+                                <span class="text-[9px] font-bold text-gray-400 mb-1">Transparent</span>
+                            </button>
+                            <button class="canvas-opt p-1 rounded-xl border-2 transition-all flex flex-col items-center gap-2 border-gray-800 hover:border-gray-700" data-bg="dark">
+                                <div class="w-full h-16 rounded-lg overflow-hidden border border-white/5 bg-[#1a1a1a]"></div>
+                                <span class="text-[9px] font-bold text-gray-400 mb-1">Onyx Dark</span>
+                            </button>
+                            <button class="canvas-opt p-1 rounded-xl border-2 transition-all flex flex-col items-center gap-2 border-gray-800 hover:border-gray-700" data-bg="light">
+                                <div class="w-full h-16 rounded-lg overflow-hidden border border-white/5 bg-[#f8fafc]"></div>
+                                <span class="text-[9px] font-bold text-gray-400 mb-1">Studio Light</span>
+                            </button>
+                            <button class="canvas-opt p-1 rounded-xl border-2 transition-all flex flex-col items-center gap-2 border-gray-800 hover:border-gray-700" data-bg="blue">
+                                <div class="w-full h-16 rounded-lg overflow-hidden border border-white/5 bg-blue-600/20"></div>
+                                <span class="text-[9px] font-bold text-gray-400 mb-1">Ocean Blue</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOOL CONTENT: HUB -->
+                <div id="contentHub" class="hide space-y-6">
+                    <p class="text-xs text-gray-400 leading-relaxed">Connect with our network and explore more tools.</p>
+                    <div class="flex flex-col gap-3">
+                        <a href="https://solenterprises.org/pages/contact-hub" target="_blank" class="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-800 rounded-xl hover:border-blue-500 group transition-all">
+                            <span class="text-sm font-medium">Contact Hub</span>
+                            <i data-lucide="external-link" class="w-4 h-4 text-gray-600 group-hover:text-blue-500"></i>
+                        </a>
+                        <a href="https://solenterprises.org/pages/leadership-hub" target="_blank" class="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-800 rounded-xl hover:border-purple-500 group transition-all">
+                            <span class="text-sm font-medium">Leadership Hub</span>
+                            <i data-lucide="external-link" class="w-4 h-4 text-gray-600 group-hover:text-purple-500"></i>
+                        </a>
+                        <a href="https://solenterprises.org/pages/skyeweb" target="_blank" class="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-800 rounded-xl hover:border-green-500 group transition-all">
+                            <span class="text-sm font-medium">SkyeWeb</span>
+                            <i data-lucide="external-link" class="w-4 h-4 text-gray-600 group-hover:text-green-500"></i>
+                        </a>
+                        <a href="https://skyesoverlondon.netlify.app/" target="_blank" class="flex items-center justify-between p-4 bg-[#0a0a0c] border border-gray-800 rounded-xl hover:border-yellow-500 group transition-all">
+                            <span class="text-sm font-medium">Skyes Over London</span>
+                            <i data-lucide="external-link" class="w-4 h-4 text-gray-600 group-hover:text-yellow-500"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="hide fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        <div class="bg-[#16161a] border border-gray-800 rounded-2xl w-full max-w-md shadow-2xl">
+            <div class="p-6 border-b border-gray-800 flex justify-between items-center">
+                <h2 class="text-xl font-bold tracking-tight">Configuration</h2>
+                <button id="closeSettingsBtn" class="text-gray-400 hover:text-white transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">kAIxu API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="Enter key..." class="w-full bg-[#0a0a0c] border border-gray-700 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                    
+                    <div class="mt-6 flex flex-col gap-3">
+                        <a href="https://skyesoverlondon.netlify.app/pages/services/real-intelligence/getkaixu-api" target="_blank" class="w-full py-3 bg-blue-600 text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-blue-500 transition-all text-center flex items-center justify-center gap-2">
+                            <i data-lucide="key" class="w-4 h-4"></i> Get kAIxu API Key
+                        </a>
+                        <p class="text-[10px] text-gray-500 leading-relaxed text-center px-4">
+                            Your key enables advanced kAIxu processing. It is stored securely only in this session.
+                        </p>
+                    </div>
+                </div>
+                <button id="saveSettingsBtn" class="w-full py-3 bg-white text-black font-bold text-sm rounded-xl hover:bg-gray-200 transition-all shadow-xl mt-4">Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- APP STATE ---
+        const state = {
+            image: null,
+            originalImage: null,
+            history: [],
+            historyIndex: -1,
+            isLoading: false,
+            activeTool: 'select',
+            apiKey: '',
+            zoom: 1,
+            canvasBackground: 'checkerboard',
+            prompt: ''
+        };
+
+        const GATE_BASE = window.__kaixu_gate || "https://kaixu67.skyesoverlondon.workers.dev";
+        const DEFAULT_MODEL = "kAIxU6.7-flash"; // text/vision
+        const IMAGE_MODEL = "kAIxU-image"; // image generation alias on the gate
+        const API_KEY_ENV = ""; 
+
+        // --- DOM ELEMENTS ---
+        const elements = {
+            fileInput: document.getElementById('fileInput'),
+            noImagePlaceholder: document.getElementById('noImagePlaceholder'),
+            imageArea: document.getElementById('imageArea'),
+            mainImage: document.getElementById('mainImage'),
+            canvasScaleWrapper: document.getElementById('canvasScaleWrapper'),
+            bottomBar: document.getElementById('bottomBar'),
+            loadingOverlay: document.getElementById('loadingOverlay'),
+            loadingMsg: document.getElementById('loadingMsg'),
+            rightPanel: document.getElementById('rightPanel'),
+            toolTitle: document.getElementById('toolTitle'),
+            errorBox: document.getElementById('errorBox'),
+            errorMsg: document.getElementById('errorMsg'),
+            promptInput: document.getElementById('promptInput'),
+            execPrompt: document.getElementById('execPrompt'),
+            execBtnText: document.getElementById('execBtnText'),
+            exportBtn: document.getElementById('exportBtn'),
+            undoBtn: document.getElementById('undoBtn'),
+            redoBtn: document.getElementById('redoBtn'),
+            zoomLevel: document.getElementById('zoomLevel'),
+            zoomInBtn: document.getElementById('zoomInBtn'),
+            zoomOutBtn: document.getElementById('zoomOutBtn'),
+            compareBtn: document.getElementById('compareBtn'),
+            originalBadge: document.getElementById('originalBadge'),
+            settingsModal: document.getElementById('settingsModal'),
+            settingsBtn: document.getElementById('settingsBtn'),
+            apiKeyInput: document.getElementById('apiKeyInput'),
+            closeSettingsBtn: document.getElementById('closeSettingsBtn'),
+            saveSettingsBtn: document.getElementById('saveSettingsBtn'),
+            execDescribe: document.getElementById('execDescribe'),
+            describeResult: document.getElementById('describeResult')
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function updateUI() {
+            if (state.image) {
+                elements.noImagePlaceholder.classList.add('hide');
+                elements.imageArea.classList.remove('hide');
+                elements.mainImage.src = state.image;
+                elements.bottomBar.classList.remove('hide');
+                elements.exportBtn.disabled = false;
+            } else {
+                elements.noImagePlaceholder.classList.remove('hide');
+                elements.imageArea.classList.add('hide');
+                elements.bottomBar.classList.add('hide');
+                elements.exportBtn.disabled = true;
+            }
+
+            elements.undoBtn.disabled = state.historyIndex <= 0;
+            elements.redoBtn.disabled = state.historyIndex >= state.history.length - 1;
+
+            elements.zoomLevel.innerText = `${Math.round(state.zoom * 100)}%`;
+            elements.canvasScaleWrapper.style.transform = `scale(${state.zoom})`;
+
+            document.querySelectorAll('#rightPanel > div[id^="content"]').forEach(el => el.classList.add('hide'));
+            if (state.activeTool !== 'select') {
+                elements.rightPanel.classList.remove('hide');
+                switch(state.activeTool) {
+                    case 'describe':
+                        elements.toolTitle.innerText = "kAIxu Insight";
+                        document.getElementById('contentDescribe').classList.remove('hide');
+                        break;
+                    case 'remove-bg':
+                        elements.toolTitle.innerText = "Clean Background";
+                        document.getElementById('contentRemoveBg').classList.remove('hide');
+                        break;
+                    case 'ai-edit':
+                        elements.toolTitle.innerText = "kAIxu Magic Edit";
+                        elements.execBtnText.innerText = "Apply Magic Edit";
+                        elements.execPrompt.className = "w-full py-4 rounded-lg font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all bg-purple-600 hover:bg-purple-500";
+                        document.getElementById('contentPrompt').classList.remove('hide');
+                        break;
+                    case 'generate':
+                        elements.toolTitle.innerText = "kAIxu Generator";
+                        elements.execBtnText.innerText = "Generate Image";
+                        elements.execPrompt.className = "w-full py-4 rounded-lg font-bold uppercase text-xs tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all bg-green-600 hover:bg-green-500";
+                        document.getElementById('contentPrompt').classList.remove('hide');
+                        break;
+                    case 'canvas':
+                        elements.toolTitle.innerText = "Canvas Preview";
+                        document.getElementById('contentCanvas').classList.remove('hide');
+                        break;
+                    case 'hub':
+                        elements.toolTitle.innerText = "Resource Hub";
+                        document.getElementById('contentHub').classList.remove('hide');
+                        break;
+                }
+            } else {
+                elements.rightPanel.classList.add('hide');
+            }
+
+            elements.imageArea.className = `relative transition-all duration-300 p-8 rounded-xl ring-1 ring-white/10 ${getCanvasBgClass()}`;
+            
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                const isTool = btn.dataset.tool === state.activeTool;
+                btn.className = `tool-btn flex flex-col items-center gap-1.5 p-3 rounded-2xl transition-all w-14 h-14 justify-center ${isTool ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-gray-500 hover:bg-gray-800 hover:text-white'}`;
+            });
+
+            document.querySelectorAll('.canvas-opt').forEach(opt => {
+                const isActive = opt.dataset.bg === state.canvasBackground;
+                opt.className = `canvas-opt p-1 rounded-xl border-2 transition-all flex flex-col items-center gap-2 group ${isActive ? 'border-blue-600 bg-blue-600/5' : 'border-gray-800 hover:border-gray-700'}`;
+            });
+
+            if (state.isLoading) {
+                elements.loadingOverlay.classList.remove('hide');
+                elements.loadingMsg.innerText = state.loadingMessage || "kAIxu is processing...";
+            } else {
+                elements.loadingOverlay.classList.add('hide');
+            }
+            
+            lucide.createIcons();
+        }
+
+        function getCanvasBgClass() {
+            switch (state.canvasBackground) {
+                case 'dark': return 'bg-[#1a1a1a]';
+                case 'light': return 'bg-[#f8fafc]';
+                case 'blue': return 'bg-blue-600/20';
+                default: return "checkerboard";
+            }
+        }
+
+        function addToHistory(imgData) {
+            state.history = state.history.slice(0, state.historyIndex + 1);
+            state.history.push(imgData);
+            state.historyIndex = state.history.length - 1;
+            state.image = imgData;
+            updateUI();
+        }
+
+        function processTransparency(base64Str) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imageData.data;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (data[i] > 245 && data[i+1] > 245 && data[i+2] > 245) {
+                            data[i + 3] = 0;
+                        }
+                    }
+                    ctx.putImageData(imageData, 0, 0);
+                    resolve(canvas.toDataURL('image/png'));
+                };
+                img.src = base64Str;
+            });
+        }
+
+        // --- API INTEGRATIONS ---
+
+        async function callGeminiAnalyze() {
+            const key = state.apiKey || API_KEY_ENV;
+            if (!key) { elements.settingsModal.classList.remove('hide'); return; }
+            if (!state.image) return;
+
+            state.isLoading = true;
+            state.loadingMessage = "kAIxu is reading image details...";
+            elements.describeResult.classList.add('hide');
+            updateUI();
+
+            try {
+                const mimeType = state.image.match(/data:(.*?);base64/)[1];
+                const base64Data = state.image.split(',')[1];
+
+                const response = await fetch(`${GATE_BASE}/v1/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model: DEFAULT_MODEL,
+                        contents: [{
+                            role: "user",
+                            parts: [
+                                { text: "Describe this image in detail. Mention colors, composition, style, and subject matter. Keep it concise but descriptive." },
+                                { inlineData: { mimeType, data: base64Data } }
+                            ]
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.ok === false) throw new Error(data.error || "Insight failed.");
+                const text = data.text || data.raw?.candidates?.[0]?.content?.parts?.find(p => p.text)?.text;
+                if (text) {
+                    elements.describeResult.innerText = text;
+                    elements.describeResult.classList.remove('hide');
+                }
+            } catch (err) {
+                elements.errorMsg.innerText = err.message;
+                elements.errorBox.classList.remove('hide');
+            } finally {
+                state.isLoading = false;
+                updateUI();
+            }
+        }
+
+        async function callGeminiGenerateInternal(promptText, isBgRemoval = false, model = IMAGE_MODEL) {
+            const key = state.apiKey || API_KEY_ENV;
+            if (!key) { elements.settingsModal.classList.remove('hide'); return; }
+
+            state.isLoading = true;
+            state.loadingMessage = "kAIxu is rendering your vision...";
+            elements.errorBox.classList.add('hide');
+            updateUI();
+
+            try {
+                const response = await fetch(`${GATE_BASE}/v1/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model,
+                        contents: [{ role: "user", parts: [{ text: promptText }] }],
+                        includeRaw: true
+                    })
+                });
+
+                const result = await response.json();
+                if (!response.ok || result.ok === false) {
+                    throw new Error(result.error || "Generation failed.");
+                }
+
+                const parts = result.raw?.candidates?.[0]?.content?.parts || [];
+                const inline = parts.find(p => p.inlineData || p.inline_data);
+                const inlineData = inline?.inlineData || inline?.inline_data;
+                const base64 = inlineData?.data;
+                if (!base64) throw new Error(`Gateway did not return image data. Confirm the image model alias (${model}) is wired and returning base64.`);
+
+                let finalImg = `data:image/png;base64,${base64}`;
+                if (isBgRemoval) {
+                    state.loadingMessage = "kAIxu is clearing transparency...";
+                    updateUI();
+                    finalImg = await processTransparency(finalImg);
+                }
+
+                addToHistory(finalImg);
+            } catch (err) {
+                elements.errorMsg.innerText = err.message;
+                elements.errorBox.classList.remove('hide');
+            } finally {
+                state.isLoading = false;
+                updateUI();
+            }
+        }
+
+        async function callGeminiEdit(instructions, isBgRemoval = false) {
+            const key = state.apiKey || API_KEY_ENV;
+            if (!key) { elements.settingsModal.classList.remove('hide'); return; }
+
+            state.isLoading = true;
+            state.loadingMessage = "kAIxu is analyzing content...";
+            updateUI();
+
+            try {
+                const mimeType = state.image.match(/data:(.*?);base64/)[1];
+                const base64Data = state.image.split(',')[1];
+
+                const analyzeRes = await fetch(`${GATE_BASE}/v1/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model: DEFAULT_MODEL,
+                        contents: [{
+                            role: "user",
+                            parts: [
+                                { text: "Describe this image in extreme visual detail. Focus on the main subject, setting, lighting, style, and composition." },
+                                { inlineData: { mimeType, data: base64Data } }
+                            ]
+                        }]
+                    })
+                });
+
+                const analyzeResult = await analyzeRes.json();
+                if (!analyzeRes.ok || analyzeResult.ok === false) throw new Error(analyzeResult.error || "Analysis failed.");
+                const description = analyzeResult.text || analyzeResult.raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                state.loadingMessage = "kAIxu is applying magic...";
+                updateUI();
+
+                const promptRes = await fetch(`${GATE_BASE}/v1/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model: DEFAULT_MODEL,
+                        contents: [{
+                            parts: [{ text: `Original image description: "${description}". Instructions: "${instructions}". Generate a detailed prompt for an AI to create this edited version. Ensure that if the goal is background removal, the prompt specifically requests the subject be on a pure solid #FFFFFF white background with no shadows.` }]
+                        }]
+                    })
+                });
+
+                const promptResult = await promptRes.json();
+                if (!promptRes.ok || promptResult.ok === false) throw new Error(promptResult.error || "Prompt build failed.");
+                const newPrompt = promptResult.text || promptResult.raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+                await callGeminiGenerateInternal(newPrompt, isBgRemoval, IMAGE_MODEL);
+
+            } catch (err) {
+                elements.errorMsg.innerText = err.message;
+                elements.errorBox.classList.remove('hide');
+            } finally {
+                state.isLoading = false;
+                updateUI();
+            }
+        }
+
+        // --- EVENT HANDLERS ---
+
+        elements.fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                state.originalImage = ev.target.result;
+                addToHistory(ev.target.result);
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('uploadTriggerBtn').addEventListener('click', () => elements.fileInput.click());
+        document.querySelector('[data-tool="upload"]').addEventListener('click', () => elements.fileInput.click());
+
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                state.activeTool = state.activeTool === btn.dataset.tool ? 'select' : btn.dataset.tool;
+                updateUI();
+            });
+        });
+
+        document.getElementById('closePanelBtn').addEventListener('click', () => { state.activeTool = 'select'; updateUI(); });
+
+        document.querySelectorAll('.canvas-opt').forEach(opt => {
+            opt.addEventListener('click', () => { state.canvasBackground = opt.dataset.bg; updateUI(); });
+        });
+
+        elements.zoomInBtn.addEventListener('click', () => { state.zoom = Math.min(3, state.zoom + 0.1); updateUI(); });
+        elements.zoomOutBtn.addEventListener('click', () => { state.zoom = Math.max(0.1, state.zoom - 0.1); updateUI(); });
+        
+        elements.undoBtn.addEventListener('click', () => {
+            if (state.historyIndex > 0) { state.historyIndex--; state.image = state.history[state.historyIndex]; updateUI(); }
+        });
+
+        elements.redoBtn.addEventListener('click', () => {
+            if (state.historyIndex < state.history.length - 1) { state.historyIndex++; state.image = state.history[state.historyIndex]; updateUI(); }
+        });
+
+        elements.compareBtn.addEventListener('mousedown', () => {
+            if (state.originalImage) { elements.mainImage.src = state.originalImage; elements.originalBadge.classList.remove('hide'); }
+        });
+
+        elements.compareBtn.addEventListener('mouseup', () => {
+            if (state.image) { elements.mainImage.src = state.image; elements.originalBadge.classList.add('hide'); }
+        });
+
+        elements.compareBtn.addEventListener('mouseleave', () => {
+            if (state.image) { elements.mainImage.src = state.image; elements.originalBadge.classList.add('hide'); }
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = state.image;
+            link.download = `kaixu-magic-${Date.now()}.png`;
+            link.click();
+        });
+
+        elements.settingsBtn.addEventListener('click', () => elements.settingsModal.classList.remove('hide'));
+        elements.closeSettingsBtn.addEventListener('click', () => elements.settingsModal.classList.add('hide'));
+        elements.saveSettingsBtn.addEventListener('click', () => {
+            state.apiKey = elements.apiKeyInput.value.trim();
+            elements.settingsModal.classList.add('hide');
+        });
+
+        elements.execDescribe.addEventListener('click', callGeminiAnalyze);
+
+        document.getElementById('execRemoveBg').addEventListener('click', () => {
+            callGeminiEdit("Remove the background completely. Return the subject perfectly isolated.", true);
+        });
+
+        elements.execPrompt.addEventListener('click', () => {
+            const val = elements.promptInput.value.trim();
+            if (!val) return;
+            if (state.activeTool === 'generate') callGeminiGenerateInternal(val);
+            else callGeminiEdit(val);
+        });
+
+        document.getElementById('enhancePromptBtn').addEventListener('click', async () => {
+            const val = elements.promptInput.value.trim();
+            if (!val) return;
+            const key = state.apiKey || API_KEY_ENV;
+            if (!key) { elements.settingsModal.classList.remove('hide'); return; }
+
+            state.isLoading = true;
+            state.loadingMessage = "kAIxu is enhancing your vision...";
+            updateUI();
+
+            try {
+                const res = await fetch(`${GATE_BASE}/v1/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model: DEFAULT_MODEL,
+                        contents: [{ parts: [{ text: `Improve this image generation prompt to be highly detailed and artistic for kAIxu processing: "${val}"` }] }]
+                    })
+                });
+                const data = await res.json();
+                const improved = data.text || data.raw?.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (improved) elements.promptInput.value = improved.trim();
+            } finally { state.isLoading = false; updateUI(); }
+        });
+
+        window.onload = updateUI;
+    </script>
+</body>
+</html>

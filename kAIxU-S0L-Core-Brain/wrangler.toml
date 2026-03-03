@@ -1,0 +1,34 @@
+name = "kaixu-s0l-core-brain"
+main = "src/index.js"
+compatibility_date = "2026-03-02"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+[observability]
+[observability.logs]
+enabled = true
+invocation_logs = true
+
+[vars]
+KAIXU_COMPANY_NAME = "Skyes Over London"
+KAIXU_BRAIN_NAME = "kAIxU S0L"
+KAIXU_DEFAULT_MODEL = "kAIxU6.7-flash"
+KAIXU_BRAND_MODEL_FLASH = "kAIxU6.7-flash"
+KAIXU_BRAND_MODEL_PRO = "kAIxU6.7-pro"
+KAIXU_BRAND_MODEL_EMBED = "kAIxU6.7-embed"
+KAIXU_PROVIDER_BASE_URL = "https://api.openai.com/v1"
+KAIXU_PROVIDER_CHAT_PATH = "/chat/completions"
+KAIXU_PROVIDER_EMBEDDINGS_PATH = "/embeddings"
+KAIXU_PROVIDER_AUTH_HEADER = "Authorization"
+KAIXU_PROVIDER_AUTH_PREFIX = "Bearer"
+KAIXU_PROVIDER_MODEL_FLASH = "gpt-4.1-mini"
+KAIXU_PROVIDER_MODEL_PRO = "gpt-4.1"
+KAIXU_PROVIDER_MODEL_EMBED = "text-embedding-3-small"
+KAIXU_OPEN_GATE = "0"
+KAIXU_NETLIFY_URL = ""
+KAIXU_MAX_BODY_BYTES = "5242880"
+KAIXU_TIMEOUT_MS = "25000"
+KAIXU_GLOBAL_SYSTEM = ""
+
+# Secret required when KAIXU_NETLIFY_URL is set:
+# wrangler secret put KAIXU_SERVICE_SECRET
