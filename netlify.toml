@@ -15,6 +15,26 @@ directory = "netlify/functions"
   to = "/AboutTheFounder.html"
   status = 301
 
+[[redirects]]
+  from = "/gateway"
+  to = "/gateway.html"
+  status = 301
+
+[[redirects]]
+  from = "/gateway/"
+  to = "/gateway.html"
+  status = 301
+
+[[redirects]]
+  from = "/SKYE%20INTRO%20%283%29"
+  to = "/SKYE%20INTRO%20%283%29.html"
+  status = 301
+
+[[redirects]]
+  from = "/SKYE INTRO (3)"
+  to = "/SKYE%20INTRO%20%283%29.html"
+  status = 301
+
 [[plugins]]
 package = "@netlify/plugin-functions-install-core"
 
