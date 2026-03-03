@@ -67,13 +67,13 @@ body{background:var(--bg);color:var(--cream);font-family:'Segoe UI',system-ui,sa
 .hero-title{font-family:var(--orb);font-size:clamp(32px,6vw,72px);font-weight:900;line-height:1.1;letter-spacing:-.01em;margin-bottom:20px}
 .hero-title .line1{color:#fff}
 .hero-title .line2{display:inline-flex;align-items:center;justify-content:center;gap:.16em;background:linear-gradient(90deg,var(--cyan),var(--purple),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-kaore{display:inline-flex;align-items:center;gap:.02em}
-.hero-k-logo{width:clamp(28px,4.8vw,52px);height:auto;display:inline-block;filter:drop-shadow(0 0 10px rgba(255,216,122,.45))}
+.hero-k-logo{width:clamp(28px,4.8vw,52px);height:auto;display:inline-block;vertical-align:middle;margin:0 .08em 0 .06em;transform-origin:center;animation:logo-float-pulse 3.2s ease-in-out infinite;filter:drop-shadow(0 0 8px rgba(255,216,122,.35))}
+@keyframes logo-float-pulse{0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 8px rgba(255,216,122,.35))}50%{transform:translateY(-4px) scale(1.03);filter:drop-shadow(0 0 16px rgba(255,216,122,.55))}}
 .hero-sub{font-size:clamp(14px,2vw,17px);color:#9090b8;line-height:1.7;max-width:600px;margin:0 auto 40px}
 .stats-bar{display:flex;justify-content:center;gap:32px;flex-wrap:wrap;margin-bottom:0}
 .stat{text-align:center}
 .stat-num{font-family:var(--orb);font-size:clamp(24px,4vw,40px);font-weight:900;color:var(--cyan);text-shadow:0 0 22px rgba(255,216,122,.45)}
-.stat-label{font-size:11px;color:#6060808;letter-spacing:.1em;text-transform:uppercase;color:#7a7a9a;margin-top:4px}
+.stat-label{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#7a7a9a;margin-top:4px}
 
 /* ── DIVIDER ── */
 .divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,var(--cyan),var(--purple),var(--gold),transparent);margin:48px 0;opacity:.35;position:relative;z-index:10}
@@ -213,7 +213,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Segoe UI',system-ui,sa
   <div class="hero-eyebrow">// kAIxU ECOSYSTEM — COMPLETE GUIDE</div>
   <h1 class="hero-title">
     <div class="line1">Welcome To The</div>
-    <div class="line2">Quantum <span class="hero-kaore"><img class="hero-k-logo" src="https://cdn1.sharemyimage.com/2026/02/16/logo1_transparent.png" alt="kAIxU K logo">Aore</span></div>
+    <div class="line2">Quantum <img class="hero-k-logo" src="https://cdn1.sharemyimage.com/2026/02/17/Logo-2-1.png" alt="kAIxU killer AI logo">Kore</div>
   </h1>
   <p class="hero-sub">Every tool, every capability, every use case — laid out in full. <span id="hero-count">64</span> AI-powered apps, one gated intelligence, zero vendor exposure. Pick what you need and ship.</p>
   <div class="stats-bar">
