@@ -34,6 +34,13 @@ exports.handler = async function (event) {
     NETLIFY_DATABASE_URL_UNPOOLED: present("NETLIFY_DATABASE_URL_UNPOOLED"),
   };
 
+  const customerChecks = {
+    CUSTOMER_JWT_SECRET: present("CUSTOMER_JWT_SECRET"),
+    PUBLIC_URL: present("PUBLIC_URL"),
+    RESEND_API_KEY: present("RESEND_API_KEY"),
+    RESEND_FROM: present("RESEND_FROM"),
+  };
+
   const serviceSecretConfigured = gatewayChecks.KAIXU_SERVICE_SECRETS || gatewayChecks.KAIXU_SERVICE_SECRET;
   const dbConfigured = dbChecks.NEON_DATABASE_URL || dbChecks.NETLIFY_DATABASE_URL || dbChecks.NETLIFY_DATABASE_URL_UNPOOLED;
 
@@ -49,6 +56,7 @@ exports.handler = async function (event) {
     checks: {
       gateway: gatewayChecks,
       database: dbChecks,
+      customer: customerChecks,
     },
     notes: [
       "This endpoint never returns secret values, only presence booleans.",

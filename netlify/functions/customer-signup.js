@@ -19,9 +19,9 @@ async function sendMagicLinkEmail(email, link) {
   const from = process.env.RESEND_FROM || "kAIxU <noreply@kaixu.ai>";
 
   if (!apiKey) {
-    // Dev mode — safe to log because no real email is sent
+    // Fallback mode — no email provider configured.
     console.log(`[customer-signup] ⚠ RESEND_API_KEY not set. Magic link for ${email}:\n  ${link}`);
-    return;
+    return { delivered: false, mode: "inline" };
   }
 
   const res = await fetch("https://api.resend.com/emails", {
@@ -54,8 +54,12 @@ async function sendMagicLinkEmail(email, link) {
   if (!res.ok) {
     const body = await res.text();
     console.error("[customer-signup] Resend error:", res.status, body);
-    throw new Error("Email delivery failed");
+    // Graceful fallback so onboarding still works even if provider is misconfigured.
+    console.log(`[customer-signup] ⚠ Falling back to inline magic link for ${email}:\n  ${link}`);
+    return { delivered: false, mode: "inline" };
   }
+
+  return { delivered: true, mode: "email" };
 }
 
 exports.handler = async (event) => {
@@ -105,12 +109,20 @@ exports.handler = async (event) => {
       process.env.PUBLIC_URL || "https://kaixu67.skyesoverlondon.netlify.app";
     const link = `${baseUrl}/api/customer/verify?t=${token}`;
 
-    await sendMagicLinkEmail(email, link);
+    const delivery = await sendMagicLinkEmail(email, link);
 
-    return json(200, {
+    const payload = {
       ok: true,
       message: "Check your email — a sign-in link is on its way.",
-    });
+      deliveryMode: delivery?.mode || "email",
+    };
+
+    if (delivery?.mode === "inline") {
+      payload.message = "Email provider unavailable. Use returned magicLink to continue sign-in.";
+      payload.magicLink = link;
+    }
+
+    return json(200, payload);
   } catch (err) {
     console.error("[customer-signup] Error:", err.message);
     return json(500, { ok: false, error: "Failed to send sign-in link. Please try again." });
