@@ -223,7 +223,7 @@ async function callGate(messages,useJson){
   if(!token){setStatus('Paste your token first.',true);return null;}
   setStatus('Working…');
   try{
-    const body={messages:messages,model:'gemini-2.5-flash'};
+    const body={messages:messages,model:'kAIxU6.7-flash'};
     if(useJson)body.output={format:'json'};
     const res=await fetch(GATE+'/v1/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
     if(!res.ok){const t=await res.text();throw new Error('Gate '+res.status+': '+t);}
@@ -266,7 +266,7 @@ $('run-btn').onclick=async()=>{
 <script>
 (function(){
 
-    var lines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE DELTA POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
+    var lines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE XNTH POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
     var chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()";
     var colors=['#00f3ff','#a243ff','#ffd36a','#ffffff'];
     var sc=document.getElementById('bg-stars');

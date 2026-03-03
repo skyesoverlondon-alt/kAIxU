@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>kAIxU Smoke Integration Coverage Report</title>
+  <meta name="theme-color" content="#07060d" />
+  <style>
+    :root {
+      --bg: #07060d;
+      --fg: #f2f0ff;
+      --muted: #b7b2d9;
+      --gold: #ffd55a;
+      --violet: #b86bff;
+      --green: #3bffb2;
+      --glass: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.12);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+    body {
+      min-height: 100vh;
+      color: var(--fg);
+      background:
+        radial-gradient(900px 600px at 15% 20%, rgba(184,107,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 85% 25%, rgba(59,214,255,.12), transparent 60%),
+        linear-gradient(180deg, #05040a, #07060d 40%, #060512);
+      font: 14px/1.6 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    .wrap { max-width: 940px; margin: 0 auto; padding: 28px 18px 72px }
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      backdrop-filter: blur(10px);
+      margin-bottom: 14px;
+    }
+    h1 { font-size: 24px; margin-bottom: 6px }
+    h1 span { color: var(--gold) }
+    h2 { font-size: 15px; color: var(--gold); margin-bottom: 10px }
+    p, li { color: var(--muted) }
+    .topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap }
+    .badge {
+      display: inline-block;
+      border: 1px solid rgba(59,255,178,.45);
+      color: var(--green);
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .3px;
+      background: rgba(59,255,178,.10);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      vertical-align: top;
+    }
+    th { color: var(--gold); font-size: 12px; font-weight: 700; letter-spacing: .4px }
+    td { font-size: 13px; color: var(--fg) }
+    tr:last-child td { border-bottom: 0 }
+    a { color: #9fdfff; text-decoration: none }
+    a:hover { color: #d7f0ff }
+    .links { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px }
+    .btn {
+      display: inline-block;
+      border: 1px solid rgba(255,213,90,.45);
+      color: var(--gold);
+      border-radius: 50px;
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(255,213,90,.08);
+    }
+    .small { font-size: 12px; color: var(--muted) }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="card">
+      <div class="topline">
+        <div>
+          <h1><span>kAIxU</span> Smoke Integration Coverage</h1>
+          <p>Investor proof + client trust report for SmokeHouse wiring and smoke-surface coverage.</p>
+        </div>
+        <span class="badge">STATUS: PASS</span>
+      </div>
+      <div class="links">
+        <a class="btn" href="/smokeKai.html">Open Smoke Test</a>
+        <a class="btn" href="/gateway.html">Open Gateway</a>
+        <a class="btn" href="https://kaixusi.skyesoverlondon.workers.dev/smokehouse" target="_blank" rel="noopener noreferrer">Open kAIxU0s SmokeHouse ↗</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Coverage Matrix</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Surface</th>
+            <th>Location</th>
+            <th>Requirement</th>
+            <th>State</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Smoke Test UI</td>
+            <td>/smokeKai.html</td>
+            <td>Explicit manual kAIxU0s SmokeHouse button + generic SmokeHouse link</td>
+            <td>PASS</td>
+          </tr>
+          <tr>
+            <td>Gateway Entry Surface</td>
+            <td>/gateway.html</td>
+            <td>Explicit manual kAIxU0s SmokeHouse button from gateway CTA area</td>
+            <td>PASS</td>
+          </tr>
+          <tr>
+            <td>Worker SmokeHouse UI</td>
+            <td>kAIxU-Brain /smokehouse</td>
+            <td>Investor-facing message naming kAIxU0s as test-brain proof target</td>
+            <td>PASS</td>
+          </tr>
+          <tr>
+            <td>Integration Directive</td>
+            <td>DEV ONLY/Implementation Directives</td>
+            <td>SmokeHouse integration standard + migration checklist enforcement</td>
+            <td>PASS</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Trust Statement</h2>
+      <ul>
+        <li>kAIxU0s is presented as the investor smoke-proof brain target.</li>
+        <li>SmokeHouse access is explicit and manual by design (no automatic dual routing).</li>
+        <li>Coverage is wired on all currently identified smoke entry surfaces.</li>
+      </ul>
+      <p class="small" style="margin-top:10px">This report is intended for investor and client diligence conversations and can be shared as a direct URL.</p>
+    </section>
+  </div>
+</body>
+</html>

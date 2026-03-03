@@ -136,7 +136,7 @@ async function callGate(messages,useJson){
   if(!token){setStatus('Paste your token first.',true);return null;}
   setStatus('Working…');
   try{
-    const body={messages,model:'gemini-2.5-flash'};
+    const body={messages,model:'kAIxU6.7-flash'};
     if(useJson) body.output={format:'json'};
     const res=await fetch(GATE+'/v1/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(body)});
     if(!res.ok){const t=await res.text();throw new Error('Gate '+res.status+': '+t);}

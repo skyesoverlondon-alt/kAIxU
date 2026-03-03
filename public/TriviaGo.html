@@ -295,7 +295,7 @@
     s.style.setProperty('--drift-dur',(Math.random()*20+20)+'s');
     sc.appendChild(s);
   }
-  var bootLines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE DELTA POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
+  var bootLines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE XNTH POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
   var term=document.getElementById('bg-terminal'),bar=document.getElementById('bg-progress');
   var chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+<>?";
   var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
@@ -365,7 +365,7 @@ async function startGame(topic,token){
   const prompt=`Generate exactly ${selectedCount} multiple-choice trivia questions about "${topic}" at ${selectedDiff} difficulty level.\n\nRespond with a JSON array only. Each element must have:\n- "q": the question\n- "opts": array of exactly 4 answer strings\n- "ans": integer 0–3 (index of the correct option in opts)\n- "explain": one sentence explaining the correct answer\n\nMake questions interesting and varied. Only one option should be correct.`;
   let data;
   try{
-    const res=await fetch(GATE+'/v1/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'gemini-2.5-flash',maxTokens:4096,output:{format:'json'}})});
+    const res=await fetch(GATE+'/v1/generate',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify({messages:[{role:'user',content:prompt}],model:'kAIxU6.7-flash',maxTokens:4096,output:{format:'json'}})});
     if(!res.ok){const t=await res.text();throw new Error('Gate '+res.status+': '+t);}
     const body=await res.json();
     if(!body.ok)throw new Error(body.error||'Gateway error');

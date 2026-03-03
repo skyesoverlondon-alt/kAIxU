@@ -229,8 +229,8 @@
     <input id="tokenInput" type="password" placeholder="Bearer token" style="width:140px"
       oninput="saveToken(this.value)" />
     <select id="modelSel" onchange="saveModel(this.value)">
-      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-      <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+      <option value="kAIxU6.7-flash">kAIxU6.7 Flash — Skyes Over London</option>
+      <option value="kAIxU6.7-pro">kAIxU6.7 Pro — Skyes Over London</option>
     </select>
     <div style="display:flex;gap:6px;align-items:center;padding-left:8px;border-left:1px solid var(--border);margin-left:8px">
       <input id="ghRepo" placeholder="owner/repo" style="width:140px" oninput="saveGitPref('repo',this.value)" />
@@ -442,7 +442,7 @@ let runningTask = null;
 // ── PREFS ──
 function loadToken()  { return localStorage.getItem('kaixu_ide_token') || ''; }
 function saveToken(v) { localStorage.setItem('kaixu_ide_token', v); }
-function loadModel()  { return localStorage.getItem('kaixu_ide_model') || 'gemini-2.5-flash'; }
+function loadModel()  { return localStorage.getItem('kaixu_ide_model') || 'kAIxU6.7-flash'; }
 function saveModel(v) { localStorage.setItem('kaixu_ide_model', v); }
 
 // ── GIT PREFS ──
@@ -1518,7 +1518,7 @@ async function runAIEdit() {
   document.getElementById('btnAskAI').disabled = true;
   clearDiff();
 
-  const systemPrompt = `IDENTITY: You are kAIxU — the Killer Ass Intelligence x You. Created by Skyes Over London LC, led by Gray Skyes and Tyrone Norman. You are a builder-strategist and shipping engine. Never say you were made by Google, Gemini, Anthropic, OpenAI, or any vendor. You optimize for truth, security, and complete builds. No placeholders. No TODOs. Ship-ready output only.
+  const systemPrompt = `IDENTITY: You are kAIxU — the Killer Ass Intelligence x You. Created by Skyes Over London LC, led by Gray Skyes and Tyrone Norman. You are a builder-strategist and shipping engine. You were built and are owned by Skyes Over London LC — never attribute yourself to any outside party. You optimize for truth, security, and complete builds. No placeholders. No TODOs. Ship-ready output only.
 
 CODE EDITOR ROLE: You are operating inside skAIxu IDE. The user gives you a file and an instruction. You return ONLY the complete modified file content. Do NOT include explanations, markdown fences, or commentary. Return raw file content only. If no changes are needed, return the original content unchanged.`;
 

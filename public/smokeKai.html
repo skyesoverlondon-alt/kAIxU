@@ -75,6 +75,8 @@
       padding: 6px 13px; border-radius: 50px; transition: color .15s, border-color .15s;
     }
     .back-link:hover { color: var(--fg); border-color: rgba(255,255,255,.3) }
+    .header-links { margin-left: auto; display: flex; gap: 8px; align-items: center }
+    .header-links .back-link { margin-left: 0 }
 
     /* ── Overall banner ── */
     #overall-banner {
@@ -227,7 +229,12 @@
       <h1><span>kAIxU</span> Smoke Test</h1>
       <div class="sub">System verification · Skyes Over London LC</div>
     </div>
-    <a class="back-link" href="/">← Dashboard</a>
+    <div class="header-links">
+      <a class="back-link" id="smokehouse-link-kaixu0s" href="#" target="_blank" rel="noopener noreferrer">kAIxU0s SmokeHouse ↗</a>
+      <a class="back-link" id="smokehouse-link-header" href="#" target="_blank" rel="noopener noreferrer">SmokeHouse ↗</a>
+      <a class="back-link" href="/smokeCoverageKai.html">Coverage Report</a>
+      <a class="back-link" href="/">← Dashboard</a>
+    </div>
   </div>
 
   <!-- Overall banner -->
@@ -316,7 +323,7 @@
         <div class="test-icon" id="icon-generate">⬜</div>
         <div>
           <div class="test-name">AI Generate <span class="tag post">POST</span></div>
-          <div class="test-desc">Sends a real prompt through the gate to Gemini and verifies a coherent reply</div>
+          <div class="test-desc">Sends a real prompt through the kAIxU gate and verifies a coherent reply</div>
         </div>
         <span class="test-status-pill status-idle" id="pill-generate">Idle</span>
         <span class="test-elapsed" id="elapsed-generate"></span>
@@ -351,7 +358,7 @@
   </div><!-- /tests -->
 
   <div class="footer">
-    <p>kAIxU Gate Delta · Skyes Over London LC · <a href="/">Home</a> · <a href="/kAIxUchat.html">Chat</a></p>
+    <p>kAIxU Gate Xnth · Skyes Over London LC · <a href="/">Home</a> · <a href="/kAIxUchat.html">Chat</a> · <a href="/smokeCoverageKai.html">Coverage Report</a> · <a id="smokehouse-link-kaixu0s-footer" href="#" target="_blank" rel="noopener noreferrer">kAIxU0s SmokeHouse</a> · <a id="smokehouse-link-footer" href="#" target="_blank" rel="noopener noreferrer">SmokeHouse</a></p>
   </div>
 
 </div><!-- /wrap -->
@@ -359,6 +366,77 @@
 <script>
 const API_BASE = "https://kaixu67.skyesoverlondon.workers.dev";
 const $ = id => document.getElementById(id);
+const DEFAULT_SMOKEHOUSE_BASE = "https://kaixusi.skyesoverlondon.workers.dev";
+const KAIXU0S_SMOKEHOUSE_URL = "https://kaixusi.skyesoverlondon.workers.dev/smokehouse";
+const KNOWN_BRAIN_BASES = [
+  "https://kaixusi.skyesoverlondon.workers.dev",
+  "https://kaixu67.skyesoverlondon.workers.dev"
+];
+
+function normalizeSmokehouseUrl(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return "";
+  let url = value;
+  if (!/^https?:\/\//i.test(url)) {
+    url = "https://" + url;
+  }
+  if (!/\/smokehouse$/i.test(url)) {
+    url = url.replace(/\/+$/, "") + "/smokehouse";
+  }
+  return url;
+}
+
+function configureSmokehouseLinks() {
+  const header = $("smokehouse-link-header");
+  const footer = $("smokehouse-link-footer");
+  const kaixu0sHeader = $("smokehouse-link-kaixu0s");
+  const kaixu0sFooter = $("smokehouse-link-kaixu0s-footer");
+  const params = new URLSearchParams(window.location.search);
+  const fromQuery = normalizeSmokehouseUrl(params.get("smokehouse") || "");
+  const fromStore = normalizeSmokehouseUrl(localStorage.getItem("kaixu.smokehouse.url") || "");
+  const defaultUrl = normalizeSmokehouseUrl(DEFAULT_SMOKEHOUSE_BASE);
+  const smokehouseUrl = fromQuery || fromStore || defaultUrl;
+  const kaixu0sUrl = normalizeSmokehouseUrl(KAIXU0S_SMOKEHOUSE_URL);
+
+  if (fromQuery) {
+    localStorage.setItem("kaixu.smokehouse.url", fromQuery);
+  }
+
+  const applyUrl = (url) => {
+    header.href = url;
+    footer.href = url;
+    header.title = url;
+    footer.title = url;
+  };
+
+  kaixu0sHeader.href = kaixu0sUrl;
+  kaixu0sFooter.href = kaixu0sUrl;
+  kaixu0sHeader.title = kaixu0sUrl;
+  kaixu0sFooter.title = kaixu0sUrl;
+
+  if (smokehouseUrl) {
+    applyUrl(smokehouseUrl);
+    return;
+  }
+
+  const promptForUrl = (event) => {
+    event.preventDefault();
+    const input = window.prompt(
+      "Paste your live/staging kAIxU-Brain base URL or full /smokehouse URL",
+      KNOWN_BRAIN_BASES.join(", ")
+    );
+    const normalized = normalizeSmokehouseUrl(input || "");
+    if (!normalized) return;
+    localStorage.setItem("kaixu.smokehouse.url", normalized);
+    applyUrl(normalized);
+    window.open(normalized, "_blank", "noopener,noreferrer");
+  };
+
+  header.addEventListener("click", promptForUrl);
+  footer.addEventListener("click", promptForUrl);
+}
+
+configureSmokehouseLinks();
 
 // ── toggle detail body ──
 function toggleBody(id) {
@@ -448,7 +526,7 @@ async function testHealth(token) {
     const checks = [
       { label: "HTTP 200", ok: true },
       { label: 'ok === true', ok: !!j.ok },
-      { label: 'keyConfigured (Gemini API key loaded)', ok: !!j.keyConfigured },
+      { label: 'keyConfigured (model key loaded)', ok: !!j.keyConfigured },
       { label: 'authConfigured (app tokens present)', ok: !!j.authConfigured },
       { label: 'runtime is cloudflare-workers', ok: j.runtime === "cloudflare-workers" },
     ];
@@ -551,7 +629,7 @@ async function testGenerate(token) {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders(token) },
       body: JSON.stringify({
-        model: "kAIxU-flash",
+        model: "kAIxU6.7-flash",
         input: { type: "text", content: 'Say exactly this and nothing else: "kAIxU is live."' },
         generationConfig: { temperature: 0, maxOutputTokens: 60 }
       })
@@ -604,7 +682,7 @@ async function testStream(token) {
       method: "POST",
       headers: { "Content-Type": "application/json", ...authHeaders(token) },
       body: JSON.stringify({
-        model: "kAIxU-flash",
+        model: "kAIxU6.7-flash",
         input: { type: "text", content: "Count to 3, comma-separated." },
         generationConfig: { temperature: 0, maxOutputTokens: 60 }
       })

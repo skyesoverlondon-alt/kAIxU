@@ -157,6 +157,163 @@ input[type=file]{display:none}
 </style>
 </head>
 <body>
+
+<header>
+  <div class="logo"><b>photo</b>Kai</div>
+  <div class="hdr-sub">AI Photo Suite · kAIxU</div>
+  <div class="hdr-right">
+    <label>Token</label>
+    <input id="tokenInput" class="token-input" type="password" placeholder="kaixu_…" autocomplete="off" />
+    <label>Model</label>
+    <select id="modelSel" class="model-sel">
+      <option value="kAIxU6.7-flash">kAIxU6.7 Flash</option>
+      <option value="kAIxU6.7-pro">kAIxU6.7 Pro</option>
+    </select>
+    <div id="hdot" class="hdot" title="Gate health"></div>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+    <div class="psec">
+      <h3>Upload</h3>
+      <div class="upload-zone" id="uploadZone">
+        <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 12V4m0 0L8.5 7.5M12 4l3.5 3.5"/></svg>
+        <p>Click or drag image here<br>or paste from clipboard</p>
+      </div>
+      <input type="file" id="fileInput" accept="image/*" />
+    </div>
+
+    <div class="psec">
+      <h3>Background</h3>
+      <button class="btn btn-primary" id="removeBgBtn" disabled>✂ Remove Background</button>
+      <button class="btn btn-secondary" id="restoreBtn" disabled style="margin-top:5px">↩ Restore Original</button>
+      <div class="bg-opts" style="margin-top:10px">
+        <div class="bg-opt active" data-bg="transparent">Transparent</div>
+        <div class="bg-opt" data-bg="color">Color</div>
+        <div class="bg-opt" data-bg="gradient">Gradient</div>
+        <div class="bg-opt" data-bg="image">Image</div>
+      </div>
+      <div id="pickColor" style="display:none">
+        <div class="color-row" style="margin-top:8px">
+          <label style="font-size:11px;color:var(--muted)">Color</label>
+          <input type="color" id="bgColor" value="#1a1a2e" />
+        </div>
+      </div>
+      <div id="pickGrad" style="display:none;margin-top:8px">
+        <div class="color-row">
+          <label style="font-size:11px;color:var(--muted)">From</label>
+          <input type="color" id="gc1" value="#0d0d1a" />
+          <label style="font-size:11px;color:var(--muted)">To</label>
+          <input type="color" id="gc2" value="#c8a84b" />
+        </div>
+        <select id="gdir" style="margin-top:6px;width:100%;padding:5px 7px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          <option value="to bottom">↓ Top → Bottom</option>
+          <option value="to right">→ Left → Right</option>
+          <option value="to bottom right">↘ Diagonal</option>
+          <option value="radial">○ Radial</option>
+        </select>
+      </div>
+      <div id="pickBgImg" style="display:none;margin-top:8px">
+        <button class="btn btn-ghost" id="bgImgBtn">📂 Choose background image</button>
+        <input type="file" id="bgImgInput" accept="image/*" />
+      </div>
+    </div>
+
+    <div class="psec">
+      <h3>Adjustments</h3>
+      <div class="srow"><label>Brightness</label><input type="range" id="sBright" min="-100" max="100" value="0"><span class="sval" id="vBright">0</span></div>
+      <div class="srow"><label>Contrast</label><input type="range" id="sCont" min="-100" max="100" value="0"><span class="sval" id="vCont">0</span></div>
+      <div class="srow"><label>Saturation</label><input type="range" id="sSat" min="-100" max="100" value="0"><span class="sval" id="vSat">0</span></div>
+      <div class="srow"><label>Blur</label><input type="range" id="sBlur" min="0" max="100" value="0"><span class="sval" id="vBlur">0</span></div>
+      <div class="srow"><label>Warmth</label><input type="range" id="sWarm" min="-100" max="100" value="0"><span class="sval" id="vWarm">0</span></div>
+      <div class="srow"><label>Vignette</label><input type="range" id="sVig" min="0" max="100" value="0"><span class="sval" id="vVig">0</span></div>
+      <button class="btn btn-ghost" id="resetAdj" style="margin-top:6px">Reset Adjustments</button>
+    </div>
+
+    <div class="psec">
+      <h3>Export</h3>
+      <div class="exp-row">
+        <select id="expFmt">
+          <option value="png">PNG</option>
+          <option value="jpeg">JPEG</option>
+          <option value="webp">WebP</option>
+        </select>
+        <select id="expQ">
+          <option value="1">100%</option>
+          <option value="0.92" selected>92%</option>
+          <option value="0.8">80%</option>
+          <option value="0.6">60%</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="exportBtn" disabled>⬇ Export Image</button>
+    </div>
+  </div>
+
+  <!-- CANVAS AREA -->
+  <div class="canvas-area" id="canvasArea">
+    <div class="canvas-wrap" id="canvasWrap" style="display:none">
+      <canvas id="mainCanvas"></canvas>
+    </div>
+    <div class="placeholder" id="placeholder">
+      <svg width="64" height="64" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      <p>Upload or paste an image to get started</p>
+    </div>
+    <div class="progress" id="progress">
+      <div class="spinner"></div>
+      <span id="progressTxt">Working…</span>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="assist">AI Assist</div>
+      <div class="tab" data-tab="quick">Quick</div>
+      <div class="tab" data-tab="history">History</div>
+    </div>
+
+    <div class="tab-body active" id="tab-assist">
+      <div class="ai-msgs" id="aiMsgs">
+        <div class="amsg sys">Upload an image, then ask kAIxU anything — analysis, captions, editing advice, alt text, and more.</div>
+      </div>
+      <div class="ai-bar">
+        <textarea id="aiIn" placeholder="Ask about your photo…" rows="3"></textarea>
+        <button class="ai-send" id="aiSend" disabled>↑</button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="tab-quick">
+      <div class="quick-list">
+        <button class="qbtn" id="qa1" disabled>🔍 Analyze Photo<small>Subjects, composition, lighting, mood</small></button>
+        <button class="qbtn" id="qa2" disabled>🎨 Editing Suggestions<small>5 specific improvements</small></button>
+        <button class="qbtn" id="qa3" disabled>📣 Social Captions<small>3 captions + hashtag set</small></button>
+        <button class="qbtn" id="qa4" disabled>🖼 Background Ideas<small>5 creative replacement backgrounds</small></button>
+        <button class="qbtn" id="qa5" disabled>🏷 Hashtags & SEO Tags<small>20 organized tags</small></button>
+        <button class="qbtn" id="qa6" disabled>♿ Alt Text<small>Accessible description under 150 chars</small></button>
+        <button class="qbtn" id="qa7" disabled>🎨 Color Palette<small>5 dominant colors with hex values</small></button>
+        <button class="qbtn" id="qa8" disabled>📐 Composition Critique<small>Framing, rule of thirds, improvements</small></button>
+      </div>
+    </div>
+
+    <div class="tab-body" id="tab-history">
+      <div class="hist-list" id="histList"></div>
+      <div style="padding:8px;border-top:1px solid var(--border);flex-shrink:0">
+        <button class="btn btn-ghost" id="clearHist">Clear History</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="status-bar">
+  <span id="stDims">—</span>
+  <span id="stMode">—</span>
+  <span id="stNote">No image loaded</span>
+</div>
+
 <div class="boot-sequence" id="boot-sequence">
   <div class="bg-stars" id="bg-stars"></div>
   <div class="scanlines"></div>
@@ -567,7 +724,7 @@ if (saved) { tokenInput.value = saved; }
 
 <script>
 (function(){
-  var lines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE DELTA POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
+  var lines=["INITIALIZING SKYES OVER LONDON EDITORIAL SHELL","LOADING KAIXU GATE XNTH POSTMORTEM","VERIFYING GOVERNANCE POSTURE","RENDERING SUPERGATE UPGRADE LOG","BYPASSING SECURITY PROTOCOLS","DECRYPTING NEURAL ARCHIVE","SYSTEM REBOOT INITIATED"];
   var terminal=document.getElementById("bg-terminal");
   var bar=document.getElementById("bg-prog");
   var starsEl=document.getElementById("bg-stars");
