@@ -192,6 +192,7 @@ body{background:var(--bg);color:var(--cream);font-family:'Segoe UI',system-ui,sa
   <span class="header-logo">kAI<span>x</span>U</span>
   <a href="/gateway.html" class="back-link">⬡ Gateway Console</a>
   <a href="/kAIxUchat.html" class="back-link">✦ Chat</a>
+  <a href="/AboutTheFounder.html" class="back-link">👤 Founder</a>
   <span class="header-pill">INNER SANCTUM</span>
   <div class="header-actions">
     <label class="toggle" title="Skip intro on this device">
@@ -334,6 +335,15 @@ window.addEventListener('scroll',()=>{
 
 // ── APP DATA ──
 const APPS = [
+  {
+    slug:'founderProfile',icon:'👤',name:'Founder Profile',cat:'business',
+    color:'#ffd36a',colorRgb:'255,211,106',
+    tagline:'Company + founder profile, proof standard, and valuation ledger.',
+    description:'Explore the full founder page: company overview, what is being built, proof-first standards, valuation ledger, and direct contact routing.',
+    features:['Complete founder and company profile','Proof standard and operating model','Valuation ledger summary','Build roadmap overview','Direct contact links'],
+    usecases:['Investor due diligence','Partner onboarding','Team orientation','Company background reference'],
+    url:'/AboutTheFounder.html'
+  },
   {
     slug:'kAIxUchat',icon:'✦',name:'kAIxUchat',cat:'chat',
     color:'#00f3ff',colorRgb:'0,243,255',
