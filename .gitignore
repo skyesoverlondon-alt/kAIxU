@@ -4,3 +4,7 @@ node_modules/
 .env
 *.log
 DEV ONLY/
+
+# Private local-only bundles (do not push)
+exports/
+SoleSheets-LoginSystem.zip
