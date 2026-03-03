@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>searchBoosterKai — fuzzy search</title>
+<title>searchBoosterKai — catalog fuzzy search</title>
 <style>
 :root{--bg:#06070f;--fg:#f6f7ff;--muted:#9aa0bc;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 16% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#06070f;color:var(--fg);padding:24px}
@@ -12,46 +12,58 @@ h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
 p{margin:0 0 12px;color:var(--muted)}
 input{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--border);background:rgba(0,0,0,.3);color:var(--fg);font-size:14px}
 ul{list-style:none;padding:0;margin:14px 0 0;display:flex;flex-direction:column;gap:10px}
-li{border:1px solid var(--border);border-radius:12px;padding:10px;background:rgba(0,0,0,.25)}
+li{border:1px solid var(--border);border-radius:12px;padding:10px;background:rgba(0,0,0,.25);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .score{font-family:'SFMono-Regular',Consolas,monospace;font-size:12px;color:var(--muted)}
 mark{background:rgba(0,243,255,.18);color:inherit;padding:0 2px;border-radius:4px}
+.launch{font-size:11px;padding:6px 10px;border-radius:10px;border:1px solid var(--border);text-decoration:none;color:#f6f7ff;background:rgba(0,243,255,.12)}
+.launch:hover{background:rgba(0,243,255,.2)}
+.meta{font-size:12px;color:var(--muted);margin-top:8px}
 </style>
 </head>
 <body>
   <div class="card">
     <h1>searchBoosterKai</h1>
-    <p>Client-side fuzzy search over the Inner Sanctum catalog. Type to see scores and highlighted hits.</p>
+    <p>Live fuzzy search over your full Inner Sanctum catalog. Type to rank apps by relevance and launch directly.</p>
     <input id="q" placeholder="Search apps..." autofocus />
     <ul id="results"></ul>
-    <div style="font-size:12px;color:var(--muted);margin-top:6px">Scoring: +3 for prefix, +2 for substring, +1 for token match; penalizes distance.</div>
+    <div class="meta" id="meta">Loading catalog…</div>
   </div>
 <script>
-  const data=[
-    'kAIxUchat — chat and multi-model',
-    'skAIxu IDE — code + editor',
-    'watchdogKai — SW + cache health',
-    'liveModeKai — prod/stage switcher',
-    'offlinePackKai — precache shell',
-    'introSkipKai — intro flag toggle',
-    'telemetryLiteKai — beacons',
-    'themeReactorKai — themes',
-    'quickPaletteKai — cmd+k overlay',
-    'searchBoosterKai — fuzzy search',
-    'paletteKai — color palettes'
-  ];
+  let apps=[];
 
   const q=document.getElementById('q');
   const ul=document.getElementById('results');
+  const meta=document.getElementById('meta');
+
+  async function loadApps(){
+    try{
+      const html=await fetch('/index.html',{cache:'no-store'}).then(r=>r.text());
+      const start=html.indexOf('const APPS = [');
+      const end=html.indexOf('];',start);
+      if(start===-1||end===-1) throw new Error('Catalog block missing');
+      const block=html.slice(start,end+2);
+      const rx=/\{[\s\S]*?name:\s*'([^']+)'[\s\S]*?cat:\s*'([^']+)'[\s\S]*?tagline:\s*'([^']+)'[\s\S]*?url:\s*'([^']+)'[\s\S]*?\}/g;
+      const rows=[];
+      for(const m of block.matchAll(rx)) rows.push({name:m[1],cat:m[2],tagline:m[3],url:m[4]});
+      apps=rows;
+      meta.textContent=`Loaded ${apps.length} apps · scoring: prefix +5, token +2, substring +1, length penalty`;
+      render();
+    }catch(e){
+      meta.textContent='Failed to load catalog from /index.html';
+      apps=[{name:'kAIxUchat',cat:'chat',tagline:'Fallback item',url:'/kAIxUchat.html'}];
+      render();
+    }
+  }
 
   function score(str, term){
     const hay=str.toLowerCase();
     const needle=term.toLowerCase();
     if(!needle) return 0;
     let s=0;
-    if(hay.startsWith(needle)) s+=3;
-    if(hay.includes(needle)) s+=2;
-    needle.split(/\s+/).forEach(tok=>{ if(tok && hay.includes(tok)) s+=1; });
-    return s - Math.max(0, hay.length - needle.length)*0.01;
+    if(hay.startsWith(needle)) s+=5;
+    if(hay.includes(needle)) s+=1;
+    needle.split(/\s+/).forEach(tok=>{ if(tok && hay.includes(tok)) s+=2; });
+    return s - Math.max(0, hay.length - needle.length)*0.02;
   }
   function highlight(str, term){
     const n=term.trim();
@@ -61,11 +73,22 @@ mark{background:rgba(0,243,255,.18);color:inherit;padding:0 2px;border-radius:4p
   }
   function render(){
     const term=q.value.trim();
-    const items=data.map(text=>({text,score:score(text,term)})).filter(i=>term?i.score>0:true).sort((a,b)=>b.score-a.score);
-    ul.innerHTML=items.map(i=>`<li><div>${highlight(i.text,term)}</div><div class="score">score ${i.score.toFixed(2)}</div></li>`).join('');
+    const items=apps.map(app=>{
+      const hay=`${app.name} ${app.cat} ${app.tagline}`;
+      return {app,score:score(hay,term),hay};
+    }).filter(i=>term?i.score>0:true).sort((a,b)=>b.score-a.score).slice(0,60);
+    ul.innerHTML=items.map(i=>`<li>
+      <div>
+        <div>${highlight(i.app.name,term)} <span class="score">(${i.app.cat})</span></div>
+        <div class="score">${highlight(i.app.tagline,term)}</div>
+        <div class="score">score ${i.score.toFixed(2)}</div>
+      </div>
+      <a class="launch" href="${i.app.url}">Launch</a>
+    </li>`).join('');
+    if(!items.length) ul.innerHTML='<li><div>No matches.</div></li>';
   }
   q.addEventListener('input', render);
-  render();
+  loadApps();
 </script>
 </body>
 </html>

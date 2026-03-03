@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>quickPaletteKai — Cmd/Ctrl+K</title>
+<title>quickPaletteKai — global launcher</title>
 <style>
 :root{--bg:#05060d;--fg:#f6f7ff;--muted:#9aa0bc;--border:rgba(255,255,255,.12);}*{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#05060d;color:var(--fg);padding:24px}
@@ -20,14 +20,15 @@ button:active{transform:translateY(1px) scale(.99)}
 .item{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;justify-content:space-between;align-items:center;cursor:pointer;background:transparent;color:#e8e8f5;font-size:13px}
 .item:hover,.item.active{background:rgba(0,243,255,.08)}
 .sub{color:#8a8ab3;font-size:12px}
+.k{font-family:'SFMono-Regular',Consolas,monospace;font-size:11px;color:#9aa0bc}
 </style>
 </head>
 <body>
   <div class="card">
     <h1>quickPaletteKai</h1>
-    <p>Stand-alone Cmd/Ctrl+K palette. Jump to key pages or run actions without hunting through the grid.</p>
+    <p>Global launcher with full app index, keyboard navigation, and recent actions.</p>
     <button id="open">Open palette</button>
-    <div style="margin-top:10px;font-size:12px;color:var(--muted);">Keyboard: Cmd/Ctrl+K to open, Esc to close.</div>
+    <div style="margin-top:10px;font-size:12px;color:var(--muted);">Keyboard: Cmd/Ctrl+K open · ↑↓ move · Enter launch · Esc close.</div>
   </div>
 
   <div class="overlay" id="pal" aria-hidden="true">
@@ -40,7 +41,7 @@ button:active{transform:translateY(1px) scale(.99)}
   const pal=document.getElementById('pal');
   const input=document.getElementById('input');
   const list=document.getElementById('list');
-  const actions=[
+  const baseActions=[
     {label:'⬡ Gateway', sub:'Open Gate Xnth', href:'/gateway.html'},
     {label:'✦ Chat', sub:'Open kAIxUchat', href:'/kAIxUchat.html'},
     {label:'🩺 Watchdog', sub:'SW/cache health', href:'/watchdogKai.html'},
@@ -50,20 +51,64 @@ button:active{transform:translateY(1px) scale(.99)}
     {label:'📦 Offline pack', sub:'Precache shell', href:'/offlinePackKai.html'},
     {label:'🎨 Theme reactor', sub:'Set theme', href:'/themeReactorKai.html'}
   ];
+  let actions=[...baseActions];
   let filtered=actions;
+  let activeIdx=0;
+  const recentsKey='kaixuQuickPaletteRecents';
+
+  function pushRecent(act){
+    if(!act || !act.label) return;
+    const cur=JSON.parse(localStorage.getItem(recentsKey)||'[]').filter(x=>x.label!==act.label);
+    cur.unshift({label:act.label,sub:act.sub,href:act.href||''});
+    localStorage.setItem(recentsKey,JSON.stringify(cur.slice(0,8)));
+  }
+
+  async function loadCatalog(){
+    try{
+      const html=await fetch('/index.html',{cache:'no-store'}).then(r=>r.text());
+      const start=html.indexOf('const APPS = [');
+      const end=html.indexOf('];',start);
+      if(start===-1||end===-1) return;
+      const block=html.slice(start,end+2);
+      const rx=/\{[\s\S]*?icon:\s*'([^']+)'[\s\S]*?name:\s*'([^']+)'[\s\S]*?tagline:\s*'([^']+)'[\s\S]*?url:\s*'([^']+)'[\s\S]*?\}/g;
+      const appActions=[];
+      for(const m of block.matchAll(rx)){
+        appActions.push({label:`${m[1]} ${m[2]}`,sub:m[3],href:m[4]});
+      }
+      const recents=JSON.parse(localStorage.getItem(recentsKey)||'[]').map(r=>({label:`🕘 ${r.label}`,sub:r.sub||'Recent',href:r.href||''}));
+      actions=[...recents,...baseActions,...appActions];
+      render();
+    }catch{}
+  }
+
   function render(){
     const q=input.value.toLowerCase();
     filtered=actions.filter(a=>!q||a.label.toLowerCase().includes(q)||a.sub.toLowerCase().includes(q));
-    list.innerHTML=filtered.map((a,i)=>`<div class="item" data-idx="${i}"><div>${a.label}</div><div class="sub">${a.sub}</div></div>`).join('');
+    if(activeIdx>=filtered.length) activeIdx=0;
+    list.innerHTML=filtered.map((a,i)=>`<div class="item ${i===activeIdx?'active':''}" data-idx="${i}"><div>${a.label}<div class="sub">${a.sub}</div></div><div class="k">↵</div></div>`).join('');
   }
   function open(){pal.classList.add('active');pal.setAttribute('aria-hidden','false');input.value='';render();setTimeout(()=>input.focus(),10);}
   function close(){pal.classList.remove('active');pal.setAttribute('aria-hidden','true');}
-  list.addEventListener('click',e=>{const item=e.target.closest('.item');if(!item)return;const act=filtered[Number(item.dataset.idx)];if(!act)return;if(act.action)act.action();else if(act.href)location.href=act.href;close();});
+  function runAction(act){
+    if(!act) return;
+    pushRecent(act);
+    if(act.action) act.action();
+    else if(act.href) location.href=act.href;
+    close();
+  }
+  list.addEventListener('click',e=>{const item=e.target.closest('.item');if(!item)return;runAction(filtered[Number(item.dataset.idx)]);});
   document.getElementById('open').onclick=open;
-  input.addEventListener('input',render);
-  document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open();}if(e.key==='Escape')close();});
+  input.addEventListener('input',()=>{activeIdx=0;render();});
+  document.addEventListener('keydown',e=>{
+    if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();open();return;}
+    if(!pal.classList.contains('active')) return;
+    if(e.key==='Escape'){close();return;}
+    if(e.key==='ArrowDown'){e.preventDefault();activeIdx=Math.min(filtered.length-1,activeIdx+1);render();return;}
+    if(e.key==='ArrowUp'){e.preventDefault();activeIdx=Math.max(0,activeIdx-1);render();return;}
+    if(e.key==='Enter'){e.preventDefault();runAction(filtered[activeIdx]);}
+  });
   pal.addEventListener('click',e=>{if(e.target===pal)close();});
-  render();
+  loadCatalog();
 </script>
 </body>
 </html>

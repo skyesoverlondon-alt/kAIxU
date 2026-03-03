@@ -39,7 +39,15 @@ a{color:var(--gold)}
       <button id="btnClear">Clear all flags</button>
     </div>
 
+    <div class="row" style="margin-top:4px">
+      <button id="btnSetReturn">Set return → /gateway.html</button>
+      <button id="btnGoIntro">Open Intro</button>
+      <button id="btnGoHome">Open Home</button>
+      <button id="btnDiag">Run Diagnostics</button>
+    </div>
+
     <div class="status" id="status"></div>
+    <div class="status" id="diag">Diagnostics: (not run)</div>
     <div class="status" style="font-size:12px">Uses localStorage key <strong>kaixuIntroSkip</strong> and sessionStorage key <strong>kaixuIntroPass</strong>. This only affects this browser.</div>
     <div style="margin-top:12px;color:var(--muted);font-size:13px">Need to return to where you left off? The intro sets <strong>kaixuIntroReturn</strong> to send you back after the cinematic.</div>
   </div>
@@ -49,6 +57,7 @@ a{color:var(--gold)}
   const badge=document.getElementById('badge');
   const badgeText=document.getElementById('badgeText');
   const statusEl=document.getElementById('status');
+  const diagEl=document.getElementById('diag');
 
   function update(){
     const skip=!!localStorage.getItem(skipKey);
@@ -69,6 +78,24 @@ a{color:var(--gold)}
   document.getElementById('btnEnable').onclick=()=>{localStorage.setItem(skipKey,'1');sessionStorage.setItem(passKey,'1');update();};
   document.getElementById('btnDisable').onclick=()=>{localStorage.removeItem(skipKey);sessionStorage.removeItem(passKey);update();};
   document.getElementById('btnClear').onclick=()=>{localStorage.removeItem(skipKey);sessionStorage.removeItem(passKey);sessionStorage.removeItem('kaixuIntroReturn');update();};
+  document.getElementById('btnSetReturn').onclick=()=>{sessionStorage.setItem('kaixuIntroReturn','/gateway.html');update();};
+  document.getElementById('btnGoIntro').onclick=()=>{location.href='/SKYE%20INTRO%20%283%29.html';};
+  document.getElementById('btnGoHome').onclick=()=>{location.href='/';};
+
+  document.getElementById('btnDiag').onclick=async()=>{
+    const lines=[];
+    lines.push('Storage access: '+(typeof localStorage!=='undefined'&&typeof sessionStorage!=='undefined'?'ok':'failed'));
+    try{
+      const regs=await navigator.serviceWorker.getRegistrations();
+      lines.push('Service workers: '+regs.length);
+    }catch{lines.push('Service workers: n/a');}
+    try{
+      const keys=await caches.keys();
+      lines.push('Cache keys: '+(keys.length?keys.join(', '):'(none)'));
+    }catch{lines.push('Cache keys: n/a');}
+    lines.push('Current path: '+location.pathname);
+    diagEl.textContent=lines.join('\n');
+  };
 
   update();
 </script>

@@ -45,6 +45,8 @@
         <option value="stage">Stage</option>
       </select>
       <button id="btnHealth">Check health</button>
+      <button id="btnModels">Check models</button>
+      <button id="btnGenerate">Check generate</button>
       <button id="btnCaches">List caches</button>
       <button id="btnPurge">Purge caches + unregister SW</button>
       <button id="btnSW">SW version</button>
@@ -63,6 +65,14 @@
         <h3>Service worker</h3>
         <pre id="sw">(waiting)</pre>
       </div>
+      <div class="box">
+        <h3>Models endpoint</h3>
+        <pre id="models">(waiting)</pre>
+      </div>
+      <div class="box">
+        <h3>Generate endpoint</h3>
+        <pre id="generate">(waiting)</pre>
+      </div>
     </div>
     <div class="muted">Tip: If the gold CTA or intro isn’t updating, hit “Purge caches” then reload.</div>
   </div>
@@ -78,6 +88,8 @@
   const healthEl = document.getElementById('health');
   const cachesEl = document.getElementById('caches');
   const swEl = document.getElementById('sw');
+  const modelsEl = document.getElementById('models');
+  const generateEl = document.getElementById('generate');
 
   function setPill(ok,msg){
     pill.classList.toggle('ok', ok);
@@ -107,6 +119,32 @@
     }
   }
 
+  async function checkModels(){
+    const base = ENVS[envSel.value] || ENVS.prod;
+    try{
+      const r = await fetch(`${base}/v1/models`, {cache:'no-store'});
+      const j = await r.json();
+      modelsEl.textContent = JSON.stringify(j, null, 2);
+    }catch(e){
+      modelsEl.textContent = String(e);
+    }
+  }
+
+  async function checkGenerate(){
+    const base = ENVS[envSel.value] || ENVS.prod;
+    try{
+      const r = await fetch(`${base}/v1/generate`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({messages:[{role:'user',content:'ping'}],model:'kAIxU6.7-flash'})
+      });
+      const txt = await r.text();
+      generateEl.textContent = `HTTP ${r.status}\n` + txt.slice(0, 400);
+    }catch(e){
+      generateEl.textContent = String(e);
+    }
+  }
+
   async function purgeCaches(){
     try{
       const regs = await navigator.serviceWorker.getRegistrations();
@@ -131,11 +169,15 @@
 
   envSel.addEventListener('change', checkHealth);
   document.getElementById('btnHealth').addEventListener('click', checkHealth);
+  document.getElementById('btnModels').addEventListener('click', checkModels);
+  document.getElementById('btnGenerate').addEventListener('click', checkGenerate);
   document.getElementById('btnCaches').addEventListener('click', listCaches);
   document.getElementById('btnPurge').addEventListener('click', purgeCaches);
   document.getElementById('btnSW').addEventListener('click', swVersion);
 
   checkHealth();
+  checkModels();
+  checkGenerate();
   listCaches();
   swVersion();
 </script>

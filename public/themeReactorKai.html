@@ -3,62 +3,161 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>themeReactorKai — theme switch</title>
+<title>themeReactorKai — theme studio</title>
 <style>
 :root{--bg:#05050c;--fg:#f6f7ff;--muted:#9aa0bc;--border:rgba(255,255,255,.12);--cyan:#00f3ff;--gold:#ffd36a;--purple:#a243ff;}*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#05050c;color:var(--fg);padding:24px;transition:background .3s,color .3s}
-.card{max-width:780px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
+body{margin:0;min-height:100vh;font-family:'Segoe UI',system-ui,sans-serif;background:radial-gradient(circle at 18% 18%,rgba(0,243,255,.08),transparent 36%),radial-gradient(circle at 78% 12%,rgba(255,211,106,.08),transparent 32%),#05050c;color:var(--fg);padding:24px}
+.card{max-width:920px;margin:0 auto;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:18px;padding:22px;backdrop-filter:blur(10px);box-shadow:0 30px 80px rgba(0,0,0,.45)}
 h1{margin:0 0 8px;font-size:22px;letter-spacing:.3px}
 p{margin:0 0 12px;color:var(--muted)}
-button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));color:var(--fg);font-weight:700;letter-spacing:.2px;box-shadow:0 12px 40px rgba(0,0,0,.45);transition:transform .08s ease}
-button:active{transform:translateY(1px) scale(.99)}
+button{cursor:pointer;padding:10px 14px;border-radius:14px;border:1px solid var(--border);background:linear-gradient(180deg,rgba(0,243,255,.18),rgba(0,243,255,.07));color:var(--fg);font-weight:700;letter-spacing:.2px}
+input{padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--fg)}
 .row{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0;align-items:center}
 .preview{border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:12px;background:rgba(255,255,255,.04)}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:rgba(0,0,0,.28);color:var(--muted);font-size:12px}
+.swatch{display:flex;align-items:center;gap:8px;margin:6px 0}
+.swatch input[type='color']{width:42px;height:32px;padding:0;border:none;background:transparent}
+.swatch code{color:var(--muted)}
+.status{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body>
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-      <div>
-        <h1>themeReactorKai</h1>
-        <p>Switch themes (Neon, Gold, Noir) and persist to localStorage for all pages.</p>
-      </div>
-      <div class="badge" id="badge">Key: kaixuTheme</div>
+    <h1>themeReactorKai</h1>
+    <p>Advanced theme studio: set core tokens, save presets, export/import JSON, and optionally generate a palette with AI.</p>
+
+    <div class="row">
+      <button data-theme="default">Preset: Neon</button>
+      <button data-theme="gold">Preset: Gold</button>
+      <button data-theme="mono">Preset: Noir</button>
+      <button id="savePreset">Save current preset</button>
+      <button id="loadPreset">Load saved preset</button>
+      <button id="exportPreset">Export JSON</button>
+      <button id="importPreset">Import JSON</button>
     </div>
 
     <div class="row">
-      <button data-theme="default">Neon</button>
-      <button data-theme="gold">Gold</button>
-      <button data-theme="mono">Noir</button>
+      <div class="swatch">Cyan <input id="cyan" type="color" value="#00f3ff"><code id="cyanVal">#00f3ff</code></div>
+      <div class="swatch">Gold <input id="gold" type="color" value="#ffd36a"><code id="goldVal">#ffd36a</code></div>
+      <div class="swatch">Purple <input id="purple" type="color" value="#a243ff"><code id="purpleVal">#a243ff</code></div>
+      <div class="swatch">Background <input id="bg" type="color" value="#05050c"><code id="bgVal">#05050c</code></div>
+      <button id="applyCustom">Apply custom</button>
+    </div>
+
+    <div class="row">
+      <input id="tok" type="password" placeholder="Optional token for AI palette" style="min-width:240px;flex:1">
+      <input id="prompt" placeholder="AI palette prompt (e.g. cyber luxury fintech)" style="min-width:260px;flex:2">
+      <button id="aiGenerate">AI palette</button>
     </div>
 
     <div class="preview" id="preview">
-      <div style="font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);">Preview</div>
-      <div style="font-size:24px;font-weight:800;margin:6px 0;color:var(--fg);">Inner Sanctum</div>
-      <div style="color:var(--muted);">CTA and cards will follow this palette across the site.</div>
+      <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan);">Preview</div>
+      <div style="font-size:28px;font-weight:800;margin:6px 0;color:var(--fg);">Quantum Kore</div>
+      <div style="color:var(--muted);">This preview uses your current token colors and persisted `kaixuThemeCustom` values.</div>
       <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
         <span style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:var(--fg);">Button</span>
         <span style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:var(--fg);">Badge</span>
         <span style="padding:6px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.25);color:var(--fg);">Highlight</span>
       </div>
     </div>
+    <div class="status" id="status">Ready.</div>
   </div>
+
 <script>
-  const themes={
-    default:{'--cyan':'#00f3ff','--purple':'#a243ff','--gold':'#ffd36a','--bg':'#030307'},
-    gold:{'--cyan':'#ffd36a','--purple':'#ffb347','--gold':'#ffd36a','--bg':'#0c0a04'},
-    mono:{'--cyan':'#d8e4ff','--purple':'#b5b5c7','--gold':'#e6e6e6','--bg':'#0b0c10'}
-  };
-  function applyTheme(name){
-    const cfg=themes[name]||themes.default;
-    Object.entries(cfg).forEach(([k,v])=>document.documentElement.style.setProperty(k,v));
-    document.body.style.background=cfg['--bg'];
-    localStorage.setItem('kaixuTheme',name);
+const API='https://kaixu67.skyesoverlondon.workers.dev';
+const customKey='kaixuThemeCustom';
+const themes={
+  default:{'--cyan':'#00f3ff','--purple':'#a243ff','--gold':'#ffd36a','--bg':'#030307'},
+  gold:{'--cyan':'#ffd36a','--purple':'#ffb347','--gold':'#ffd36a','--bg':'#0c0a04'},
+  mono:{'--cyan':'#d8e4ff','--purple':'#b5b5c7','--gold':'#e6e6e6','--bg':'#0b0c10'}
+};
+const ids=['cyan','gold','purple','bg'];
+const $=id=>document.getElementById(id);
+
+function setStatus(msg,err){const el=$('status');el.textContent=msg;el.style.color=err?'#ff7272':'var(--muted)';}
+function applyTheme(cfg){
+  document.documentElement.style.setProperty('--cyan',cfg['--cyan']);
+  document.documentElement.style.setProperty('--gold',cfg['--gold']);
+  document.documentElement.style.setProperty('--purple',cfg['--purple']);
+  document.documentElement.style.setProperty('--bg',cfg['--bg']);
+  document.body.style.background=cfg['--bg'];
+  $('preview').style.background='rgba(255,255,255,.04)';
+}
+function syncInputs(cfg){
+  $('cyan').value=cfg['--cyan']; $('cyanVal').textContent=cfg['--cyan'];
+  $('gold').value=cfg['--gold']; $('goldVal').textContent=cfg['--gold'];
+  $('purple').value=cfg['--purple']; $('purpleVal').textContent=cfg['--purple'];
+  $('bg').value=cfg['--bg']; $('bgVal').textContent=cfg['--bg'];
+}
+function currentCfg(){
+  return {'--cyan':$('cyan').value,'--gold':$('gold').value,'--purple':$('purple').value,'--bg':$('bg').value};
+}
+
+ids.forEach(id=>$(id).addEventListener('input',()=>{$(`${id}Val`).textContent=$(id).value;}));
+
+document.querySelectorAll('button[data-theme]').forEach(btn=>btn.onclick=()=>{
+  const cfg=themes[btn.dataset.theme]||themes.default;
+  applyTheme(cfg); syncInputs(cfg);
+  localStorage.setItem('kaixuTheme',btn.dataset.theme);
+  localStorage.setItem(customKey,JSON.stringify(cfg));
+  setStatus('Preset applied.');
+});
+
+$('applyCustom').onclick=()=>{
+  const cfg=currentCfg();
+  applyTheme(cfg);
+  localStorage.setItem(customKey,JSON.stringify(cfg));
+  localStorage.setItem('kaixuTheme','custom');
+  setStatus('Custom theme applied.');
+};
+
+$('savePreset').onclick=()=>{ localStorage.setItem(customKey,JSON.stringify(currentCfg())); setStatus('Saved current preset.'); };
+$('loadPreset').onclick=()=>{
+  const cfg=JSON.parse(localStorage.getItem(customKey)||'null');
+  if(!cfg){setStatus('No saved preset found.',true);return;}
+  applyTheme(cfg); syncInputs(cfg); setStatus('Loaded saved preset.');
+};
+$('exportPreset').onclick=()=>{navigator.clipboard.writeText(JSON.stringify(currentCfg(),null,2)); setStatus('Preset JSON copied.');};
+$('importPreset').onclick=()=>{
+  const raw=prompt('Paste preset JSON');
+  if(!raw) return;
+  try{const cfg=JSON.parse(raw); applyTheme(cfg); syncInputs(cfg); localStorage.setItem(customKey,JSON.stringify(cfg)); setStatus('Imported preset.');}
+  catch{setStatus('Invalid JSON.',true);}  
+};
+
+async function streamSSE(url,tok,body,onChunk){
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},body:JSON.stringify(body)});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  const reader=r.body.getReader();const dec=new TextDecoder();let buf='',full='';
+  while(true){const {done,value}=await reader.read(); if(done) break; buf+=dec.decode(value,{stream:true}); const lines=buf.split('\n'); buf=lines.pop();
+    for(const ln of lines){ if(!ln.startsWith('data: ')) continue; const data=ln.slice(6).trim(); if(!data||data==='[DONE]') continue;
+      try{ const j=JSON.parse(data); const chunk=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text).join(''); if(chunk){ full+=chunk; onChunk(chunk,full);} }catch{}
+    }
   }
-  document.querySelectorAll('button[data-theme]').forEach(btn=>btn.onclick=()=>applyTheme(btn.dataset.theme));
-  const saved=localStorage.getItem('kaixuTheme')||'default';
-  applyTheme(saved);
+  return full;
+}
+
+$('aiGenerate').onclick=async()=>{
+  const tok=$('tok').value.trim();
+  const promptText=$('prompt').value.trim();
+  if(!tok||!promptText){setStatus('Add token and prompt first.',true);return;}
+  setStatus('Generating palette…');
+  const sys='Return JSON only: {"cyan":"#RRGGBB","gold":"#RRGGBB","purple":"#RRGGBB","bg":"#RRGGBB"}';
+  const user=`Create a high-contrast web palette for: ${promptText}`;
+  try{
+    const raw=await streamSSE(`${API}/v1/stream`,tok,{system:sys,messages:[{role:'user',content:user}]},()=>{});
+    const cleaned=raw.trim().replace(/^```(?:json)?\s*/i,'').replace(/```\s*$/,'');
+    const cfg=JSON.parse(cleaned);
+    if(!cfg.cyan||!cfg.gold||!cfg.purple||!cfg.bg) throw new Error('Missing keys');
+    const mapped={'--cyan':cfg.cyan,'--gold':cfg.gold,'--purple':cfg.purple,'--bg':cfg.bg};
+    applyTheme(mapped); syncInputs(mapped); localStorage.setItem(customKey,JSON.stringify(mapped));
+    setStatus('AI palette applied.');
+  }catch(e){setStatus('AI palette failed: '+(e.message||e),true);}
+};
+
+(()=>{
+  const cfg=JSON.parse(localStorage.getItem(customKey)||'null')||themes.default;
+  applyTheme(cfg); syncInputs(cfg);
+})();
 </script>
 </body>
 </html>
