@@ -37,11 +37,16 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
         <option value="prod">Prod</option>
         <option value="stage">Stage</option>
       </select>
+      <input id="tok" type="password" placeholder="Optional token for /models and /generate" style="min-width:220px;flex:1;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:rgba(0,0,0,.35);color:var(--fg)">
       <button id="btnSave">Save env</button>
       <button id="btnHealth">Check /v1/health</button>
+      <button id="btnModels">Check /v1/models</button>
+      <button id="btnGenerate">Check /v1/generate</button>
     </div>
 
     <div class="box"><strong>Health</strong><pre id="health">(waiting)</pre></div>
+    <div class="box"><strong>Models</strong><pre id="models">(waiting)</pre></div>
+    <div class="box"><strong>Generate</strong><pre id="generate">(waiting)</pre></div>
     <div class="box"><strong>Current base</strong><pre id="base">(waiting)</pre></div>
     <div class="box" style="font-size:12px">Uses localStorage key <strong>kaixuEnv</strong> so gateway and other tools stay in sync.</div>
   </div>
@@ -54,7 +59,13 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
   const pill=document.getElementById('pill');
   const pillText=document.getElementById('pillText');
   const healthEl=document.getElementById('health');
+  const modelsEl=document.getElementById('models');
+  const generateEl=document.getElementById('generate');
   const baseEl=document.getElementById('base');
+  const tokEl=document.getElementById('tok');
+
+  tokEl.value=localStorage.getItem('kaixuTokenLite')||'';
+  tokEl.addEventListener('input',()=>localStorage.setItem('kaixuTokenLite',tokEl.value.trim()));
 
   function applySaved(){
     const saved=localStorage.getItem('kaixuEnv')||'prod';
@@ -79,10 +90,38 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted)}
       healthEl.textContent=String(e);
     }
   }
+  function authHeaders(){
+    const tok=tokEl.value.trim();
+    return tok ? {'Authorization':'Bearer '+tok} : {};
+  }
+  async function checkModels(){
+    const base=ENVS[envSel.value]||ENVS.prod;
+    try{
+      const r=await fetch(`${base}/v1/models`,{cache:'no-store',headers:authHeaders()});
+      const txt=await r.text();
+      modelsEl.textContent=`HTTP ${r.status}\n`+txt.slice(0,700);
+    }catch(e){ modelsEl.textContent=String(e); }
+  }
+  async function checkGenerate(){
+    const base=ENVS[envSel.value]||ENVS.prod;
+    try{
+      const r=await fetch(`${base}/v1/generate`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json',...authHeaders()},
+        body:JSON.stringify({messages:[{role:'user',content:'ping'}],model:'kAIxU6.7-flash'})
+      });
+      const txt=await r.text();
+      generateEl.textContent=`HTTP ${r.status}\n`+txt.slice(0,700);
+    }catch(e){ generateEl.textContent=String(e); }
+  }
   document.getElementById('btnSave').onclick=()=>{localStorage.setItem('kaixuEnv',envSel.value);applySaved();check();};
   document.getElementById('btnHealth').onclick=check;
+  document.getElementById('btnModels').onclick=checkModels;
+  document.getElementById('btnGenerate').onclick=checkGenerate;
   applySaved();
   check();
+  checkModels();
+  checkGenerate();
 </script>
 </body>
 </html>

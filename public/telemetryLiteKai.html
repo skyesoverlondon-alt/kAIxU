@@ -32,6 +32,8 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);backg
       <button id="btnSend">Send beacon</button>
       <button id="btnPrefill">Prefill intro/cta</button>
       <button id="btnError">Send error sample</button>
+      <button id="btnQueue">Queue only</button>
+      <button id="btnReplay">Replay queue</button>
     </div>
 
     <pre id="log">(waiting)</pre>
@@ -42,6 +44,7 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);backg
   const evEl=document.getElementById('event');
   const userEl=document.getElementById('user');
   const ctxEl=document.getElementById('context');
+  const queueKey='kaixuTelemetryQueue';
 
   function payload(evt, ctx){
     return {
@@ -51,26 +54,42 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);backg
       context: ctx
     };
   }
+  function getQueue(){return JSON.parse(localStorage.getItem(queueKey)||'[]');}
+  function setQueue(v){localStorage.setItem(queueKey,JSON.stringify(v));}
+  function pushQueue(item){const q=getQueue();q.push(item);setQueue(q);}
   function log(msg){logEl.textContent=msg;}
 
+  function parseContext(){
+    try{return ctxEl.value?JSON.parse(ctxEl.value):{};}
+    catch{return {raw:ctxEl.value};}
+  }
+
+  function validate(p){
+    if(!p.event || typeof p.event!=='string') return 'event is required';
+    if(p.event.length>120) return 'event too long';
+    return null;
+  }
+
   async function send(evt, ctx){
-    const body=JSON.stringify(payload(evt, ctx));
+    const p=payload(evt, ctx);
+    const err=validate(p);
+    if(err){log('Invalid payload: '+err);return false;}
+    const body=JSON.stringify(p);
     let ok=false;
     if(navigator.sendBeacon){
       ok = navigator.sendBeacon('/v1/telemetry', new Blob([body],{type:'application/json'}));
     }
     if(!ok){
       try{await fetch('/v1/telemetry',{method:'POST',headers:{'Content-Type':'application/json'},body});ok=true;}
-      catch(e){log('Failed: '+e);return;}
+      catch(e){log('Failed: '+e);return false;}
     }
     log('Sent beacon:\n'+body);
+    return true;
   }
 
   document.getElementById('btnSend').onclick=()=>{
     const evt=evEl.value.trim()||'custom_event';
-    let ctx={};
-    try{ctx=ctxEl.value?JSON.parse(ctxEl.value):{};}catch(_){ctx={raw:ctxEl.value};}
-    send(evt, ctx);
+    send(evt, parseContext());
   };
   document.getElementById('btnPrefill').onclick=()=>{
     evEl.value='intro_start';
@@ -79,6 +98,24 @@ pre{margin:0;white-space:pre-wrap;word-break:break-word;color:var(--muted);backg
   document.getElementById('btnError').onclick=()=>{
     evEl.value='client_error';
     ctxEl.value=JSON.stringify({page:location.pathname,message:'Sample error',ua:navigator.userAgent},null,2);
+  };
+  document.getElementById('btnQueue').onclick=()=>{
+    const p=payload(evEl.value.trim()||'queued_event',parseContext());
+    const err=validate(p); if(err){log('Invalid payload: '+err);return;}
+    pushQueue(p);
+    log(`Queued event. Queue size: ${getQueue().length}`);
+  };
+  document.getElementById('btnReplay').onclick=async()=>{
+    const q=getQueue();
+    if(!q.length){log('Queue empty.');return;}
+    let sent=0,failed=0;
+    const keep=[];
+    for(const item of q){
+      const ok=await send(item.event,item.context||{});
+      if(ok) sent++; else {failed++; keep.push(item);}    
+    }
+    setQueue(keep);
+    log(`Replay complete. Sent: ${sent}, Failed: ${failed}, Remaining: ${keep.length}`);
   };
 </script>
 </body>
