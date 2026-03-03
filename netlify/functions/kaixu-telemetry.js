@@ -4,6 +4,7 @@
 // or just acknowledges silently — never crashes the caller.
 
 const { corsHeaders, json } = require("./_kaixu_utils");
+const { getDatabaseUrl } = require("./_db_url");
 
 exports.handler = async (event) => {
   const cors = corsHeaders(event);
@@ -35,7 +36,7 @@ exports.handler = async (event) => {
   } = payload;
 
   // Best-effort log to Neon — if env not set, skip silently
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (dsn) {
     try {
       const { neon } = await import("@neondatabase/serverless");

@@ -11,23 +11,28 @@ package = "@netlify/plugin-functions-install-core"
 # API routes (stable paths your apps will call)
 [[redirects]]
   from = "/v1/health"
-  to = "/.netlify/functions/kaixu-health"
+  to = "/.netlify/functions/v1-proxy/v1/health"
   status = 200
 
 [[redirects]]
   from = "/v1/models"
-  to = "/.netlify/functions/kaixu-models"
+  to = "/.netlify/functions/v1-proxy/v1/models"
   status = 200
 
 [[redirects]]
   from = "/v1/generate"
-  to = "/.netlify/functions/kaixu-generate"
+  to = "/.netlify/functions/v1-proxy/v1/generate"
   status = 200
 
 # Optional streaming endpoint (SSE)
 [[redirects]]
   from = "/v1/stream"
-  to = "/.netlify/functions/kaixu-stream"
+  to = "/.netlify/functions/v1-proxy/v1/stream"
+  status = 200
+
+[[redirects]]
+  from = "/v1/embeddings"
+  to = "/.netlify/functions/v1-proxy/v1/embeddings"
   status = 200
 
 # Client beacon / telemetry sink
@@ -78,6 +83,11 @@ package = "@netlify/plugin-functions-install-core"
   from = "/api/admin/events"
   to = "/.netlify/functions/admin-events"
   status = 200
+
+[[redirects]]
+  from = "/api/admin/health-env"
+  to = "/.netlify/functions/health-env"
+  status = 200
 # ── Customer self-serve API ────────────────────────────────────────────────────
 # Public (no auth required)
 [[redirects]]
@@ -100,6 +110,11 @@ package = "@netlify/plugin-functions-install-core"
 [[redirects]]
   from = "/api/customer/me"
   to = "/.netlify/functions/customer-me"
+  status = 200
+
+[[redirects]]
+  from = "/api/customer/token/issue"
+  to = "/.netlify/functions/customer-token-issue"
   status = 200
 
 [[redirects]]

@@ -1,7 +1,7 @@
 # kAIxu Gate Delta
 
-**Skyes Over London LC** — API gateway that keeps your Gemini API key server-side.  
-Your apps call the gate, the gate calls Gemini. The key never leaves the server.
+**Skyes Over London LC** — API gateway that keeps your model API key server-side.  
+Your apps call the gate, the gate handles the rest. The key never leaves the server.
 
 ---
 
@@ -52,10 +52,38 @@ Push any change to `worker/` on `main` → GitHub Actions auto-deploys. Done.
 
 Deploys automatically from this repo via Netlify Git integration. No build command needed.
 
+Netlify now proxies `/v1/*` AI contract routes to Cloudflare Worker upstream, so Netlify no longer needs direct model provider API keys for those `/v1/*` routes.
+
 **Set these in Netlify → Site configuration → Environment variables:**
-- `KAIXU_GEMINI_API_KEY` (required)
-- `KAIXU_APP_TOKENS` (required, comma-separated)
-- Optional: `KAIXU_DEFAULT_MODEL`, `KAIXU_ALLOWED_ORIGINS`, `KAIXU_GLOBAL_SYSTEM`
+- `KAIXU_V1_UPSTREAM` (recommended, example: `https://kaixu67.skyesoverlondon.workers.dev`)
+- `KAIXU_APP_TOKENS` (required for Netlify-side gate/admin functions)
+- Optional: `KAIXU_DEFAULT_MODEL`, `KAIXU_ALLOWED_ORIGINS`, `KAIXU_GLOBAL_SYSTEM`, `KAIXU_LOG_LEVEL`, `KAIXU_MAX_BODY_BYTES`, `KAIXU_TIMEOUT_MS`
+
+### Netlify envs for new live gate deploys (`kaixu0s.netlify.app`)
+
+Use this baseline:
+
+- Required for gateway generation:
+  - `KAIXU_V1_UPSTREAM` (Cloudflare worker origin; AI is handled there)
+  - `KAIXU_APP_TOKENS`
+- Strongly recommended defaults:
+  - `KAIXU_DEFAULT_MODEL`
+  - `KAIXU_OPEN_GATE=0`
+  - `KAIXU_MAX_BODY_BYTES`
+  - `KAIXU_TIMEOUT_MS`
+  - `KAIXU_ALLOWED_ORIGINS`
+  - `KAIXU_GLOBAL_SYSTEM`
+  - `KAIXU_LOG_LEVEL`
+- Required for central brain→gate trust (new brain onboarding):
+  - `KAIXU_SERVICE_SECRETS` (comma-separated list; preferred)
+  - or `KAIXU_SERVICE_SECRET` (single legacy value)
+- Required for DB-backed admin token verify / admin logs:
+  - `NEON_DATABASE_URL` **or** `NETLIFY_DATABASE_URL`
+
+Notes:
+
+- `NETLIFY_DATABASE_URL_UNPOOLED` is optional fallback.
+- For each new brain, append its service secret to `KAIXU_SERVICE_SECRETS` (do not replace existing secrets).
 
 See `ENV.template` for the full list.
 
@@ -71,7 +99,7 @@ const res = await fetch("https://kaixu67.skyesoverlondon.workers.dev/v1/generate
     "Authorization": "Bearer YOUR_APP_TOKEN"
   },
   body: JSON.stringify({
-    model: "gemini-2.5-flash",
+    model: "kAIxU6.7-flash",
     input: { type: "text", content: "Hello" },
     generationConfig: { temperature: 0.7 }
   })
@@ -86,21 +114,21 @@ console.log(data.text);
 |-------|------|-------------|
 | `model` | string | Defaults to `KAIXU_DEFAULT_MODEL` |
 | `input` | `{ type: "text", content: "..." }` | Simple text prompt |
-| `messages` | array | OpenAI-style `[{ role, content }]` — auto-converted |
-| `contents` | array | Raw Gemini `contents[]` — passed through directly |
+| `messages` | array | Role/content message array `[{ role, content }]` — auto-converted |
+| `contents` | array | Raw `contents[]` — passed through directly |
 | `system` | string | Per-request system instruction |
-| `generationConfig` | object | Passed to Gemini verbatim (temperature, maxOutputTokens, etc.) |
+| `generationConfig` | object | Passed through verbatim (temperature, maxOutputTokens, etc.) |
 | `output` | `{ format: "json"|"text"|"markdown" }` | Sets `responseMimeType` |
 | `safetySettings` | array | Passed through |
 | `tools` / `toolConfig` | object | Passed through |
-| `includeRaw` | boolean | Include raw Gemini response at `raw` |
+| `includeRaw` | boolean | Include raw model response at `raw` |
 
 ### Response
 
 ```json
 {
   "ok": true,
-  "model": "gemini-2.5-flash",
+  "model": "kAIxU6.7-flash",
   "text": "...",
   "finishReason": "STOP",
   "usage": {
@@ -112,7 +140,7 @@ console.log(data.text);
 }
 ```
 
-> **Note on `gemini-2.5-pro`:** This is a thinking model — it burns tokens internally before producing output. If you get `text: ""` or `finishReason: "MAX_TOKENS"`, pass a higher `maxOutputTokens` in `generationConfig` (e.g. `65536`).
+> **Note on `kAIxU6.7-pro`:** This is a thinking model — it burns tokens internally before producing output. If you get `text: ""` or `finishReason: "MAX_TOKENS"`, pass a higher `maxOutputTokens` in `generationConfig` (e.g. `65536`).
 
 ---
 
@@ -126,7 +154,7 @@ const res = await fetch("https://kaixu67.skyesoverlondon.workers.dev/v1/stream",
     "Authorization": "Bearer YOUR_APP_TOKEN"
   },
   body: JSON.stringify({
-    model: "gemini-2.5-flash",
+    model: "kAIxU6.7-flash",
     input: { type: "text", content: "Tell me a story" }
   })
 });
@@ -154,7 +182,7 @@ while (true) {
 
 ## Security
 
-- Gemini API key is never returned to callers
+- Model API key is never returned to callers
 - All requests require `Authorization: Bearer <token>` matching `KAIXU_APP_TOKENS`
 - Lock to specific origins via `KAIXU_ALLOWED_ORIGINS`
 - Set `KAIXU_OPEN_GATE=1` only for internal/trusted environments

@@ -9,8 +9,11 @@ const { createHash, randomBytes } = require("crypto");
 let _pool = null;
 function getDb() {
   if (!_pool) {
-    const url = process.env.NEON_DATABASE_URL;
-    if (!url) throw new Error("NEON_DATABASE_URL env var is not set.");
+    const url =
+      process.env.NEON_DATABASE_URL ||
+      process.env.NETLIFY_DATABASE_URL ||
+      process.env.NETLIFY_DATABASE_URL_UNPOOLED;
+    if (!url) throw new Error("Database URL env var is not set (NEON_DATABASE_URL or NETLIFY_DATABASE_URL).");
     _pool = new Pool({ connectionString: url });
   }
   return _pool;
@@ -46,10 +49,16 @@ function requireAdmin(context) {
 
 // ── Auth: Service secret (worker → Netlify internal calls) ───────────────────
 function requireServiceSecret(event) {
-  const secret = process.env.KAIXU_SERVICE_SECRET || "";
-  if (!secret) return resp(500, { error: "Service secret not configured." });
+  const secrets = String(
+    process.env.KAIXU_SERVICE_SECRETS || process.env.KAIXU_SERVICE_SECRET || ""
+  )
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (!secrets.length) return resp(500, { error: "Service secret not configured." });
   const provided = event.headers["x-kaixu-service"] || "";
-  if (provided !== secret) return resp(403, { error: "Invalid service secret." });
+  if (!provided || !secrets.includes(provided)) return resp(403, { error: "Invalid service secret." });
   return null; // ok
 }
 

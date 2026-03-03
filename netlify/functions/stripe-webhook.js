@@ -16,9 +16,11 @@
 
 "use strict";
 
+const { getDatabaseUrl } = require("./_db_url");
+
 async function getDb() {
   const { neon } = await import("@neondatabase/serverless");
-  return neon(process.env.NEON_DATABASE_URL);
+  return neon(getDatabaseUrl());
 }
 
 // Monthly request caps per tier. null = unlimited.
@@ -108,7 +110,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, headers: {}, body: `Webhook signature error: ${err.message}` };
   }
 
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (!dsn) return { statusCode: 500, headers: {}, body: "DB not configured" };
 
   try {

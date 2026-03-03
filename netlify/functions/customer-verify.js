@@ -7,13 +7,14 @@
 
 const crypto = require("crypto");
 const { signSession, sessionCookie, redirect, json } = require("./_customer_auth");
+const { getDatabaseUrl } = require("./_db_url");
 
 const BASE_URL =
   process.env.PUBLIC_URL || "https://kaixu67.skyesoverlondon.netlify.app";
 
 async function getDb() {
   const { neon } = await import("@neondatabase/serverless");
-  return neon(process.env.NEON_DATABASE_URL);
+  return neon(getDatabaseUrl());
 }
 
 async function hashToken(raw) {
@@ -33,7 +34,7 @@ exports.handler = async (event) => {
     return redirect(`${BASE_URL}/portal.html?error=invalid_link`);
   }
 
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (!dsn) return json(500, { ok: false, error: "Database not configured" });
 
   try {
@@ -116,7 +117,7 @@ exports.handler = async (event) => {
           ${hash},
           ${prefix},
           ${"self-serve"},
-          ${["kAIxU-flash"]},
+          ${["kAIxU6.7-flash"]},
           ${50},
           ${expiresAt},
           ${"Auto-issued kAIxU Lite trial. 2 hr TTL, 50 req/month cap."},

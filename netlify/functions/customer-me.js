@@ -6,10 +6,11 @@
 "use strict";
 
 const { requireCustomerSession, json, preflight } = require("./_customer_auth");
+const { getDatabaseUrl } = require("./_db_url");
 
 async function getDb() {
   const { neon } = await import("@neondatabase/serverless");
-  return neon(process.env.NEON_DATABASE_URL);
+  return neon(getDatabaseUrl());
 }
 
 exports.handler = async (event) => {
@@ -19,7 +20,7 @@ exports.handler = async (event) => {
   const { customer, error } = await requireCustomerSession(event);
   if (error || !customer) return json(401, { ok: false, error: error || "Not authenticated" });
 
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (!dsn) return json(500, { ok: false, error: "Database not configured" });
 
   try {

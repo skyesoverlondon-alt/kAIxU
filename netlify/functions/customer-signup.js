@@ -7,10 +7,11 @@
 "use strict";
 
 const { generateMagicToken, json, preflight } = require("./_customer_auth");
+const { getDatabaseUrl } = require("./_db_url");
 
 async function getDb() {
   const { neon } = await import("@neondatabase/serverless");
-  return neon(process.env.NEON_DATABASE_URL);
+  return neon(getDatabaseUrl());
 }
 
 async function sendMagicLinkEmail(email, link) {
@@ -75,7 +76,7 @@ exports.handler = async (event) => {
     return json(400, { ok: false, error: "A valid email address is required." });
   }
 
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (!dsn) return json(500, { ok: false, error: "Database not configured" });
 
   try {

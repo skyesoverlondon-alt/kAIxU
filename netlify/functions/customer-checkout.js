@@ -6,13 +6,14 @@
 "use strict";
 
 const { requireCustomerSession, json, preflight } = require("./_customer_auth");
+const { getDatabaseUrl } = require("./_db_url");
 
 const BASE_URL =
   process.env.PUBLIC_URL || "https://kaixu67.skyesoverlondon.netlify.app";
 
 async function getDb() {
   const { neon } = await import("@neondatabase/serverless");
-  return neon(process.env.NEON_DATABASE_URL);
+  return neon(getDatabaseUrl());
 }
 
 exports.handler = async (event) => {
@@ -41,7 +42,7 @@ exports.handler = async (event) => {
     return json(503, { ok: false, error: "No price configured. Set STRIPE_LITE_PRICE_ID in Netlify env." });
   }
 
-  const dsn = process.env.NEON_DATABASE_URL;
+  const dsn = getDatabaseUrl();
   if (!dsn) return json(500, { ok: false, error: "Database not configured" });
 
   try {

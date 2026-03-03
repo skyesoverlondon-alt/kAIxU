@@ -1,6 +1,6 @@
 // admin-log.js
 // Fire-and-forget logging endpoint called by the Cloudflare Worker.
-// Auth: KAIXU_SERVICE_SECRET (x-kaixu-service header) — NOT Netlify Identity.
+// Auth: KAIXU_SERVICE_SECRETS or KAIXU_SERVICE_SECRET (x-kaixu-service header) — NOT Netlify Identity.
 // POST /api/admin/log
 // Body: { requestId, tokenId, tokenPrefix, model, endpoint, promptTokens,
 //         candidatesTokens, thoughtsTokens, totalTokens, finishReason,

@@ -1,6 +1,6 @@
 // admin-token-verify.js
 // Called by the Cloudflare Worker to validate an app token.
-// Auth: KAIXU_SERVICE_SECRET (x-kaixu-service header) — NOT Netlify Identity.
+// Auth: KAIXU_SERVICE_SECRETS or KAIXU_SERVICE_SECRET (x-kaixu-service header) — NOT Netlify Identity.
 // POST /api/admin/token/verify
 // Body: { "token": "kxu_..." }
 // Returns: { valid: bool, tokenId, tokenPrefix, allowedModels, monthlyLimit }
