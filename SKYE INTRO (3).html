@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>kAIxU Inner Sanctum Intro</title>
+  <style>
+    :root{
+      --gold:#ffd36a;
+      --purple:#a243ff;
+      --cyan:#27f2ff;
+      --display:'Playfair Display', Georgia, serif;
+      --body:'Instrument Sans', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      --mono:'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      --ease-out-expo:cubic-bezier(0.16,1,0.3,1);
+      --ease-out-quart:cubic-bezier(0.25,1,0.5,1);
+    }
+
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      font-family:var(--body);
+      background:#05050b;
+      color:rgba(255,255,255,.92);
+    }
+
+    body.locked{overflow:hidden; height:100vh;}
+    .cinematic-opener{
+      position:fixed; inset:0;
+      z-index:10000;
+      display:flex; align-items:center; justify-content:center; flex-direction:column;
+      background:#05050b;
+      pointer-events:none;
+      animation: openerFadeOut 1s var(--ease-out-expo) 4.6s forwards;
+    }
+    .cinematic-opener::before{
+      content:"";
+      position:absolute; inset:0;
+      background:
+        radial-gradient(ellipse at 22% 52%, rgba(255,211,106,.14) 0%, transparent 55%),
+        radial-gradient(ellipse at 78% 52%, rgba(162,67,255,.16) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 75%, rgba(39,242,255,.08) 0%, transparent 60%);
+      animation: gradientPulse 4s ease-in-out infinite;
+    }
+    @keyframes gradientPulse{0%,100%{opacity:.55}50%{opacity:1}}
+
+    .opener-content{position:relative; z-index:2; text-align:center; padding:2rem; max-width:980px;}
+    .opener-line{overflow:hidden;}
+    .opener-text{
+      font-family:var(--mono);
+      color:rgba(255,255,255,.72);
+      font-size:clamp(.9rem,2.6vw,1.15rem);
+      letter-spacing:.28em;
+      text-transform:uppercase;
+      opacity:0;
+      transform:translateY(100%);
+      animation:slideUp 1s var(--ease-out-expo) .5s forwards;
+    }
+    .opener-title{
+      font-family:var(--display);
+      color:var(--gold);
+      font-size:clamp(2.2rem,7.8vw,5.2rem);
+      font-weight:700;
+      line-height:1.05;
+      margin:1.25rem 0;
+      opacity:0;
+      transform:translateY(100%);
+      animation:slideUp 1.2s var(--ease-out-expo) 1s forwards;
+    }
+    .opener-subtitle{
+      font-family:var(--body);
+      color:rgba(255,255,255,.70);
+      font-size:clamp(.95rem,2vw,1.1rem);
+      letter-spacing:.04em;
+      opacity:0;
+      animation:fadeIn 1.2s var(--ease-out-expo) 2.0s forwards;
+      max-width:72ch;
+      margin:0 auto;
+      line-height:1.85;
+    }
+    .opener-divider{
+      width:0; height:1px;
+      background:linear-gradient(90deg, transparent, var(--cyan), var(--gold), var(--purple), transparent);
+      margin:1.8rem auto;
+      animation:expandLine 1.5s var(--ease-out-expo) 1.5s forwards;
+      opacity:.9;
+    }
+    .opener-logo{
+      margin-top:2.4rem;
+      opacity:0;
+      animation:fadeIn 1s var(--ease-out-expo) 2.45s forwards;
+      display:flex;
+      justify-content:center;
+    }
+
+    .sol-logo{
+      width:180px;
+      height:auto;
+      filter: drop-shadow(0 0 16px rgba(255,211,106,.18)) drop-shadow(0 0 18px rgba(39,242,255,.10));
+      animation: pulseLogo 2.8s ease-in-out infinite;
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+    @keyframes pulseLogo{
+      0%,100%{transform:translateY(0) scale(1); opacity:.92;}
+      50%{transform:translateY(-2px) scale(1.02); opacity:1;}
+    }
+
+    .opener-company{
+      font-family:var(--mono);
+      color:rgba(255,255,255,.44);
+      font-size:.72rem;
+      letter-spacing:.15em;
+      text-transform:uppercase;
+      margin-top:1rem;
+      opacity:0;
+      animation:fadeIn 1s var(--ease-out-expo) 3.0s forwards;
+    }
+
+    @keyframes slideUp{to{opacity:1; transform:translateY(0)}}
+    @keyframes fadeIn{to{opacity:1}}
+    @keyframes expandLine{to{width:240px}}
+    @keyframes openerFadeOut{to{opacity:0; visibility:hidden}}
+
+    .progress-bar{
+      position:fixed;
+      bottom:40px;
+      left:50%;
+      transform:translateX(-50%);
+      width:240px;
+      height:2px;
+      background:rgba(255,255,255,.10);
+      border-radius:2px;
+      overflow:hidden;
+      z-index:10001;
+      animation:fadeOut .5s var(--ease-out-expo) 4.0s forwards;
+    }
+    .progress-fill{
+      height:100%;
+      width:0;
+      background:linear-gradient(90deg, var(--cyan), var(--gold), var(--purple));
+      animation:progressFill 4s var(--ease-out-quart) forwards;
+      box-shadow:0 0 18px rgba(39,242,255,.28);
+    }
+    @keyframes progressFill{0%{width:0}100%{width:100%}}
+    @keyframes fadeOut{to{opacity:0}}
+
+    @media (prefers-reduced-motion: reduce){
+      .cinematic-opener, .progress-fill, .scroll-line, .sol-logo{animation:none !important;}
+    }
+  </style>
+</head>
+<body class="locked">
+  <div class="cinematic-opener" aria-hidden="true">
+    <div class="opener-content">
+      <div class="opener-line">
+        <p class="opener-text">kAIxU · Skyes Over London LC</p>
+      </div>
+      <div class="opener-line">
+        <h1 class="opener-title">kAIxU<br/>Inner Sanctum</h1>
+      </div>
+      <div class="opener-divider"></div>
+      <p class="opener-subtitle">
+        Operator-grade AI + web infrastructure with proof-first execution: gateways, brains, IDEs, and deployable systems designed for governed, verifiable shipping.
+      </p>
+
+      <div class="opener-logo">
+        <img class="sol-logo" src="https://cdn1.sharemyimage.com/2026/03/03/Gemini_Generated_Image_5aft6s5aft6s5aft-1.png" alt="Skyes Over London LC top image" loading="eager" />
+      </div>
+      <p class="opener-company">Skyes Over London LC · Powered by kAIxU</p>
+    </div>
+
+    <div class="progress-bar" aria-hidden="true"><div class="progress-fill"></div></div>
+  </div>
+
+  <script>
+    (function(){
+      const introReturnKey='kaixuIntroReturn';
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.body.classList.remove('locked');
+          const target=sessionStorage.getItem(introReturnKey);
+          const destination=(target && target !== window.location.pathname) ? target : '/';
+          sessionStorage.setItem('kaixuIntroPass','1');
+          sessionStorage.removeItem(introReturnKey);
+          window.location.replace(destination);
+        }, 5200);
+      });
+    })();
+  </script>
+</body>
+</html>
