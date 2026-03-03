@@ -117,6 +117,29 @@
       animation:fadeIn 1s var(--ease-out-expo) 3.0s forwards;
     }
 
+    .skip-intro-btn{
+      margin-top:1.2rem;
+      padding:.6rem 1rem;
+      border:1px solid rgba(255,255,255,.25);
+      border-radius:999px;
+      background:rgba(255,255,255,.08);
+      color:rgba(255,255,255,.88);
+      font-family:var(--mono);
+      font-size:.72rem;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      cursor:pointer;
+      pointer-events:auto;
+      transition:all .2s ease;
+      opacity:0;
+      animation:fadeIn 1s var(--ease-out-expo) 3.2s forwards;
+    }
+    .skip-intro-btn:hover{
+      border-color:rgba(39,242,255,.55);
+      box-shadow:0 0 14px rgba(39,242,255,.22);
+      color:#fff;
+    }
+
     @keyframes slideUp{to{opacity:1; transform:translateY(0)}}
     @keyframes fadeIn{to{opacity:1}}
     @keyframes expandLine{to{width:240px}}
@@ -168,6 +191,7 @@
         <img class="sol-logo" src="https://cdn1.sharemyimage.com/2026/03/03/Gemini_Generated_Image_5aft6s5aft6s5aft-1.png" alt="Skyes Over London LC top image" loading="eager" />
       </div>
       <p class="opener-company">Skyes Over London LC · Powered by kAIxU</p>
+      <button id="skip-intro-btn" class="skip-intro-btn" type="button" aria-label="Skip intro animation">Skip Intro</button>
     </div>
 
     <div class="progress-bar" aria-hidden="true"><div class="progress-fill"></div></div>
@@ -176,16 +200,97 @@
   <script>
     (function(){
       const introReturnKey='kaixuIntroReturn';
-      window.addEventListener('load', () => {
-        setTimeout(() => {
-          document.body.classList.remove('locked');
-          const target=sessionStorage.getItem(introReturnKey);
-          const destination=(target && target !== window.location.pathname) ? target : '/';
-          sessionStorage.setItem('kaixuIntroPass','1');
-          sessionStorage.removeItem(introReturnKey);
-          window.location.replace(destination);
-        }, 5200);
-      });
+      const fallbackDestination='/public/index.html';
+      let hasNavigated=false;
+
+      const normalizePath=(value)=>{
+        try{return decodeURIComponent(value);}catch{return value;}
+      };
+
+      const safeStorageGet=(key)=>{
+        try{return sessionStorage.getItem(key);}catch{return null;}
+      };
+
+      const safeStorageSet=(key,value)=>{
+        try{sessionStorage.setItem(key,value);}catch{}
+      };
+
+      const safeStorageRemove=(key)=>{
+        try{sessionStorage.removeItem(key);}catch{}
+      };
+
+      const isIntroPath=(value)=>{
+        if(!value) return false;
+        return value.includes('SKYE INTRO (3).html') || value.includes('SKYE INTRO (3)');
+      };
+
+      const resolveDestination=()=>{
+        const target=safeStorageGet(introReturnKey);
+        if(!target) return fallbackDestination;
+
+        const normalizedTarget=normalizePath(target);
+        const normalizedCurrent=normalizePath(window.location.pathname);
+        if(
+          normalizedTarget===normalizedCurrent ||
+          isIntroPath(normalizedTarget)
+        ){
+          return fallbackDestination;
+        }
+        return target;
+      };
+
+      const clearRuntimeCache=async()=>{
+        try{
+          if('serviceWorker' in navigator){
+            const regs=await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((reg)=>reg.unregister()));
+          }
+        }catch{}
+
+        try{
+          if('caches' in window){
+            const keys=await caches.keys();
+            await Promise.all(keys.map((key)=>caches.delete(key)));
+          }
+        }catch{}
+      };
+
+      const finalizeIntro=async()=>{
+        if(hasNavigated) return;
+        hasNavigated=true;
+        document.body.classList.remove('locked');
+        const destination=resolveDestination();
+        safeStorageSet('kaixuIntroPass','1');
+        safeStorageRemove(introReturnKey);
+
+        await Promise.race([
+          clearRuntimeCache(),
+          new Promise((resolve)=>setTimeout(resolve, 650))
+        ]);
+
+        let navigationTarget=destination;
+        try{
+          const url=new URL(destination, window.location.origin);
+          if(!url.searchParams.get('introPass')) url.searchParams.set('introPass','1');
+          url.searchParams.set('introBust', String(Date.now()));
+          navigationTarget=`${url.pathname}${url.search}${url.hash}`;
+        }catch{}
+
+        window.location.replace(navigationTarget);
+      };
+
+      if(document.readyState==='loading'){
+        document.addEventListener('DOMContentLoaded', () => {
+          setTimeout(finalizeIntro, 5200);
+        }, { once:true });
+      }else{
+        setTimeout(finalizeIntro, 5200);
+      }
+
+      setTimeout(finalizeIntro, 8000);
+
+      const skipBtn=document.getElementById('skip-intro-btn');
+      skipBtn?.addEventListener('click', finalizeIntro);
     })();
   </script>
 </body>
